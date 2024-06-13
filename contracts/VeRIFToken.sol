@@ -33,9 +33,9 @@ contract VeRIFToken is
     __UUPSUpgradeable_init();
   }
 
-  function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
-
   // The following functions are overrides required by Solidity.
+
+  function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
   function decimals() public view override(ERC20Upgradeable, ERC20WrapperUpgradeable) returns (uint8) {
     return super.decimals();
