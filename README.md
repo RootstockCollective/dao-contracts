@@ -10,13 +10,18 @@ npx hardhat test
 REPORT_GAS=true npx hardhat test
 npx hardhat node
 ```
+
+## veRIF
+
+The veRIF contract is a contract that allows users to stake RIF tokens in order to get voting power in the RIF DAO.
+
 ## RIF Token
 
-The first contract that has been brought to the project is the RIF Token contract [RIFLabs RIF-Token](https://github.com/riflabs/RIF-Token)
+This contract has been brought to the project is the RIF Token contract [RIFLabs RIF-Token](https://github.com/riflabs/RIF-Token)
 
 A few simple tests have been created to make sure that the token works.
 
-Refer to ```test/RIFToken.ts```
+Refer to ```test/RIFToken.test.ts```
 
 What is tested:
 
