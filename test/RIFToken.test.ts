@@ -40,7 +40,7 @@ describe('RIFToken Contract', function () {
 
     if (latestBlock) {
       // We must close tokenDistribution to send transactions
-      await rifToken.closeTokenDistribution(latestBlock.timestamp)
+      await rifToken.closeTokenDistribution(latestBlock.timestamp);
 
       // Transfer 50 RIF Tokens to address 1
       await rifToken.transfer(addr1, ethers.parseUnits('50', 'ether'))
