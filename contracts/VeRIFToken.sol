@@ -35,6 +35,7 @@ contract VeRIFToken is
 
   // The following functions are overrides required by Solidity.
 
+  //solhint-disable-next-line no-empty-blocks
   function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
   function decimals() public view override(ERC20Upgradeable, ERC20WrapperUpgradeable) returns (uint8) {
