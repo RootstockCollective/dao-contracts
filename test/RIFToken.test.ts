@@ -8,7 +8,7 @@ describe('RIFToken Contract', function () {
   let owner: SignerWithAddress, addr1: SignerWithAddress, addr2: SignerWithAddress
   let rifToken: RIFToken
 
-  const deployRif = () => ethers.deployContract('RIFToken');
+  const deployRif = () => ethers.deployContract('RIFToken')
 
   before(async () => {
     ;[owner, addr1, addr2] = await ethers.getSigners()
@@ -40,7 +40,7 @@ describe('RIFToken Contract', function () {
 
     if (latestBlock) {
       // We must close tokenDistribution to send transactions
-      await rifToken.closeTokenDistribution(latestBlock.timestamp);
+      await rifToken.closeTokenDistribution(latestBlock.timestamp)
 
       // Transfer 50 RIF Tokens to address 1
       await rifToken.transfer(addr1, ethers.parseUnits('50', 'ether'))
