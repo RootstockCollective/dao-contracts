@@ -8,7 +8,7 @@ describe('RIFToken Contract', function () {
   let owner: SignerWithAddress, addr1: SignerWithAddress, addr2: SignerWithAddress
   let rifToken: RIFToken
 
-  const deployRif = () => ethers.deployContract('RIFToken')
+  const deployRif = () => ethers.deployContract('RIFToken');
 
   before(async () => {
     ;[owner, addr1, addr2] = await ethers.getSigners()
