@@ -1,6 +1,6 @@
 import { ethers, upgrades } from 'hardhat';
 
-export const deployDao = async (rifTokenAddress: string, deployerAddress: string) => {
+export const deployVeRif = async (rifTokenAddress: string, deployerAddress: string) => {
   const VeRIFTokenFactory = await ethers.getContractFactory('VeRIFToken');
   const veRIFToken = await upgrades.deployProxy(VeRIFTokenFactory, [rifTokenAddress, deployerAddress], {
     initializer: 'initialize',
