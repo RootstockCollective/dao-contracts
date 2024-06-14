@@ -2,7 +2,6 @@
   "extends": "solhint:recommended",
   "rules": {
     "no-global-import": "off",
-    "func-visibility": ["warn", { "ignoreConstructors": true }],
-    "compiler-version": "off"
+    "func-visibility": ["warn", { "ignoreConstructors": true }]
   }
 }

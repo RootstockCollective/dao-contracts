@@ -1,2 +1,2 @@
 node_modules
-contracts/RIFToken.test.sol
+contracts/RIFToken.sol
