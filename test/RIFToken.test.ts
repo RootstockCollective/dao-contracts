@@ -3,11 +3,12 @@ import { ethers } from 'hardhat';
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers';
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import { RIFToken } from '../typechain-types';
-import { deployRif } from '../scripts/deploy-rif';
 
 describe('RIFToken Contract', function () {
   let owner: SignerWithAddress, addr1: SignerWithAddress, addr2: SignerWithAddress;
   let rifToken: RIFToken;
+
+  const deployRif = () => ethers.deployContract('RIFToken');
 
   before(async () => {
     [owner, addr1, addr2] = await ethers.getSigners();

@@ -1,9 +1,8 @@
 import { ethers } from 'hardhat';
 import { deployDao } from './deploy-dao';
-import { deployRif } from './deploy-rif';
 
 const deploy = async () => {
-  const rifToken = await deployRif();
+  const rifToken = await ethers.deployContract('RIFToken');
   const rifAddress = await rifToken.getAddress();
   const [deployer] = await ethers.getSigners();
   const deployerAddress = await deployer.getAddress();

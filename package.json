@@ -7,6 +7,7 @@
   "license": "MIT",
   "scripts": {
     "compile": "hardhat compile",
+    "clean": "hardhat clean",
     "lint:ts": "eslint 'test/**/*.ts'",
     "lint:sol": "solhint 'contracts/**/*.sol'",
     "lint": "yarn lint:ts && yarn lint:sol",
