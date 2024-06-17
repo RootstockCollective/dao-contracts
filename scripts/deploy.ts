@@ -1,5 +1,5 @@
 import { ethers } from 'hardhat'
-import { deployVeRif } from './deploy-veRif'
+import { deployVeRif } from './deploy-verif'
 
 const deploy = async () => {
   const rifToken = await ethers.deployContract('RIFToken')
