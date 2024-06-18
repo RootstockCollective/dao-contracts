@@ -15,7 +15,7 @@ jobs:
         with:
           node-version: 16
           fail-on: none
-          slither-args: --filter-paths "openzeppelin,RIF,util" --exclude .github --checklist --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/
+          slither-args: --filter-paths "openzeppelin,RIF,util" --checklist --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/
           target: .
 
       - name: Create Slack payload
