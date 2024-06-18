@@ -12,7 +12,8 @@
       "files": "*.sol",
       "options": {
         "singleQuote": false,
-        "explicitTypes": "always"
+        "explicitTypes": "always",
+        "bracketSpacing": false
       }
     }
   ]
