@@ -1,62 +1,77 @@
 import { expect } from 'chai'
-import { ethers } from 'hardhat'
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { RIFToken } from '../typechain-types'
+import hre from 'hardhat'
+import { Address, WalletClient, createPublicClient, http, parseEther, parseUnits } from 'viem'
+import { hardhat } from 'viem/chains'
+import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
+import { GetContractReturnType } from '@nomicfoundation/hardhat-viem/types'
+import { RIFTokenContact$Type } from '../artifacts/contracts/RIFToken.sol/RIFTokenContact'
 
 describe('RIFToken Contract', function () {
-  let owner: SignerWithAddress, addr1: SignerWithAddress, addr2: SignerWithAddress
-  let rifToken: RIFToken
+  let owner: Address, addr1: Address, addr2: Address
+  let ownerAcc: WalletClient, addr1Acc: WalletClient, addr2Acc: WalletClient
+  let rifToken: GetContractReturnType<RIFTokenContact$Type['abi']>
 
-  const deployRif = () => ethers.deployContract('RIFToken')
+  const deployRif = () => hre.viem.deployContract('RIFTokenContact')
 
   before(async () => {
-    ;[owner, addr1, addr2] = await ethers.getSigners()
+    ;[ownerAcc, addr1Acc, addr2Acc] = await hre.viem.getWalletClients()
+    owner = (await ownerAcc.getAddresses())[0]
+    addr1 = (await addr1Acc.getAddresses())[0]
+    addr2 = (await addr2Acc.getAddresses())[0]
     rifToken = await loadFixture(deployRif)
+
+    createPublicClient({
+      chain: hardhat,
+      transport: http(),
+    })
   })
 
   it('Should assign the initial balance to the contract itself', async function () {
-    const contractBalance = await rifToken.balanceOf(rifToken)
-    expect(contractBalance).to.equal(ethers.parseUnits('1000000000', 18))
+    const contractBalance = await rifToken.read.balanceOf([rifToken.address])
+    expect(contractBalance).to.equal(parseUnits('1000000000', 18))
   })
 
   it('Should use validAddress', async function () {
-    const addressOne = await addr1.getAddress()
-    const isAddressOneValid = await rifToken.validAddress(addressOne)
+    const isAddressOneValid = await rifToken.read.validAddress([addr1])
     expect(isAddressOneValid).to.be.true
   })
 
   // Single block to test the entire Transfer flow
 
   it('Should transfer all the tokens to deployer/owner using setAuthorizedManagerContract', async function () {
-    await rifToken.setAuthorizedManagerContract(owner)
+    await rifToken.write.setAuthorizedManagerContract([owner])
 
-    expect(await rifToken.balanceOf(owner)).to.be.equal(ethers.parseUnits('1000000000', 'ether'))
+    expect(await rifToken.read.balanceOf([owner])).to.be.equal(parseUnits('1000000000', 18))
   })
 
   it('Should transfer tokens between accounts', async function () {
     // Close distribution
-    const latestBlock = await ethers.provider.getBlock('latest')
+    const provider = await hre.viem.getPublicClient()
+
+    const latestBlock = await provider.getBlock()
+    console.log('latestBlock', latestBlock)
 
     if (latestBlock) {
       // We must close tokenDistribution to send transactions
-      await rifToken.closeTokenDistribution(latestBlock.timestamp)
+      await rifToken.write.closeTokenDistribution([BigInt(latestBlock.timestamp)])
 
       // Transfer 50 RIF Tokens to address 1
-      await rifToken.transfer(addr1, ethers.parseUnits('50', 'ether'))
-      const addr1Balance = await rifToken.balanceOf(addr1)
-      expect(addr1Balance).to.equal(ethers.parseUnits('50', 'ether'))
+      await rifToken.write.transfer([addr1, parseEther('50')])
+
+      const addr1Balance = await rifToken.read.balanceOf([addr1])
+      console.log('addr1Balance', addr1Balance)
+      expect(addr1Balance).to.equal(parseEther('50'))
 
       // Transfer 10 RIF Tokens from address 1 to address 2
-      await rifToken.connect(addr1).transfer(addr2, ethers.parseUnits('10', 'ether'))
-      const addr2Balance = await rifToken.balanceOf(addr2)
-      expect(addr2Balance).to.equal(ethers.parseUnits('10', 'ether'))
+      await rifToken.write.transfer([addr2, parseUnits('10', 18)])
+      const addr2Balance = await rifToken.read.balanceOf([addr2])
+      expect(addr2Balance).to.equal(parseUnits('10', 18))
     }
   })
 
   it('Should make sure that the "Transfer" event is emitted', async () => {
     // Also check that the event "Transfer" is emitted
-    await expect(rifToken.transfer(addr1, 1))
+    await expect(rifToken.write.transfer([addr1, 1n]))
       .to.emit(rifToken, 'Transfer(address,address,uint256)')
       .withArgs(owner, addr1, 1)
   })
