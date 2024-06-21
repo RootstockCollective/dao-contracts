@@ -11,9 +11,9 @@ REPORT_GAS=true npx hardhat test
 npx hardhat node
 ```
 
-## veRIF
+## stRIF
 
-The veRIF contract is a contract that allows users to stake RIF tokens in order to get voting power in the RIF DAO.
+The stRIF contract is a contract that allows users to stake RIF tokens in order to get voting power in the RIF DAO.
 
 ## RIF Token
 
