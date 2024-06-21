@@ -2,7 +2,6 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 import { PublicClient, WalletClient, parseEther, parseEventLogs } from 'viem'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import { rifTokenContracts } from '../typechain-types/factories'
 
 describe('RIFToken Contract', function () {
   const rifInitialSupply = 10n ** 27n
