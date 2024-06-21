@@ -1,15 +1,15 @@
 import { ethers } from 'hardhat'
-import { deployVeRif } from './deploy-verif'
+import { deployStRIF } from './deploy-stRIF'
 
 const deploy = async () => {
   const rifToken = await ethers.deployContract('RIFToken')
   const rifAddress = await rifToken.getAddress()
   const [deployer] = await ethers.getSigners()
   const deployerAddress = await deployer.getAddress()
-  const veRIFToken = await deployVeRif(rifAddress, deployerAddress)
+  const stRIFToken = await deployStRIF(rifAddress, deployerAddress)
 
   console.log(`RIFToken deployed at: ${rifAddress}`)
-  console.log(`VeRIFToken deployed at: ${await veRIFToken.getAddress()}`)
+  console.log(`stRIFToken deployed at: ${await stRIFToken.getAddress()}`)
 }
 
 deploy().catch(err => {

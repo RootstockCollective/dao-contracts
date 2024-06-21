@@ -11,7 +11,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract VeRIFToken is
+contract StRIFToken is
   Initializable,
   ERC20Upgradeable,
   ERC20PermitUpgradeable,
@@ -26,8 +26,8 @@ contract VeRIFToken is
   }
 
   function initialize(address rifToken, address initialOwner) public initializer {
-    __ERC20_init("VeRIFToken", "veRIF");
-    __ERC20Permit_init("VeRIFToken");
+    __ERC20_init("StRIFToken", "stRIF");
+    __ERC20Permit_init("StRIFToken");
     __ERC20Votes_init();
     __ERC20Wrapper_init(ERC20Upgradeable(rifToken));
     __Ownable_init(initialOwner);
