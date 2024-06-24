@@ -8,7 +8,7 @@ export const deployStRIF = async (rifTokenAddress: string, deployerAddress: stri
     kind: 'uups',
     timeout: 0, // wait indefinitely
     unsafeAllow: ['internal-function-storage'],
-  }) as unknown as StRIFToken)
+  })) as unknown as StRIFToken
 
   return await stRIFToken.waitForDeployment()
 }
