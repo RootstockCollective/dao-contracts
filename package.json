@@ -6,12 +6,12 @@
   "author": "RootstockLabs",
   "license": "MIT",
   "scripts": {
-    "compile": "hardhat compile",
+    "compile": "npx hardhat compile",
     "clean": "hardhat clean",
     "lint:ts": "eslint 'test/**/*.ts'",
     "lint:sol": "solhint 'contracts/**/*.sol'",
     "lint": "yarn lint:ts && yarn lint:sol",
-    "test": "hardhat test"
+    "test": "npx hardhat test"
   },
   "devDependencies": {
     "@eslint/js": "^9.5.0",
@@ -54,6 +54,7 @@
     "viem": "^2.15.1"
   },
   "dependencies": {
+    "bigint-crypto-utils": "^3.3.0",
     "rif-token-contracts": "https://github.com/Freshenext/RIF-Token"
   },
   "packageManager": "yarn@1.22.19+sha1.4ba7fc5c6e704fce2066ecbfb0b0d8976fe62447"
