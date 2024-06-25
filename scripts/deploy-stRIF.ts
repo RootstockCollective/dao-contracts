@@ -1,4 +1,4 @@
-import { ethers, upgrades } from 'hardhat'
+import hre, { ethers, upgrades } from 'hardhat'
 import { StRIFToken } from '../typechain-types'
 
 export const deployStRIF = async (rifTokenAddress: string, deployerAddress: string) => {
@@ -8,7 +8,13 @@ export const deployStRIF = async (rifTokenAddress: string, deployerAddress: stri
     kind: 'uups',
     timeout: 0, // wait indefinitely
     unsafeAllow: ['internal-function-storage'],
-  }) as unknown as StRIFToken)
+  })) as unknown as StRIFToken
 
-  return await stRIFToken.waitForDeployment()
+  const stRIFContract = await stRIFToken.waitForDeployment()
+
+  console.log(
+    `Deployed RIF Governance Token on ${hre.network.name} with address ${await stRIFContract.getAddress()}`,
+  )
+
+  return stRIFContract
 }
