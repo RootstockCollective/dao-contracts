@@ -1,7 +1,7 @@
 import { HardhatUserConfig } from 'hardhat/config'
 import '@nomicfoundation/hardhat-toolbox'
 import '@openzeppelin/hardhat-upgrades'
-import "@nomicfoundation/hardhat-viem" 
+import '@nomicfoundation/hardhat-viem'
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -14,6 +14,11 @@ const config: HardhatUserConfig = {
       },
       { version: '0.4.24' },
     ],
+  },
+  networks: {
+    hardhat: {
+      allowUnlimitedContractSize: true,
+    },
   },
 }
 
