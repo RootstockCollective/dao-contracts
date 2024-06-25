@@ -6,5 +6,9 @@ export const deployRif = async () => {
 
   console.log(`Deployed RIF Token on ${hre.network.name} with address ${rifAddress}`)
 
-  return { rifToken, rifAddress }
+  const tokenFaucet = await ethers.deployContract('TokenFaucet', [rifToken])
+
+  console.log(`Deployed Token Faucet on ${hre.network.name} with address ${await tokenFaucet.getAddress()}`)
+
+  return { rifToken, rifAddress, tokenFaucet }
 }
