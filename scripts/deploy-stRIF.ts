@@ -7,8 +7,10 @@ export const deployStRIF = async (rifTokenAddress: string, deployerAddress: stri
     initializer: 'initialize',
     kind: 'uups',
     timeout: 0, // wait indefinitely
+    // hardhat upgrades issue temporary workaround
+    // https://github.com/OpenZeppelin/openzeppelin-upgrades/issues/1037#issuecomment-2176681177
     unsafeAllow: ['internal-function-storage'],
   })) as unknown as StRIFToken
-
-  return await stRIFToken.waitForDeployment()
+  await stRIFToken.waitForDeployment()
+  return stRIFToken
 }

@@ -40,3 +40,11 @@ The repository does not contain a package.json, causing hardhat to error when ru
 We decided (in the meantime) to fork the repository and add it there [Forked Repository](https://github.com/Freshenext/RIF-Token)
 
 **In the future we must add a package.json to the main repository, and remove the forked repository.**
+
+## Slither - Solidity static analyzer
+
+Run this command to test smart contracts excluding OpenZeppelin and RIF
+
+```shell
+slither . --filter-paths openzeppelin,rif-token-contracts
+```
