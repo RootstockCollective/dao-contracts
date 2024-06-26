@@ -48,17 +48,20 @@ contract StRIFToken is
    * and delegate gained voting power to a provided address
    * @param account a target address for minting and delegation
    * @param value amount of RIF tokens to stake
+   * @return status returns success status for consistency with the
+   * function `depositFor`
    */
-  function depositAndDelegate(address account, uint256 value) public virtual returns (bool success) {
+  function depositAndDelegate(address account, uint256 value) public virtual returns (bool) {
     // don't allow zero amount
     if (value == 0) revert DepositFailed(_msgSender(), account, value);
-    // don't allow to deposit to RIF in order not to loose RIFs
+    // don't allow to deposit to RIF directly, otherwise the tokens will be lost
     address rif = address(underlying());
     if (account == rif) revert ERC20InvalidReceiver(rif);
-    // trying to deposit. Other checks are done within the functions
-    bool success = depositFor(account, value);
-    if (!success) revert DepositFailed(_msgSender(), account, value);
+    // trying to deposit. Other account checks are done within the function `depositFor`
+    bool depositSuccess = depositFor(account, value);
+    if (!depositSuccess) revert DepositFailed(_msgSender(), account, value);
     delegate(account);
+    return true;
   }
 
   // The following functions are overrides required by Solidity.

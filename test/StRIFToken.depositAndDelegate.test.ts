@@ -7,7 +7,7 @@ import { ContractTransactionResponse } from 'ethers'
 
 type Address = `0x${string}`
 
-describe('utility functions', () => {
+describe('Function depositAndDelegate', () => {
   let deployer: SignerWithAddress
   let holder: SignerWithAddress
   let stranger: SignerWithAddress
@@ -15,6 +15,7 @@ describe('utility functions', () => {
   let rifAddress: Address
   let stRif: StRIFToken
   let stRifAddress: Address
+  let mintDelegateTx: ContractTransactionResponse
   const votingPower = 100n * 10n ** 18n // 100 RIF tokens
 
   before(async () => {
@@ -34,7 +35,7 @@ describe('utility functions', () => {
     await (await rif.transfer(holder.address, votingPower)).wait()
   })
 
-  describe('Manipulating RIFs', () => {
+  describe('Approving RIFs', () => {
     it('Holder should own 100 RIF tokens', async () => {
       const rifBalance = await rif.balanceOf(holder.address)
       expect(rifBalance).to.equal(votingPower)
@@ -62,13 +63,15 @@ describe('utility functions', () => {
     it('holder should NOT have voting power', async () => {
       expect(await stRif.getVotes(holder.address)).to.equal(0n)
     })
+
+    it('holder should NOT have checkpoints', async () => {
+      expect(await stRif.numCheckpoints(holder.address)).to.equal(0n)
+    })
   })
 
   describe('Minting / delegation in one Tx', () => {
-    let mintDelegateTx: ContractTransactionResponse
-
     describe('Sad path', () => {
-      it('stranger should not mint stRifs instead of holder', async () => {
+      it('non-owner should not be able to mint stRifs', async () => {
         const tx = stRif.connect(stranger).depositAndDelegate(stranger.address, votingPower)
         await expect(tx)
           // proxy error
@@ -81,7 +84,7 @@ describe('utility functions', () => {
         await expect(tx).to.be.revertedWithCustomError(stRif, 'FailedInnerCall')
       })
 
-      it('holder should not mint stRifs for free', async () => {
+      it('holder should not mint zero stRifs', async () => {
         const tx = stRif.connect(holder).depositAndDelegate(holder.address, 0)
         await expect(tx)
           .to.be.revertedWithCustomError(stRif, 'DepositFailed')
@@ -140,6 +143,20 @@ describe('utility functions', () => {
 
     it('holder should have voting power', async () => {
       expect(await stRif.getVotes(holder.address)).to.equal(votingPower)
+    })
+
+    it('holder should have 1 checkpoint', async () => {
+      expect(await stRif.numCheckpoints(holder.address)).to.equal(1n)
+    })
+
+    it('block number and voting power should be recorded (snapshot) at the checkpoint', async () => {
+      const checkpointIndex = 0n
+      const [blockNumAtCheckpoint, votePowerAtCheckpoint] = await stRif.checkpoints(
+        holder.address,
+        checkpointIndex,
+      )
+      expect(blockNumAtCheckpoint).to.equal(mintDelegateTx.blockNumber)
+      expect(votePowerAtCheckpoint).to.equal(votingPower)
     })
   })
 })
