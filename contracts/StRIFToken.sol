@@ -13,9 +13,9 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
- * @title Stake RIF Token
+ * @title Staked RIF Token
  * @author Rootstock Labs
- * @notice This smart contract is a wrapper around RIF token
+ * @dev This smart contract is a wrapper around RIF token
  * providing ERC20 votes compatibility
  */
 contract StRIFToken is
