@@ -44,7 +44,7 @@ contract StRIFToken is
   }
 
   /**
-   * Allows to mint stRIFs from underlying RIF tokens (stake)
+   * @dev Allows to mint stRIFs from underlying RIF tokens (stake)
    * and delegate gained voting power to a provided address
    * @param account a target address for minting and delegation
    * @param value amount of RIF tokens to stake
