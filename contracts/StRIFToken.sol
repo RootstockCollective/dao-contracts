@@ -49,7 +49,7 @@ contract StRIFToken is
    * @param account a target address for minting and delegation
    * @param value amount of RIF tokens to stake
    */
-  function depositAndDelegate(address account, uint256 value) public virtual {
+  function depositAndDelegate(address account, uint256 value) public virtual returns (bool success) {
     // don't allow zero amount
     if (value == 0) revert DepositFailed(_msgSender(), account, value);
     // don't allow to deposit to RIF in order not to loose RIFs
