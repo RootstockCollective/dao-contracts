@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import hre, { ethers } from 'hardhat'
+import { ethers } from 'hardhat'
 import { loadFixture, mine } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import { randBetween } from 'bigint-crypto-utils'
 import { deployRif } from '../scripts/deploy-rif'
@@ -62,7 +62,7 @@ describe('RootDAO Contact', () => {
     const sendAmount = '2'
     let proposal: Proposal
     let proposalId: bigint
-    let proposalCalldata: string
+    // let proposalCalldata: string
     let proposalSnapshot: bigint
 
     describe('Proposal Creation', () => {
