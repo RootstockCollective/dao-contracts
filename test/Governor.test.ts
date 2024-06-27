@@ -202,6 +202,11 @@ describe('RootDAO Contact', () => {
         const error = `GovernorAlreadyCastVote(${holders[1].address})`
         expect(governor.connect(holders[1]).castVote(proposalId, 2)).to.be.revertedWith(error)
       })
+
+      it('the proposal should not be executed if there is not enough votes', async () => {
+        const error = `GovernorUnexpectedProposalState(${proposalId})`
+        expect(governor.connect(holders[2])['execute(uint256)'](proposalId)).to.be.revertedWith(error)
+      })
     })
   })
 })
