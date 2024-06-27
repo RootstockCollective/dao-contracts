@@ -189,6 +189,13 @@ describe('RootDAO Contact', () => {
         expect(hasVoted).to.be.true
         const { forVotes } = await governor.proposalVotes(proposalId)
         expect(forVotes).to.be.equal(await stRIF.getVotes(holders[1]))
+
+        const tx2 = await governor.connect(holders[15]).castVote(proposalId, 0)
+        tx2.wait()
+        const hasVoted2 = await governor.hasVoted(proposalId, holders[15])
+        expect(hasVoted2).to.be.true
+        const { againstVotes } = await governor.proposalVotes(proposalId)
+        expect(againstVotes).to.be.equal(await stRIF.getVotes(holders[15]))
       })
     })
   })
