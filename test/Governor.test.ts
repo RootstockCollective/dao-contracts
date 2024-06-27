@@ -197,6 +197,11 @@ describe('RootDAO Contact', () => {
         const { againstVotes } = await governor.proposalVotes(proposalId)
         expect(againstVotes).to.be.equal(await stRIF.getVotes(holders[15]))
       })
+
+      it('the same holder should not be able to cast the vote for the same proposal', async () => {
+        const error = `GovernorAlreadyCastVote(${holders[1].address})`
+        expect(governor.connect(holders[1]).castVote(proposalId, 2)).to.be.revertedWith(error)
+      })
     })
   })
 })
