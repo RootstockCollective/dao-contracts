@@ -24,7 +24,7 @@ contract TokenFaucet {
     }
 
     modifier canDispense(address to) {
-        require(cannotDispenseUntil[to] < now);
+        require(cannotDispenseUntil[to] < now, "CANNOT DISPENSE MORE THAN 1 TIME PER HOUR");
         _;
     }
 
