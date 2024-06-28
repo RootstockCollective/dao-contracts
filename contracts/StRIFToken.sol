@@ -34,6 +34,58 @@ contract StRIFToken is
     __UUPSUpgradeable_init();
   }
 
+  /**
+   * @dev Allows token holder to transfer tokens to another account, after which
+   * the recipient automatically delegates votes to themselves if they do
+   * not already have a delegate.
+   * Transfer and delegation happen within one transaction.
+   * @param to The address of the recipient of the token transfer
+   * @param value The amount of tokens being transferred
+   */
+  function transferAndDelegate(address to, uint256 value) public virtual {
+    transfer(to, value);
+    _autoDelegate(to, value);
+  }
+
+  /**
+   * @dev Allows a token holder to transfer tokens from one account to another account,
+   * after which the recipient automatically delegates votes to themselves if they do
+   * not already have a delegate. This function is analogous to `transferAndDelegate` and
+   * exists as a counterpart to the `transferFrom` function from the ERC-20 standard.
+   *
+   * @param from The address of the account to transfer tokens from
+   * @param to The address of the recipient of the token transfer
+   * @param value The amount of tokens being transferred
+   */
+  function transferFromAndDelegate(address from, address to, uint256 value) public virtual {
+    transferFrom(from, to, value);
+    _autoDelegate(to, value);
+  }
+
+  /**
+   * @dev Allows to mint stRIFs from underlying RIF tokens (stake)
+   * and delegate gained voting power to a provided address
+   * @param to a target address for minting and delegation
+   * @param value amount of RIF tokens to stake
+   */
+  function depositAndDelegate(address to, uint256 value) public virtual {
+    depositFor(to, value);
+    _autoDelegate(to, value);
+  }
+
+  /**
+   * @dev Internal function to automatically delegate votes to the recipient
+   * after a token transfer, if the recipient does not already have a delegate.
+   * Delegation only occurs if the transfer amount is greater than zero.
+   *
+   * @param to The address of the recipient of the token transfer.
+   * @param value The amount of tokens being transferred.
+   */
+  function _autoDelegate(address to, uint256 value) internal virtual {
+    if (value == 0 || delegates(to) != address(0)) return;
+    _delegate(to, to);
+  }
+
   // The following functions are overrides required by Solidity.
 
   //solhint-disable-next-line no-empty-blocks
