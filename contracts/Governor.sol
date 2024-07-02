@@ -29,21 +29,21 @@ contract RootDao is
     _disableInitializers();
   }
 
-  function initialize(
-    IVotes voteToken,
-    TimelockControllerUpgradeable timelockController,
-    address initialOwner
-  ) public initializer {
-    __Governor_init("RootDao");
-    __GovernorSettings_init(7200 /* 1 day */, 50400 /* 1 week */, 10 * 10 ** 18);
-    __GovernorCountingSimple_init();
-    __GovernorStorage_init();
-    __GovernorVotes_init(voteToken);
-    __GovernorVotesQuorumFraction_init(4);
-    __GovernorTimelockControl_init(timelockController);
-    __Ownable_init(initialOwner);
-    __UUPSUpgradeable_init();
-  }
+    function initialize(
+        IVotes voteToken, 
+        TimelockControllerUpgradeable timelockController, 
+        address initialOwner
+    ) public initializer {
+        __Governor_init("RootDao");
+        __GovernorSettings_init(1 /* 1 day */, 60 /* 1 week */, 10 * 10 ** 18);
+        __GovernorCountingSimple_init();
+        __GovernorStorage_init();
+        __GovernorVotes_init(voteToken);
+        __GovernorVotesQuorumFraction_init(4);
+        __GovernorTimelockControl_init(timelockController);
+        __Ownable_init(initialOwner);
+        __UUPSUpgradeable_init();
+    }
 
   function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
