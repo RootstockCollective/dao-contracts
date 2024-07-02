@@ -1,10 +1,10 @@
 import { ethers } from 'hardhat'
 import { deployStRIF } from './deploy-stRIF'
+import { deployRif } from './deploy-rif'
 
 const deploy = async () => {
-  const rifToken = await ethers.deployContract('RIFToken')
-  const rifAddress = await rifToken.getAddress()
   const [deployer] = await ethers.getSigners()
+  const { rifAddress } = await deployRif()
   const deployerAddress = await deployer.getAddress()
   const stRIFToken = await deployStRIF(rifAddress, deployerAddress)
 

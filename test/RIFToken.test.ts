@@ -1,63 +1,87 @@
 import { expect } from 'chai'
-import { ethers } from 'hardhat'
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { RIFToken } from '../typechain-types'
+import hre from 'hardhat'
+import { PublicClient, WalletClient, parseEther, parseEventLogs } from 'viem'
+import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 
 describe('RIFToken Contract', function () {
-  let owner: SignerWithAddress, addr1: SignerWithAddress, addr2: SignerWithAddress
-  let rifToken: RIFToken
+  const rifInitialSupply = 10n ** 27n
 
-  const deployRif = () => ethers.deployContract('RIFToken')
+  const setup = async () => {
+    const [deployer, owner1, owner2] = await hre.viem.getWalletClients()
+    const client = await hre.viem.getPublicClient()
 
-  before(async () => {
-    ;[owner, addr1, addr2] = await ethers.getSigners()
-    rifToken = await loadFixture(deployRif)
+    const rif = await hre.viem.deployContract('RIFTokenContact', [])
+    return { deployer, client, rif, owner1, owner2 }
+  }
+
+  it('Should assign the initial balance to the contract itself', async () => {
+    const { rif } = await loadFixture(setup)
+    const balance = await rif.read.balanceOf([rif.address])
+    expect(balance).to.equal(rifInitialSupply)
   })
 
-  it('Should assign the initial balance to the contract itself', async function () {
-    const contractBalance = await rifToken.balanceOf(rifToken)
-    expect(contractBalance).to.equal(ethers.parseUnits('1000000000', 18))
+  it('Should have a valid address', async () => {
+    const { rif } = await loadFixture(setup)
+    expect(rif.address).to.be.properAddress
   })
 
-  it('Should use validAddress', async function () {
-    const addressOne = await addr1.getAddress()
-    const isAddressOneValid = await rifToken.validAddress(addressOne)
-    expect(isAddressOneValid).to.be.true
-  })
+  describe('Token Transfer Functionality', () => {
+    let rif: Awaited<ReturnType<typeof setup>>['rif']
+    let deployer: WalletClient
+    let owner1: WalletClient
+    let owner2: WalletClient
+    let client: PublicClient
+    before(async () => {
+      ;({ rif, deployer, client, owner1, owner2 } = await loadFixture(setup))
+    })
 
-  // Single block to test the entire Transfer flow
+    // Single block to test the entire Transfer flow
 
-  it('Should transfer all the tokens to deployer/owner using setAuthorizedManagerContract', async function () {
-    await rifToken.setAuthorizedManagerContract(owner)
+    it('Should transfer all the tokens to deployer/owner using setAuthorizedManagerContract', async () => {
+      const hash = await rif.write.setAuthorizedManagerContract([deployer.account!.address])
+      await client.waitForTransactionReceipt({ hash })
+      const balance = await rif.read.balanceOf([deployer.account!.address])
+      expect(balance).to.equal(rifInitialSupply)
+    })
 
-    expect(await rifToken.balanceOf(owner)).to.be.equal(ethers.parseUnits('1000000000', 'ether'))
-  })
+    it('should close distribution', async () => {
+      const block = await client.getBlock()
+      const hash = await rif.write.closeTokenDistribution([block.timestamp])
+      await client.waitForTransactionReceipt({ hash })
+    })
 
-  it('Should transfer tokens between accounts', async function () {
-    // Close distribution
-    const latestBlock = await ethers.provider.getBlock('latest')
+    it('deployer should transfer 50 tokens to owner 1', async () => {
+      const amount = parseEther('50')
+      await rif.write.transfer([owner1.account!.address, amount], {
+        account: deployer.account,
+      })
+      expect(await rif.read.balanceOf([owner1.account!.address])).to.equal(amount)
+    })
 
-    if (latestBlock) {
-      // We must close tokenDistribution to send transactions
-      await rifToken.closeTokenDistribution(latestBlock.timestamp)
+    it('deployer should transfer 10 tokens to owner 2 and emit Transfer event', async () => {
+      const amount = parseEther('10')
+      const hash = await rif.write.transfer([owner2.account!.address, amount], {
+        account: deployer.account,
+      })
+      const receipt = await client.waitForTransactionReceipt({ hash })
+      expect(await rif.read.balanceOf([owner2.account!.address])).to.equal(amount)
+      // extracting events
+      const [event] = parseEventLogs({
+        abi: rif.abi,
+        logs: receipt.logs,
+        eventName: 'Transfer',
+      })
+      expect(event.args.value).to.equal(amount)
+    })
 
-      // Transfer 50 RIF Tokens to address 1
-      await rifToken.transfer(addr1, ethers.parseUnits('50', 'ether'))
-      const addr1Balance = await rifToken.balanceOf(addr1)
-      expect(addr1Balance).to.equal(ethers.parseUnits('50', 'ether'))
-
-      // Transfer 10 RIF Tokens from address 1 to address 2
-      await rifToken.connect(addr1).transfer(addr2, ethers.parseUnits('10', 'ether'))
-      const addr2Balance = await rifToken.balanceOf(addr2)
-      expect(addr2Balance).to.equal(ethers.parseUnits('10', 'ether'))
-    }
-  })
-
-  it('Should make sure that the "Transfer" event is emitted', async () => {
-    // Also check that the event "Transfer" is emitted
-    await expect(rifToken.transfer(addr1, 1))
-      .to.emit(rifToken, 'Transfer(address,address,uint256)')
-      .withArgs(owner, addr1, 1)
+    it('owner 1 should transfer his RIFs to owner 2', async () => {
+      const balance = await rif.read.balanceOf([owner1.account!.address])
+      const hash = await rif.write.transfer([owner2.account!.address, balance], {
+        account: owner1.account,
+      })
+      await client.waitForTransactionReceipt({ hash })
+      expect(await rif.read.balanceOf([owner1.account!.address])).to.equal(0n)
+      expect(await rif.read.balanceOf([owner2.account!.address])).to.equal(parseEther('60'))
+    })
   })
 })

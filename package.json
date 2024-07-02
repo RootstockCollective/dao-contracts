@@ -6,12 +6,12 @@
   "author": "RootstockLabs",
   "license": "MIT",
   "scripts": {
-    "compile": "hardhat compile",
+    "compile": "npx hardhat compile",
     "clean": "hardhat clean",
     "lint:ts": "eslint 'test/**/*.ts'",
     "lint:sol": "solhint 'contracts/**/*.sol'",
     "lint": "yarn lint:ts && yarn lint:sol",
-    "test": "hardhat test"
+    "test": "npx hardhat test"
   },
   "devDependencies": {
     "@eslint/js": "^9.5.0",
@@ -21,7 +21,9 @@
     "@nomicfoundation/hardhat-ignition-ethers": "^0.15.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
     "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "@nomicfoundation/hardhat-viem": "^2.0.2",
     "@openzeppelin/contracts": "^5.0.2",
     "@openzeppelin/contracts-upgradeable": "^5.0.2",
     "@openzeppelin/hardhat-upgrades": "^3.2.0",
@@ -33,6 +35,7 @@
     "@types/node": ">=18.0.0",
     "@typescript-eslint/eslint-plugin": "^7.11.0",
     "@typescript-eslint/parser": "^7.11.0",
+    "bigint-crypto-utils": "^3.3.0",
     "chai": "^4.2.0",
     "eslint": "^9.5.0",
     "eslint-config-prettier": "^9.1.0",
@@ -48,7 +51,8 @@
     "ts-node": ">=8.0.0",
     "typechain": "^8.3.2",
     "typescript": "^5.4.5",
-    "typescript-eslint": "^7.14.1"
+    "typescript-eslint": "^7.14.1",
+    "viem": "^2.15.1"
   },
   "dependencies": {
     "rif-token-contracts": "https://github.com/Freshenext/RIF-Token"
