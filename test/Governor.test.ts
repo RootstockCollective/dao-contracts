@@ -66,6 +66,7 @@ describe('RootDAO Contact', () => {
     const getState = async () => await governor.state(proposalId)
 
     const defaultDescription = 'transfer money to acc2 address'
+    const otherDesc = 'test success case'
     const generateDescriptionHash = (proposalDesc?: string) =>
       solidityPackedKeccak256(['string'], [proposalDesc ?? defaultDescription])
 
@@ -246,18 +247,15 @@ describe('RootDAO Contact', () => {
       })
 
       it('when proposal reach quorum and votingPeriod is reached proposal state should become ProposalState.Succeeded', async () => {
-        await createProposal('test success case')
+        await createProposal(otherDesc)
 
         await mine((await governor.votingDelay()) + 1n)
 
         proposalSnapshot = await governor.proposalSnapshot(proposalId)
         const quorum = await governor.quorum(proposalSnapshot)
 
-        let combinedVotingPower: bigint = 0n
-
         for (let holder of holders.slice(2, holders.length)) {
           if ((await checkVotes()) <= quorum) {
-            combinedVotingPower += await stRIF.getVotes(holder)
             await governor.connect(holder).castVote(proposalId, 1)
           }
         }
@@ -265,6 +263,15 @@ describe('RootDAO Contact', () => {
         await mine(initialVotingPeriod + 1n)
 
         expect(await getState()).to.be.equal(ProposalState.Succeeded)
+      })
+
+      it('after a proposal succeded it should be queued for execution', async () => {
+        const tx = await governor
+          .connect(deployer)
+          [
+            'execute(address[],uint256[],bytes[],bytes32)'
+          ](proposal[0], proposal[1], proposal[2], generateDescriptionHash(otherDesc))
+        await tx.wait()
       })
     })
   })
