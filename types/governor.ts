@@ -17,4 +17,4 @@ export enum VoteType {
   Abstain,
 }
 
-export type Proposal = [string[], BigNumberish[], BytesLike[]]
+export type Proposal = [string[], BigNumberish[], BytesLike[], string]
