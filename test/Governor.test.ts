@@ -1,18 +1,17 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { loadFixture, mine } from '@nomicfoundation/hardhat-toolbox/network-helpers'
-import { randBetween } from 'bigint-crypto-utils'
 import { deployRif } from '../scripts/deploy-rif'
 import { deployGovernor } from '../scripts/deploy-governor'
 import { RIFToken, RootDao, StRIFToken, TokenFaucet } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { deployStRIF } from '../scripts/deploy-stRIF'
 import { parseEther, solidityPackedKeccak256 } from 'ethers'
-import { Proposal } from '../types'
+import { Proposal, ProposalState } from '../types'
 
 describe('RootDAO Contact', () => {
-  const initialVotingDelay = 7200 // secs 1 day
-  const initialVotingPeriod = 50400 // secs 1 week
+  const initialVotingDelay = 1n // secs 1 day
+  const initialVotingPeriod = 60n // secs 1 week
   const initialProposalThreshold = 10n * 10n ** 18n
 
   let rif: { rifToken: RIFToken; rifAddress: string; tokenFaucet: TokenFaucet }
@@ -26,6 +25,7 @@ describe('RootDAO Contact', () => {
 
   before(async () => {
     ;[deployer, ...holders] = await ethers.getSigners()
+
     const deployRIF = () => deployRif(deployer)
     rif = await loadFixture(deployRIF)
     const deployGovToken = async () => deployStRIF(rif.rifAddress, deployer.address)
@@ -57,22 +57,61 @@ describe('RootDAO Contact', () => {
   })
 
   describe('Governance', () => {
-    const proposalDescription = solidityPackedKeccak256(['string'], ['transfer money to acc2 address'])
-    const proposalDescHash = solidityPackedKeccak256(['string'], [proposalDescription])
     const sendAmount = '2'
     let proposal: Proposal
     let proposalId: bigint
     // let proposalCalldata: string
     let proposalSnapshot: bigint
 
+    const getState = async () => await governor.state(proposalId)
+
+    const defaultDescription = 'transfer money to acc2 address'
+    const generateDescriptionHash = (proposalDesc?: string) =>
+      solidityPackedKeccak256(['string'], [proposalDesc ?? defaultDescription])
+
+    const createProposal = async (proposalDesc?: string) => {
+      const blockHeight = await ethers.provider.getBlockNumber()
+      const votingPeriod = await governor.votingPeriod()
+      const votingDelay = await governor.votingDelay()
+
+      proposal = [
+        [await holders[1].getAddress()],
+        [parseEther(sendAmount)],
+        ['0x00'],
+        proposalDesc ?? defaultDescription,
+      ]
+
+      proposalId = await governor
+        .connect(holders[0])
+        .hashProposal(proposal[0], proposal[1], proposal[2], generateDescriptionHash(proposalDesc))
+
+      const tx = await governor.connect(holders[0]).propose(...proposal)
+
+      const snapshot = votingDelay + BigInt(blockHeight) + 1n
+      const snapshotPlusDuration = votingPeriod + votingDelay + BigInt(blockHeight) + 1n
+
+      return {
+        snapshot,
+        snapshotPlusDuration,
+        tx,
+      }
+    }
+
+    const checkVotes = async () => {
+      const { forVotes } = await governor.proposalVotes(proposalId)
+
+      return forVotes
+    }
+
     describe('Proposal Creation', () => {
       it('participants should gain voting power proportional to RIF tokens', async () => {
         await Promise.all(
-          [deployer, ...holders].map(async (voter, i) => {
+          holders.map(async (voter, i) => {
             const dispenseTx = await rif.tokenFaucet.connect(voter).dispense(voter.address)
             await dispenseTx.wait()
             const rifBalance = await rif.rifToken.balanceOf(voter.address)
-            const votingPower = i === 0 ? rifBalance : randBetween(rifBalance)
+            const votingPower = i === 0 ? rifBalance : rifBalance - parseEther(sendAmount)
+
             const approvalTx = await rif.rifToken
               .connect(voter)
               .approve(await stRIF.getAddress(), votingPower)
@@ -82,77 +121,58 @@ describe('RootDAO Contact', () => {
             const delegateTx = await stRIF.connect(voter).delegate(voter.address)
             await delegateTx.wait()
             const votes = await stRIF.getVotes(voter.address)
+
             expect(votes).to.equal(votingPower)
           }),
         )
       })
 
-      it('deployer should have enough voting power to initiate a proposal (above the Proposal Threshold)', async () => {
-        const balance = await stRIF.balanceOf(deployer.address)
+      it('holder[0] should have enough voting power to initiate a proposal (above the Proposal Threshold)', async () => {
+        const balance = await stRIF.balanceOf(holders[0])
         const threshold = await governor.proposalThreshold()
         expect(balance).greaterThanOrEqual(threshold)
       })
 
-      it('holders stRIF balances should be below the Proposal Threshold', async () => {
+      it('other holders except holder[0] stRIF balances should be below the Proposal Threshold', async () => {
         const threshold = await governor.proposalThreshold()
         await Promise.all(
-          holders.map(async holder => {
+          holders.slice(1).map(async holder => {
             const balance = await stRIF.balanceOf(holder.address)
             expect(balance).lessThan(threshold)
           }),
         )
       })
 
-      it('should create a proposalID', async () => {
-        proposal = [[await holders[1].getAddress()], [parseEther(sendAmount)], ['0x00']]
-        proposalId = await governor.hashProposal(...proposal, proposalDescHash)
-
-        await mine(1)
-      })
-
-      it('no one of the holders should be able to create proposal', async () => {
-        await Promise.all(
-          holders.map(async holder => {
-            const tx = governor.connect(holder).propose(...proposal, proposalDescription)
-            await expect(tx).to.be.reverted
-          }),
-        )
-      })
-
-      it('deployer should be able to create proposal', async () => {
-        const blockHeight = await ethers.provider.getBlockNumber()
-        const votingPeriod = await governor.votingPeriod()
-        const votingDelay = await governor.votingDelay()
-        const tx = governor.connect(deployer).propose(...proposal, proposalDescription)
-        const snapshot = votingDelay + BigInt(blockHeight) + 1n
-        const snapshotPlusDuration = votingPeriod + votingDelay + BigInt(blockHeight) + 1n
-        //   emit ProposalCreated(
-        //     proposalId,
-        //     proposer,
-        //     targets,
-        //     values,
-        //     new string[](targets.length),
-        //     calldatas,
-        //     snapshot,
-        //     snapshot + duration,
-        //     description
-        // );
+      it('holder[0] should be able to create proposal', async () => {
+        const { snapshot, snapshotPlusDuration, tx } = await createProposal()
 
         const ProposalCreatedEvent = [
           proposalId,
-          deployer.address, // proposer
+          holders[0].address, // proposer
           proposal[0], // targets
           proposal[1], // values
           [''], // ?
           proposal[2], // calldatas
           snapshot,
           snapshotPlusDuration,
-          proposalDescription,
+          defaultDescription,
         ]
 
         await expect(tx)
           .to.emit(governor, 'ProposalCreated')
           .withArgs(...ProposalCreatedEvent)
+      })
+
+      it('the rest of the holders should not be able to create proposal', async () => {
+        await Promise.all(
+          holders.slice(1).map(async holder => {
+            const tx = governor.connect(holder).propose(...proposal)
+            await expect(tx).to.be.revertedWithCustomError(
+              { interface: governor.interface },
+              'GovernorInsufficientProposerVotes',
+            )
+          }),
+        )
       })
 
       it('proposal creation should initiate a Proposal Snapshot creation', async () => {
@@ -190,22 +210,61 @@ describe('RootDAO Contact', () => {
         const { forVotes } = await governor.proposalVotes(proposalId)
         expect(forVotes).to.be.equal(await stRIF.getVotes(holders[1]))
 
-        const tx2 = await governor.connect(holders[15]).castVote(proposalId, 0)
+        const tx2 = await governor.connect(holders[2]).castVote(proposalId, 0)
         tx2.wait()
-        const hasVoted2 = await governor.hasVoted(proposalId, holders[15])
+        const hasVoted2 = await governor.hasVoted(proposalId, holders[2])
         expect(hasVoted2).to.be.true
         const { againstVotes } = await governor.proposalVotes(proposalId)
-        expect(againstVotes).to.be.equal(await stRIF.getVotes(holders[15]))
+        expect(againstVotes).to.be.equal(await stRIF.getVotes(holders[2]))
       })
 
       it('the same holder should not be able to cast the vote for the same proposal', async () => {
-        const error = `GovernorAlreadyCastVote(${holders[1].address})`
-        expect(governor.connect(holders[1]).castVote(proposalId, 2)).to.be.revertedWith(error)
+        const govInterface = { interface: governor.interface }
+
+        expect(governor.connect(holders[1]).castVote(proposalId, 2)).to.be.revertedWithCustomError(
+          govInterface,
+          'GovernorAlreadyCastVote',
+        )
+        expect(governor.connect(holders[2]).castVote(proposalId, 2)).to.be.revertedWithCustomError(
+          govInterface,
+          'GovernorAlreadyCastVote',
+        )
       })
 
       it('the proposal should not be executed if there is not enough votes', async () => {
-        const error = `GovernorUnexpectedProposalState(${proposalId})`
-        expect(governor.connect(holders[2])['execute(uint256)'](proposalId)).to.be.revertedWith(error)
+        expect(governor.connect(holders[2])['execute(uint256)'](proposalId)).to.be.revertedWithCustomError(
+          { interface: governor.interface },
+          'GovernorUnexpectedProposalState',
+        )
+      })
+
+      it('should set the state of the proposal to Defeated when the votingPeriod finished but quorum has not been reached', async () => {
+        await mine(512)
+        const state = await getState()
+
+        expect(state).to.equal(ProposalState.Defeated)
+      })
+
+      it('when proposal reach quorum and votingPeriod is reached proposal state should become ProposalState.Succeeded', async () => {
+        await createProposal('test success case')
+
+        await mine((await governor.votingDelay()) + 1n)
+
+        proposalSnapshot = await governor.proposalSnapshot(proposalId)
+        const quorum = await governor.quorum(proposalSnapshot)
+
+        let combinedVotingPower: bigint = 0n
+
+        for (let holder of holders.slice(2, holders.length)) {
+          if ((await checkVotes()) <= quorum) {
+            combinedVotingPower += await stRIF.getVotes(holder)
+            await governor.connect(holder).castVote(proposalId, 1)
+          }
+        }
+
+        await mine(initialVotingPeriod + 1n)
+
+        expect(await getState()).to.be.equal(ProposalState.Succeeded)
       })
     })
   })
