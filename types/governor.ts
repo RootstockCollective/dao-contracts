@@ -18,3 +18,10 @@ export enum VoteType {
 }
 
 export type Proposal = [string[], BigNumberish[], BytesLike[], string]
+
+export enum OperationState {
+  Unset,
+  Waiting,
+  Ready,
+  Done,
+}
