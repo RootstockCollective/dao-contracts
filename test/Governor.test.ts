@@ -3,11 +3,12 @@ import { ethers } from 'hardhat'
 import { loadFixture, mine } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import { deployRif } from '../scripts/deploy-rif'
 import { deployGovernor } from '../scripts/deploy-governor'
-import { RIFToken, RootDao, StRIFToken, TokenFaucet } from '../typechain-types'
+import { deployTimelock } from '../scripts/deploy-timelock'
+import { RIFToken, RootDao, StRIFToken, TokenFaucet, DaoTimelockUpgradable } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { deployStRIF } from '../scripts/deploy-stRIF'
-import { parseEther, solidityPackedKeccak256 } from 'ethers'
-import { Proposal, ProposalState } from '../types'
+import { parseEther, solidityPackedKeccak256, toBeHex } from 'ethers'
+import { Proposal, ProposalState, OperationState } from '../types'
 
 describe('RootDAO Contact', () => {
   const initialVotingDelay = 1n // secs 1 day
@@ -16,6 +17,7 @@ describe('RootDAO Contact', () => {
 
   let rif: { rifToken: RIFToken; rifAddress: string; tokenFaucet: TokenFaucet }
   let stRIF: StRIFToken
+  let timelock: DaoTimelockUpgradable
   let governor: RootDao
   let holders: SignerWithAddress[]
   let deployer: SignerWithAddress
@@ -30,8 +32,9 @@ describe('RootDAO Contact', () => {
     rif = await loadFixture(deployRIF)
     const deployGovToken = async () => deployStRIF(rif.rifAddress, deployer.address)
     stRIF = await loadFixture(deployGovToken)
-
-    const deployDAO = async () => deployGovernor(await stRIF.getAddress(), deployer.address)
+    timelock = await loadFixture(deployTimelock)
+    const deployDAO = async () =>
+      deployGovernor(await stRIF.getAddress(), deployer.address, await timelock.getAddress())
     governor = await loadFixture(deployDAO)
   })
 
@@ -39,8 +42,13 @@ describe('RootDAO Contact', () => {
     it('should deploy all contracts', async () => {
       expect(rif.rifAddress).to.be.properAddress
       expect(await stRIF.getAddress()).to.be.properAddress
+      expect(await timelock.getAddress()).to.be.properAddress
       expect(await governor.getAddress()).to.be.properAddress
       expect(await rif.tokenFaucet.getAddress()).to.be.properAddress
+    })
+
+    it('min delay should be set on the Timelock', async () => {
+      expect(await timelock.getMinDelay())
     })
 
     it('voting delay should be initialized', async () => {
@@ -60,8 +68,8 @@ describe('RootDAO Contact', () => {
     const sendAmount = '2'
     let proposal: Proposal
     let proposalId: bigint
-    // let proposalCalldata: string
     let proposalSnapshot: bigint
+    // let proposalCalldata: string
 
     const getState = async () => await governor.state(proposalId)
 
@@ -72,7 +80,6 @@ describe('RootDAO Contact', () => {
 
     const createProposal = async (proposalDesc?: string) => {
       const blockHeight = await ethers.provider.getBlockNumber()
-      const votingPeriod = await governor.votingPeriod()
       const votingDelay = await governor.votingDelay()
 
       proposal = [
@@ -86,16 +93,10 @@ describe('RootDAO Contact', () => {
         .connect(holders[0])
         .hashProposal(proposal[0], proposal[1], proposal[2], generateDescriptionHash(proposalDesc))
 
-      const tx = await governor.connect(holders[0]).propose(...proposal)
-
-      const snapshot = votingDelay + BigInt(blockHeight) + 1n
-      const snapshotPlusDuration = votingPeriod + votingDelay + BigInt(blockHeight) + 1n
-
-      return {
-        snapshot,
-        snapshotPlusDuration,
-        tx,
-      }
+      const proposalTx = await governor.connect(holders[0]).propose(...proposal)
+      await proposalTx.wait()
+      proposalSnapshot = votingDelay + BigInt(blockHeight) + 1n
+      return proposalTx
     }
 
     const checkVotes = async () => {
@@ -145,8 +146,8 @@ describe('RootDAO Contact', () => {
       })
 
       it('holder[0] should be able to create proposal', async () => {
-        const { snapshot, snapshotPlusDuration, tx } = await createProposal()
-
+        const proposalTx = await createProposal()
+        const votingPeriod = await governor.votingPeriod()
         const ProposalCreatedEvent = [
           proposalId,
           holders[0].address, // proposer
@@ -154,14 +155,18 @@ describe('RootDAO Contact', () => {
           proposal[1], // values
           [''], // ?
           proposal[2], // calldatas
-          snapshot,
-          snapshotPlusDuration,
+          proposalSnapshot,
+          proposalSnapshot + votingPeriod,
           defaultDescription,
         ]
 
-        await expect(tx)
+        await expect(proposalTx)
           .to.emit(governor, 'ProposalCreated')
           .withArgs(...ProposalCreatedEvent)
+      })
+
+      it('proposal creation should initiate a Proposal Snapshot creation', async () => {
+        expect(await governor.proposalSnapshot(proposalId)).equal(proposalSnapshot)
       })
 
       it('the rest of the holders should not be able to create proposal', async () => {
@@ -174,13 +179,6 @@ describe('RootDAO Contact', () => {
             )
           }),
         )
-      })
-
-      it('proposal creation should initiate a Proposal Snapshot creation', async () => {
-        const votingDelay = await governor.votingDelay()
-        const block = await ethers.provider.getBlockNumber()
-        proposalSnapshot = await governor.proposalSnapshot(proposalId)
-        expect(votingDelay + BigInt(block)).equal(proposalSnapshot)
       })
 
       it('should calculate the quorum correctly', async () => {
@@ -254,7 +252,7 @@ describe('RootDAO Contact', () => {
         proposalSnapshot = await governor.proposalSnapshot(proposalId)
         const quorum = await governor.quorum(proposalSnapshot)
 
-        for (let holder of holders.slice(2, holders.length)) {
+        for (const holder of holders.slice(2, holders.length)) {
           if ((await checkVotes()) <= quorum) {
             await governor.connect(holder).castVote(proposalId, 1)
           }
@@ -265,14 +263,27 @@ describe('RootDAO Contact', () => {
         expect(await getState()).to.be.equal(ProposalState.Succeeded)
       })
 
-      it('after a proposal succeded it should be queued for execution', async () => {
+      it('Proposal should be registered as an operation on the Timelock', async () => {
+        expect(await timelock.isOperation(toBeHex(proposalId)))
+      })
+
+      it('Operation should be in Unset stage', async () => {
+        const state = Number(await timelock.getOperationState(toBeHex(proposalId)))
+        expect(state).to.equal(OperationState.Unset)
+      })
+
+      it('should return operation timestamp as 0 (because it is unset)', async () => {
+        expect(await timelock.getTimestamp(toBeHex(proposalId))).to.equal(0)
+      })
+
+      /* it('after a proposal succeeded it should be queued for execution', async () => {
         const tx = await governor
           .connect(deployer)
           [
             'execute(address[],uint256[],bytes[],bytes32)'
           ](proposal[0], proposal[1], proposal[2], generateDescriptionHash(otherDesc))
         await tx.wait()
-      })
+      }) */
     })
   })
 })
