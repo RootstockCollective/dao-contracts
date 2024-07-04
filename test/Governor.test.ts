@@ -298,10 +298,10 @@ describe('RootDAO Contact', () => {
         from the Timelock directly
         */
 
-        const to = await time.latestBlock()
+        const latestBlock = await time.latestBlock()
         const filter =
           timelock.filters['CallScheduled(bytes32,uint256,address,uint256,bytes,bytes32,uint256)']
-        const [event] = await timelock.queryFilter(filter, from, to)
+        const [event] = await timelock.queryFilter(filter, from, latestBlock)
         const [id, , target, value, data, , delay] = event.args
         timelockPropId = id // save timelock proposal ID
         expect(target).to.equal(proposal[0][0])
