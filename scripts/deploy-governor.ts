@@ -20,6 +20,11 @@ export const deployGovernor = async (
   await rootDAOGovernor.waitForDeployment()
   const governorAddr = await rootDAOGovernor.getAddress()
 
+  /* 
+  From the GovernorTimelockControl docs:
+  The {Governor} needs the proposer (and ideally the executor) roles for the {Governor} to work properly.
+  */
+
   // grant Proposer role to the Governor
   const proposerRole = await timelock.PROPOSER_ROLE()
   const grantProposerTx = await timelock.grantRole(proposerRole, governorAddr)
