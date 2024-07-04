@@ -86,7 +86,6 @@ describe('RootDAO Contact', () => {
       const blockHeight = await ethers.provider.getBlockNumber()
       const votingDelay = await governor.votingDelay()
 
-      // proposal = [[await holders[1].getAddress()], [parseEther(sendAmount)], ['0x00']]
       const calldata = stRIF.interface.encodeFunctionData('symbol')
       proposal = [[await stRIF.getAddress()], [0n], [calldata]]
 
@@ -191,12 +190,12 @@ describe('RootDAO Contact', () => {
         expect(quorum).to.equal((snapshotTotalSupply * 4n) / 100n)
       })
 
-      it('remaining votes should be equal to quorum', async () => {
+      it('remaining votes should be equal to quorum, because no votes were cast yet', async () => {
         const { abstainVotes, forVotes } = await governor.proposalVotes(proposalId)
         const quorum = await governor.quorum(proposalSnapshot)
         const totalVotes = forVotes + abstainVotes
         const remainingVotes = quorum - totalVotes
-        expect(remainingVotes).equal(quorum) // because no votes were cast yet
+        expect(remainingVotes).equal(quorum)
       })
     })
 
@@ -239,7 +238,7 @@ describe('RootDAO Contact', () => {
       })
 
       it('should set the state of the proposal to Defeated when the votingPeriod finished but quorum has not been reached', async () => {
-        await mine(512)
+        await mine(initialVotingPeriod + 1n)
         const state = await getState()
 
         expect(state).to.equal(ProposalState.Defeated)
@@ -247,7 +246,6 @@ describe('RootDAO Contact', () => {
 
       it('when proposal reaches quorum and votingPeriod is reached proposal state should become ProposalState.Succeeded', async () => {
         await createProposal(otherDesc)
-
         await mine((await governor.votingDelay()) + 1n)
 
         proposalSnapshot = await governor.proposalSnapshot(proposalId)
@@ -268,22 +266,27 @@ describe('RootDAO Contact', () => {
     describe('Queueing the Proposal', () => {
       let eta: bigint = 0n
       let timelockPropId: string
+
       /* 
       https://docs.openzeppelin.com/contracts/5.x/api/governance#IGovernor-queue-address---uint256---bytes---bytes32-
       Queue a proposal. Some governors require this step to be performed before execution
       can happen. If queuing is not necessary, this function may revert. Queuing a proposal
       requires the quorum to be reached, the vote to be successful, and the deadline to be reached.
       */
+
       it('proposal should need queueing before execution', async () => {
         expect(await governor.proposalNeedsQueuing(proposalId)).to.be.true
       })
+
       it('proposer should put the proposal to the execution queue', async () => {
         const minDelay = await timelock.getMinDelay()
         const lastBlockTimestamp = await time.latest()
+
         // Estimated Time of Arrival
         eta = BigInt(lastBlockTimestamp) + minDelay + 1n
-        const from = await time.latestBlock()
+        const fromBlock = await time.latestBlock()
         const tx = await governor['queue(uint256)'](proposalId)
+
         //event ProposalQueued(uint256 proposalId, uint256 etaSeconds)
         await expect(tx).to.emit(governor, 'ProposalQueued').withArgs(proposalId, eta)
         await tx.wait()
@@ -298,11 +301,12 @@ describe('RootDAO Contact', () => {
         from the Timelock directly
         */
 
-        const latestBlock = await time.latestBlock()
+        const toBlock = await time.latestBlock()
         const filter =
           timelock.filters['CallScheduled(bytes32,uint256,address,uint256,bytes,bytes32,uint256)']
-        const [event] = await timelock.queryFilter(filter, from, latestBlock)
+        const [event] = await timelock.queryFilter(filter, fromBlock, toBlock)
         const [id, , target, value, data, , delay] = event.args
+
         timelockPropId = id // save timelock proposal ID
         expect(target).to.equal(proposal[0][0])
         expect(value).to.equal(proposal[1][0])
