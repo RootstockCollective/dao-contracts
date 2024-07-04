@@ -1,13 +1,13 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { loadFixture, mine } from '@nomicfoundation/hardhat-toolbox/network-helpers'
+import { loadFixture, mine, time } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import { deployRif } from '../scripts/deploy-rif'
 import { deployGovernor } from '../scripts/deploy-governor'
 import { deployTimelock } from '../scripts/deploy-timelock'
 import { RIFToken, RootDao, StRIFToken, TokenFaucet, DaoTimelockUpgradable } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { deployStRIF } from '../scripts/deploy-stRIF'
-import { parseEther, solidityPackedKeccak256, toBeHex } from 'ethers'
+import { parseEther, solidityPackedKeccak256 } from 'ethers'
 import { Proposal, ProposalState, OperationState } from '../types'
 
 describe('RootDAO Contact', () => {
@@ -51,6 +51,10 @@ describe('RootDAO Contact', () => {
       expect(await timelock.getMinDelay())
     })
 
+    it('Timelock should be set on the Governor', async () => {
+      expect(await governor.timelock()).to.equal(await timelock.getAddress())
+    })
+
     it('voting delay should be initialized', async () => {
       expect(await governor.votingDelay()).to.equal(initialVotingDelay)
     })
@@ -78,22 +82,19 @@ describe('RootDAO Contact', () => {
     const generateDescriptionHash = (proposalDesc?: string) =>
       solidityPackedKeccak256(['string'], [proposalDesc ?? defaultDescription])
 
-    const createProposal = async (proposalDesc?: string) => {
+    const createProposal = async (proposalDesc = defaultDescription) => {
       const blockHeight = await ethers.provider.getBlockNumber()
       const votingDelay = await governor.votingDelay()
 
-      proposal = [
-        [await holders[1].getAddress()],
-        [parseEther(sendAmount)],
-        ['0x00'],
-        proposalDesc ?? defaultDescription,
-      ]
+      // proposal = [[await holders[1].getAddress()], [parseEther(sendAmount)], ['0x00']]
+      const calldata = stRIF.interface.encodeFunctionData('symbol')
+      proposal = [[await stRIF.getAddress()], [0n], [calldata]]
 
       proposalId = await governor
         .connect(holders[0])
         .hashProposal(proposal[0], proposal[1], proposal[2], generateDescriptionHash(proposalDesc))
 
-      const proposalTx = await governor.connect(holders[0]).propose(...proposal)
+      const proposalTx = await governor.connect(holders[0]).propose(...proposal, proposalDesc)
       await proposalTx.wait()
       proposalSnapshot = votingDelay + BigInt(blockHeight) + 1n
       return proposalTx
@@ -172,7 +173,7 @@ describe('RootDAO Contact', () => {
       it('the rest of the holders should not be able to create proposal', async () => {
         await Promise.all(
           holders.slice(1).map(async holder => {
-            const tx = governor.connect(holder).propose(...proposal)
+            const tx = governor.connect(holder).propose(...proposal, defaultDescription)
             await expect(tx).to.be.revertedWithCustomError(
               { interface: governor.interface },
               'GovernorInsufficientProposerVotes',
@@ -244,7 +245,7 @@ describe('RootDAO Contact', () => {
         expect(state).to.equal(ProposalState.Defeated)
       })
 
-      it('when proposal reach quorum and votingPeriod is reached proposal state should become ProposalState.Succeeded', async () => {
+      it('when proposal reaches quorum and votingPeriod is reached proposal state should become ProposalState.Succeeded', async () => {
         await createProposal(otherDesc)
 
         await mine((await governor.votingDelay()) + 1n)
@@ -262,28 +263,90 @@ describe('RootDAO Contact', () => {
 
         expect(await getState()).to.be.equal(ProposalState.Succeeded)
       })
+    })
 
-      it('Proposal should be registered as an operation on the Timelock', async () => {
-        expect(await timelock.isOperation(toBeHex(proposalId)))
+    describe('Queueing the Proposal', () => {
+      let eta: bigint = 0n
+      let timelockPropId: string
+      /* 
+      https://docs.openzeppelin.com/contracts/5.x/api/governance#IGovernor-queue-address---uint256---bytes---bytes32-
+      Queue a proposal. Some governors require this step to be performed before execution
+      can happen. If queuing is not necessary, this function may revert. Queuing a proposal
+      requires the quorum to be reached, the vote to be successful, and the deadline to be reached.
+      */
+      it('proposal should need queueing before execution', async () => {
+        expect(await governor.proposalNeedsQueuing(proposalId)).to.be.true
       })
-
-      it('Operation should be in Unset stage', async () => {
-        const state = Number(await timelock.getOperationState(toBeHex(proposalId)))
-        expect(state).to.equal(OperationState.Unset)
-      })
-
-      it('should return operation timestamp as 0 (because it is unset)', async () => {
-        expect(await timelock.getTimestamp(toBeHex(proposalId))).to.equal(0)
-      })
-
-      /* it('after a proposal succeeded it should be queued for execution', async () => {
-        const tx = await governor
-          .connect(deployer)
-          [
-            'execute(address[],uint256[],bytes[],bytes32)'
-          ](proposal[0], proposal[1], proposal[2], generateDescriptionHash(otherDesc))
+      it('proposer should put the proposal to the execution queue', async () => {
+        const minDelay = await timelock.getMinDelay()
+        const lastBlockTimestamp = await time.latest()
+        // Estimated Time of Arrival
+        eta = BigInt(lastBlockTimestamp) + minDelay + 1n
+        const from = await time.latestBlock()
+        const tx = await governor['queue(uint256)'](proposalId)
+        //event ProposalQueued(uint256 proposalId, uint256 etaSeconds)
+        await expect(tx).to.emit(governor, 'ProposalQueued').withArgs(proposalId, eta)
         await tx.wait()
-      }) */
+
+        /* 
+        There is a second event emitted by the same tx: it is Timelock's `CallScheduled`.
+
+        event CallScheduled(bytes32 indexed id, uint256 indexed index, address target, uint256 value, bytes data, bytes32 predecessor, uint256 delay)
+
+        Let's take a look at its arguments. We are going to extract Timelock proposal ID
+        which differs from Governor's proposal ID. Knowing this ID we can query some info
+        from the Timelock directly
+        */
+
+        const to = await time.latestBlock()
+        const filter =
+          timelock.filters['CallScheduled(bytes32,uint256,address,uint256,bytes,bytes32,uint256)']
+        const [event] = await timelock.queryFilter(filter, from, to)
+        const [id, , target, value, data, , delay] = event.args
+        timelockPropId = id // save timelock proposal ID
+        expect(target).to.equal(proposal[0][0])
+        expect(value).to.equal(proposal[1][0])
+        expect(data).to.equal(proposal[2][0])
+        expect(delay).to.equal(minDelay) // 86400
+      })
+
+      it('proposal should be in the Timelock`s OperationState.Waiting state after queueing', async () => {
+        const timelockState = await timelock.getOperationState(timelockPropId)
+        expect(timelockState).to.equal(OperationState.Waiting)
+      })
+      it('proposal should be in the Governor`s ProposalState.Queued state after queueing', async () => {
+        expect(await governor.state(proposalId)).to.equal(ProposalState.Queued)
+      })
+
+      it('proposal ETA (Estimated Time of Arrival) should be recorded on the governor', async () => {
+        expect(await governor.proposalEta(proposalId)).to.equal(eta)
+      })
+
+      it('should increase blockchain node time to proposal ETA', async () => {
+        await time.increaseTo(eta)
+        const block = await ethers.provider.getBlock('latest')
+        expect(block?.timestamp).to.equal(eta)
+      })
+
+      it('proposal should move to the OperationState.Ready state on the Timelock', async () => {
+        const timelockState = await timelock.getOperationState(timelockPropId)
+        expect(timelockState).to.equal(OperationState.Ready)
+        // the same info
+        expect(await timelock.isOperationReady(timelockPropId)).to.be.true
+      })
+
+      it('should execute proposal on the Governor after the ETA', async () => {
+        const tx = await governor['execute(address[],uint256[],bytes[],bytes32)'](
+          ...proposal,
+          generateDescriptionHash(otherDesc),
+        )
+        await expect(tx).to.emit(governor, 'ProposalExecuted').withArgs(proposalId)
+      })
+
+      it('proposal should move to Executed state after execution', async () => {
+        const state = await governor.state(proposalId)
+        expect(state).to.equal(ProposalState.Executed)
+      })
     })
   })
 })
