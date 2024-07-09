@@ -10,7 +10,7 @@ describe('RIFToken Contract', function () {
     const [deployer, owner1, owner2] = await hre.viem.getWalletClients()
     const client = await hre.viem.getPublicClient()
 
-    const rif = await hre.viem.deployContract('RIFTokenContact', [])
+    const rif = await hre.viem.deployContract('RIFTokenContract', [])
     return { deployer, client, rif, owner1, owner2 }
   }
 
