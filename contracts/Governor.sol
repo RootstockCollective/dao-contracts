@@ -35,7 +35,7 @@ contract RootDao is
         address initialOwner
     ) public initializer {
         __Governor_init("RootDao");
-        __GovernorSettings_init(1 /* 1 day */, 60 /* 1 week */, 10 * 10 ** 18);
+        __GovernorSettings_init(1 /* 1 block */, 60 /* 30 minutes */, 10 * 10 ** 18);
         __GovernorCountingSimple_init();
         __GovernorStorage_init();
         __GovernorVotes_init(voteToken);
