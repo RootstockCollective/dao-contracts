@@ -6,7 +6,7 @@ export const deployGovernor = async (
   deployerAddress: string,
   timelockAddress: string,
 ) => {
-  const timelock = await hre.ethers.getContractAt('DaoTimelockUpgradable', timelockAddress)
+  const timelock = await ethers.getContractAt('DaoTimelockUpgradable', timelockAddress)
   const RootDAOFactory = await ethers.getContractFactory('RootDao')
   const rootDAOGovernor = (await upgrades.deployProxy(
     RootDAOFactory,
