@@ -37,7 +37,7 @@ export const deployGovernor = async (
 
   // renounce Admin role - this operation should be finally done by the DAO deployer
   const adminRole = await timelock.DEFAULT_ADMIN_ROLE()
-  const [deployer] = await hre.ethers.getSigners()
+  const [deployer] = await ethers.getSigners()
   const renounceTx = await timelock.renounceRole(adminRole, deployer.address)
   await renounceTx.wait()
 
