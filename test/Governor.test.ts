@@ -91,7 +91,7 @@ describe('RootDAO Contact', () => {
 
       proposalId = await governor
         .connect(holders[0])
-        .hashProposal(proposal[0], proposal[1], proposal[2], generateDescriptionHash(proposalDesc))
+        .hashProposal(...proposal, generateDescriptionHash(proposalDesc))
 
       const proposalTx = await governor.connect(holders[0]).propose(...proposal, proposalDesc)
       await proposalTx.wait()
