@@ -16,7 +16,7 @@ contract TokenFaucet is Ownable {
   mapping(address => uint) cannotDispenseUntil;
 
   uint256 public dispenseValue = 11 * 10 ** 18; // 11 tRIFs
-  uint256 public dispenceFrequency = 1 hours;
+  uint256 public dispenceFrequency = 1 seconds;
 
   event DispenceFrequencyChanged(address changer, uint256 oldValue, uint256 newValue);
   event DispenceValueChanged(address changer, uint256 oldValue, uint256 newValue);
