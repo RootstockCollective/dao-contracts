@@ -51,28 +51,10 @@ slither . --filter-paths openzeppelin,rif-token-contracts
 
 ## Deploying contracts with Ignition
 
-### List of deployments
+This command will deploy all the DAO contracts to Rootstock testnet
 
 ```shell
-npx hardhat ignition deployments
+npx hardhat ignition deploy ignition/modules/GovernorModule.ts --parameters ignition/deployedRif.json --network rootstockTestnet
 ```
 
-### Deployment status
-
-```shell
-npx hardhat ignition status dao-01
-```
-
-where `dao-01` is a deployment ID
-
-### New deployment
-
-```shell
-npx hardhat ignition deploy ignition/modules/DaoModule.ts --network rootstockTestnet --deployment-id dao-02
-```
-
-### Reset existing deployment
-
-```shell
-npx hardhat ignition deploy ignition/modules/DaoModule.ts --network rootstockTestnet --deployment-id dao-02 --reset
-```
+where parameter `--parameters` specifies the location of parameters file with the RIF token address
