@@ -48,3 +48,31 @@ Run this command to test smart contracts excluding OpenZeppelin and RIF
 ```shell
 slither . --filter-paths openzeppelin,rif-token-contracts
 ```
+
+## Deploying contracts with Ignition
+
+### List of deployments
+
+```shell
+npx hardhat ignition deployments
+```
+
+### Deployment status
+
+```shell
+npx hardhat ignition status dao-01
+```
+
+where `dao-01` is a deployment ID
+
+### New deployment
+
+```shell
+npx hardhat ignition deploy ignition/modules/dao.ts --network rootstockTestnet --deployment-id dao-02
+```
+
+### Reset existing deployment
+
+```shell
+npx hardhat ignition deploy ignition/modules/dao.ts --network rootstockTestnet --deployment-id dao-02 --reset
+```
