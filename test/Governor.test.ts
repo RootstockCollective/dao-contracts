@@ -1,50 +1,36 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { loadFixture, mine, time } from '@nomicfoundation/hardhat-toolbox/network-helpers'
-import { deployRif } from '../scripts/deploy-rif'
-import { deployGovernor } from '../scripts/deploy-governor'
-import { deployTimelock } from '../scripts/deploy-timelock'
-import { RIFToken, RootDao, StRIFToken, TokenFaucet, DaoTimelockUpgradable } from '../typechain-types'
+import { RIFToken, RootDao, StRIFToken, DaoTimelockUpgradable } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { deployStRIF } from '../scripts/deploy-stRIF'
 import { parseEther, solidityPackedKeccak256 } from 'ethers'
 import { Proposal, ProposalState, OperationState } from '../types'
+import { deployContracts } from './deployContracts'
 
 describe('RootDAO Contact', () => {
-  const initialVotingDelay = 1n // secs 1 day
-  const initialVotingPeriod = 60n // secs 1 week
+  const initialVotingDelay = 1n
+  const initialVotingPeriod = 60n
   const initialProposalThreshold = 10n * 10n ** 18n
 
-  let rif: { rifToken: RIFToken; rifAddress: string; tokenFaucet: TokenFaucet }
-  let stRIF: StRIFToken
+  let rif: RIFToken
+  let rifAddress: string
+  let stRif: StRIFToken
   let timelock: DaoTimelockUpgradable
   let governor: RootDao
   let holders: SignerWithAddress[]
-  let deployer: SignerWithAddress
-
-  //   const rifTotalSupply = 10n ** 27n
-  //   const votingPower = 10n ** 5n
 
   before(async () => {
-    ;[deployer, ...holders] = await ethers.getSigners()
-
-    const deployRIF = () => deployRif(deployer)
-    rif = await loadFixture(deployRIF)
-    const deployGovToken = async () => deployStRIF(rif.rifAddress, deployer.address)
-    stRIF = await loadFixture(deployGovToken)
-    timelock = await loadFixture(deployTimelock)
-    const deployDAO = async () =>
-      deployGovernor(await stRIF.getAddress(), deployer.address, await timelock.getAddress())
-    governor = await loadFixture(deployDAO)
+    ;[, ...holders] = await ethers.getSigners()
+    ;({ rif, stRif, timelock, governor } = await loadFixture(deployContracts))
+    rifAddress = await rif.getAddress()
   })
 
   describe('Upon deployment', () => {
     it('should deploy all contracts', async () => {
-      expect(rif.rifAddress).to.be.properAddress
-      expect(await stRIF.getAddress()).to.be.properAddress
+      expect(rifAddress).to.be.properAddress
+      expect(await stRif.getAddress()).to.be.properAddress
       expect(await timelock.getAddress()).to.be.properAddress
       expect(await governor.getAddress()).to.be.properAddress
-      expect(await rif.tokenFaucet.getAddress()).to.be.properAddress
     })
 
     it('min delay should be set on the Timelock', async () => {
@@ -86,8 +72,8 @@ describe('RootDAO Contact', () => {
       const blockHeight = await ethers.provider.getBlockNumber()
       const votingDelay = await governor.votingDelay()
 
-      const calldata = stRIF.interface.encodeFunctionData('symbol')
-      proposal = [[await stRIF.getAddress()], [0n], [calldata]]
+      const calldata = stRif.interface.encodeFunctionData('symbol')
+      proposal = [[await stRif.getAddress()], [0n], [calldata]]
 
       proposalId = await governor
         .connect(holders[0])
@@ -109,20 +95,18 @@ describe('RootDAO Contact', () => {
       it('participants should gain voting power proportional to RIF tokens', async () => {
         await Promise.all(
           holders.map(async (voter, i) => {
-            const dispenseTx = await rif.tokenFaucet.connect(voter).dispense(voter.address)
+            const dispenseTx = await rif.transfer(voter.address, parseEther('10'))
             await dispenseTx.wait()
-            const rifBalance = await rif.rifToken.balanceOf(voter.address)
+            const rifBalance = await rif.balanceOf(voter.address)
             const votingPower = i === 0 ? rifBalance : rifBalance - parseEther(sendAmount)
 
-            const approvalTx = await rif.rifToken
-              .connect(voter)
-              .approve(await stRIF.getAddress(), votingPower)
+            const approvalTx = await rif.connect(voter).approve(await stRif.getAddress(), votingPower)
             await approvalTx.wait()
-            const depositTx = await stRIF.connect(voter).depositFor(voter.address, votingPower)
+            const depositTx = await stRif.connect(voter).depositFor(voter.address, votingPower)
             await depositTx.wait()
-            const delegateTx = await stRIF.connect(voter).delegate(voter.address)
+            const delegateTx = await stRif.connect(voter).delegate(voter.address)
             await delegateTx.wait()
-            const votes = await stRIF.getVotes(voter.address)
+            const votes = await stRif.getVotes(voter.address)
 
             expect(votes).to.equal(votingPower)
           }),
@@ -130,7 +114,7 @@ describe('RootDAO Contact', () => {
       })
 
       it('holder[0] should have enough voting power to initiate a proposal (above the Proposal Threshold)', async () => {
-        const balance = await stRIF.balanceOf(holders[0])
+        const balance = await stRif.balanceOf(holders[0])
         const threshold = await governor.proposalThreshold()
         expect(balance).greaterThanOrEqual(threshold)
       })
@@ -139,7 +123,7 @@ describe('RootDAO Contact', () => {
         const threshold = await governor.proposalThreshold()
         await Promise.all(
           holders.slice(1).map(async holder => {
-            const balance = await stRIF.balanceOf(holder.address)
+            const balance = await stRif.balanceOf(holder.address)
             expect(balance).lessThan(threshold)
           }),
         )
@@ -186,7 +170,7 @@ describe('RootDAO Contact', () => {
 
         const quorum = await governor.quorum(proposalSnapshot)
 
-        const snapshotTotalSupply = await stRIF.getPastTotalSupply(proposalSnapshot)
+        const snapshotTotalSupply = await stRif.getPastTotalSupply(proposalSnapshot)
         expect(quorum).to.equal((snapshotTotalSupply * 4n) / 100n)
       })
 
@@ -242,14 +226,14 @@ describe('RootDAO Contact', () => {
         const hasVoted = await governor.hasVoted(proposalId, holders[1])
         expect(hasVoted).to.be.true
         const { forVotes } = await governor.proposalVotes(proposalId)
-        expect(forVotes).to.be.equal(await stRIF.getVotes(holders[1]))
+        expect(forVotes).to.be.equal(await stRif.getVotes(holders[1]))
 
         const tx2 = await governor.connect(holders[2]).castVote(proposalId, 0)
         tx2.wait()
         const hasVoted2 = await governor.hasVoted(proposalId, holders[2])
         expect(hasVoted2).to.be.true
         const { againstVotes } = await governor.proposalVotes(proposalId)
-        expect(againstVotes).to.be.equal(await stRIF.getVotes(holders[2]))
+        expect(againstVotes).to.be.equal(await stRif.getVotes(holders[2]))
       })
 
       it('what happens when after voting holder burns tokens', async () => {
