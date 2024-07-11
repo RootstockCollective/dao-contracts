@@ -1,13 +1,13 @@
 import { ignition } from 'hardhat'
 import { RIFToken, StRIFToken, DaoTimelockUpgradable, RootDao } from '../typechain-types'
 import RifModule from '../ignition/modules/RifModule'
-import DaoModule from '../ignition/modules/DaoModule'
+import GovernorModule from '../ignition/modules/GovernorModule'
 
 export const deployContracts = async () => {
   // deploy RIF before the rest DAO contracts
   const { rif } = await ignition.deploy(RifModule)
   // insert RIF address as a parameter to stRIF deployment module
-  const dao = await ignition.deploy(DaoModule, {
+  const dao = await ignition.deploy(GovernorModule, {
     parameters: {
       stRifProxy: {
         rifAddress: await rif.getAddress(),
