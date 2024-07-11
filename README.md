@@ -68,11 +68,11 @@ where `dao-01` is a deployment ID
 ### New deployment
 
 ```shell
-npx hardhat ignition deploy ignition/modules/dao.ts --network rootstockTestnet --deployment-id dao-02
+npx hardhat ignition deploy ignition/modules/DaoModule.ts --network rootstockTestnet --deployment-id dao-02
 ```
 
 ### Reset existing deployment
 
 ```shell
-npx hardhat ignition deploy ignition/modules/dao.ts --network rootstockTestnet --deployment-id dao-02 --reset
+npx hardhat ignition deploy ignition/modules/DaoModule.ts --network rootstockTestnet --deployment-id dao-02 --reset
 ```

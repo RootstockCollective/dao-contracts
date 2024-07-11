@@ -1,4 +1,5 @@
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { RIFToken, StRIFToken } from '../typechain-types'
@@ -6,7 +7,6 @@ import { ContractTransactionResponse, parseEther } from 'ethers'
 import { deployContracts } from './deployContracts'
 
 describe('stRIF token: Function depositAndDelegate', () => {
-  let deployer: SignerWithAddress
   let alice: SignerWithAddress
   let bob: SignerWithAddress
   let rif: RIFToken
@@ -20,8 +20,10 @@ describe('stRIF token: Function depositAndDelegate', () => {
     Deployment of RIF token and transferring a certain amount to Alice.
     See the relevant cases in StRIFToken tests
     */
-    ;[deployer, alice, bob] = await ethers.getSigners()
-    ;({ rif, stRif, stRifAddress } = await deployContracts(deployer))
+    ;[, alice, bob] = await ethers.getSigners()
+    ;({ rif, stRif } = await loadFixture(deployContracts))
+    stRifAddress = await stRif.getAddress()
+    // prettier-ignore
     await (await rif.transfer(alice.address, votingPower)).wait()
   })
 

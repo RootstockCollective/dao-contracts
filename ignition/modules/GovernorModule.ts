@@ -2,7 +2,7 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import TimelockModule from './TimelockModule'
 import StRifModule from './StRifModule'
 
-const governorProxyModule = buildModule('GovernorProxy', m => {
+export const governorProxyModule = buildModule('GovernorProxy', m => {
   const deployer = m.getAccount(0)
   // deploy implementation
   const governor = m.contract('RootDao')

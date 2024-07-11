@@ -1,6 +1,6 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-const timelockProxyModule = buildModule('TimelockProxy', m => {
+export const timelockProxyModule = buildModule('TimelockProxy', m => {
   /* 
   https://docs.openzeppelin.com/contracts/5.x/api/governance#TimelockController
   Initialize the TImelock contract with the following parameters:
@@ -26,7 +26,7 @@ const timelockProxyModule = buildModule('TimelockProxy', m => {
 const timelockModule = buildModule('Timelock', m => {
   const { timelockProxy } = m.useModule(timelockProxyModule)
   const timelock = m.contractAt('DaoTimelockUpgradable', timelockProxy)
-  return { timelock, timelockProxy }
+  return { timelock }
 })
 
 export default timelockModule
