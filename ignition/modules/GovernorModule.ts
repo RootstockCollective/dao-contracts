@@ -13,12 +13,12 @@ export const governorProxyModule = buildModule('GovernorProxy', m => {
     governor,
     m.encodeFunctionCall(governor, 'initialize', [stRif, timelock, deployer]),
   ])
-  return { governorProxy, timelock }
+  return { governorProxy, timelock, stRif }
 })
 
 const governorModule = buildModule('Governor', m => {
   const deployer = m.getAccount(0)
-  const { governorProxy, timelock } = m.useModule(governorProxyModule)
+  const { governorProxy, timelock, stRif } = m.useModule(governorProxyModule)
   // Use proxy address to interact with the deployed contract
   const governor = m.contractAt('RootDao', governorProxy)
 
@@ -40,7 +40,7 @@ const governorModule = buildModule('Governor', m => {
     after: [grantExecutorRole, grantProposerRole],
   })
 
-  return { governor }
+  return { governor, timelock, stRif }
 })
 
 export default governorModule
