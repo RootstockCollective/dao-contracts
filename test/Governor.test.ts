@@ -200,10 +200,46 @@ describe('RootDAO Contact', () => {
     })
 
     describe('Voting', () => {
+      it('voting power of holders should be locked at the proposal creation stage', async () => {
+        const votesAtTheProposalSnapshot = await governor.getVotes(holders[0].address, proposalSnapshot)
+        const dispenseValue = await rif.tokenFaucet.dispenseValue()
+
+        const { abstainVotes: beforeAbstainVotes } = await governor.proposalVotes(proposalId)
+        expect(beforeAbstainVotes).to.equal(0n)
+
+        const dispenseTx = await rif.tokenFaucet.connect(holders[0]).dispense(holders[0].address)
+        await dispenseTx.wait()
+        const currentBalance = await rif.rifToken.balanceOf(holders[0].address)
+        expect(currentBalance).to.equal(dispenseValue)
+
+        const approvalTx = await rif.rifToken
+          .connect(holders[0])
+          .approve(await stRIF.getAddress(), currentBalance)
+        await approvalTx.wait()
+        const depositTx = await stRIF.connect(holders[0]).depositAndDelegate(holders[0], currentBalance)
+        await depositTx.wait()
+        await mine(2)
+
+        const currentVotes = await governor.getVotes(
+          holders[0].address,
+          BigInt((await ethers.provider.getBlockNumber()) - 1),
+        )
+        expect(currentVotes).to.equal(dispenseValue * 2n)
+
+        // cast Abstain Vote
+        const tx = await governor.connect(holders[0]).castVote(proposalId, 2)
+        await tx.wait()
+
+        const { abstainVotes } = await governor.proposalVotes(proposalId)
+        console.log('abstainVotes', abstainVotes)
+
+        expect(abstainVotes).to.be.equal(votesAtTheProposalSnapshot)
+      })
+
       it('holders should be able to cast vote', async () => {
         // cast FOR vote, system: 0 = Against, 1 = For, 2 = Abstain
         const tx = await governor.connect(holders[1]).castVote(proposalId, 1)
-        tx.wait()
+        await tx.wait()
         const hasVoted = await governor.hasVoted(proposalId, holders[1])
         expect(hasVoted).to.be.true
         const { forVotes } = await governor.proposalVotes(proposalId)
