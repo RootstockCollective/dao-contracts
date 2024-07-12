@@ -10,6 +10,7 @@ import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Own
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract StRIFToken is
   Initializable,
@@ -25,11 +26,11 @@ contract StRIFToken is
     _disableInitializers();
   }
 
-  function initialize(address rifToken, address initialOwner) public initializer {
+  function initialize(IERC20 rifToken, address initialOwner) public initializer {
     __ERC20_init("StRIFToken", "stRIF");
     __ERC20Permit_init("StRIFToken");
     __ERC20Votes_init();
-    __ERC20Wrapper_init(ERC20Upgradeable(rifToken));
+    __ERC20Wrapper_init(rifToken);
     __Ownable_init(initialOwner);
     __UUPSUpgradeable_init();
   }
