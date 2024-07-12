@@ -216,7 +216,6 @@ describe('RootDAO Contact', () => {
         await tx.wait()
 
         const { abstainVotes } = await governor.proposalVotes(proposalId)
-        console.log('abstainVotes', abstainVotes)
 
         expect(abstainVotes).to.be.equal(votesAtTheProposalSnapshot)
       })
@@ -236,6 +235,22 @@ describe('RootDAO Contact', () => {
         expect(hasVoted2).to.be.true
         const { againstVotes } = await governor.proposalVotes(proposalId)
         expect(againstVotes).to.be.equal(await stRIF.getVotes(holders[2]))
+      })
+
+      it('what happens when after voting holder burns tokens', async () => {
+        const value = parseEther('5')
+        const votesBefore = await governor.proposalVotes(proposalId)
+
+        const tx = await stRIF.connect(holders[1]).withdrawTo(holders[1], value)
+        await tx.wait()
+
+        expect(tx).to.changeEtherBalance(holders[1], value)
+
+        const votesAfter = await governor.proposalVotes(proposalId)
+
+        expect(votesBefore[0]).to.be.equal(votesAfter[0])
+        expect(votesBefore[1]).to.be.equal(votesAfter[1])
+        expect(votesBefore[2]).to.be.equal(votesAfter[2])
       })
 
       it('the same holder should not be able to cast the vote for the same proposal', async () => {
