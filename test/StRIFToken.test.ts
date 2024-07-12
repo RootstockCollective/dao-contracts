@@ -2,8 +2,8 @@ import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { deployStRIF } from '../scripts/deploy-stRIF'
 import { RIFToken, StRIFToken } from '../typechain-types'
+import { deployContracts } from './deployContracts'
 
 describe('stRIFToken', () => {
   let owner: SignerWithAddress, holder: SignerWithAddress, voter: SignerWithAddress
@@ -11,37 +11,20 @@ describe('stRIFToken', () => {
   let stRIF: StRIFToken
   const votingPower = 10n * 10n ** 18n
 
-  const deployRif = () => ethers.deployContract('RIFToken')
-  const deployWrappedRif = async () => deployStRIF(await rif.getAddress(), owner.address)
-
-  const deploy = async () => {
-    rif = await loadFixture(deployRif)
-    stRIF = await loadFixture(deployWrappedRif)
-  }
-
+  // prettier-ignore
   before(async () => {
     ;[owner, holder, voter] = await ethers.getSigners()
-    await deploy()
+    ;({ rif, stRIF } = await loadFixture(deployContracts))
   })
 
   it('Should assign the initial balance to the contract itself', async () => {
-    const contractBalance = await rif.balanceOf(rif)
+    const contractBalance = await rif.balanceOf(owner)
     expect(contractBalance).to.equal(ethers.parseUnits('1000000000', 18))
   })
 
   describe('Wrapping RIF tokens to stRIF', () => {
     it('holder should NOT initially own RIF tokens', async () => {
       expect(await rif.balanceOf(holder.address)).to.equal(0)
-    })
-
-    it('should transfer all RIF tokens to deployer and close distribution', async () => {
-      await rif.setAuthorizedManagerContract(owner)
-      expect(await rif.balanceOf(owner.address)).to.equal(ethers.parseUnits('1000000000', 18))
-
-      const latestBlock = await ethers.provider.getBlock('latest')
-      if (!latestBlock) throw new Error('latest block not found')
-      await rif.closeTokenDistribution(latestBlock.timestamp)
-      expect(await rif.distributionTime()).to.not.be.equal(0)
     })
 
     it("owner should send some RIFs to holder's address", async () => {

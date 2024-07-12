@@ -1,4 +1,5 @@
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
+import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { RIFToken, StRIFToken } from '../typechain-types'
@@ -6,7 +7,6 @@ import { ContractTransactionResponse, parseEther } from 'ethers'
 import { deployContracts } from './deployContracts'
 
 describe('stRIF token: Function transferAndDelegate', () => {
-  let deployer: SignerWithAddress
   let alice: SignerWithAddress
   let bob: SignerWithAddress
   let john: SignerWithAddress
@@ -15,15 +15,17 @@ describe('stRIF token: Function transferAndDelegate', () => {
   let transferAndDelegateTx: ContractTransactionResponse
   const votingPower = parseEther('100') // RIF tokens
 
+  // prettier-ignore
   const enfranchiseUser = async (user: SignerWithAddress, amount: bigint) => {
-    await (await rif.transfer(user.address, amount)).wait()
-    await (await rif.connect(user).approve(await stRif.getAddress(), amount)).wait()
-    await (await stRif.connect(user).depositAndDelegate(user.address, amount)).wait()
+    await(await rif.transfer(user.address, amount)).wait()
+    await(await rif.connect(user).approve(await stRif.getAddress(), amount)).wait()
+    await(await stRif.connect(user).depositAndDelegate(user.address, amount)).wait()
   }
 
+  // prettier-ignore
   before(async () => {
-    ;[deployer, alice, bob, john] = await ethers.getSigners()
-    ;({ rif, stRif } = await deployContracts(deployer))
+    ;[, alice, bob, john] = await ethers.getSigners()
+    ;({ rif, stRIF: stRif } = await loadFixture(deployContracts))
     await enfranchiseUser(alice, votingPower)
     await enfranchiseUser(john, votingPower)
   })

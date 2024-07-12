@@ -1,15 +1,23 @@
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { ethers } from 'hardhat'
-import { deployStRIF } from '../scripts/deploy-stRIF'
+import { ignition } from 'hardhat'
+import { RIFToken, StRIFToken, DaoTimelockUpgradable, RootDao } from '../typechain-types'
+import RifModule from '../ignition/modules/RifModule'
+import GovernorModule from '../ignition/modules/GovernorModule'
 
-export const deployContracts = async (admin: SignerWithAddress) => {
-  const rif = await (await ethers.deployContract('RIFToken', { signer: admin })).waitForDeployment()
-  const rifAddress = await rif.getAddress()
-  await (await rif.setAuthorizedManagerContract(admin.address)).wait()
-  const latestBlock = await ethers.provider.getBlock('latest')
-  if (!latestBlock) throw new Error('Latest block not found')
-  await (await rif.closeTokenDistribution(latestBlock.timestamp)).wait()
-  const stRif = await deployStRIF(rifAddress, admin.address)
-  const stRifAddress = await stRif.getAddress()
-  return { rif, rifAddress, stRif, stRifAddress }
+export const deployContracts = async () => {
+  // deploy RIF before the rest DAO contracts
+  const { rif } = await ignition.deploy(RifModule)
+  // insert RIF address as a parameter to stRIF deployment module
+  const dao = await ignition.deploy(GovernorModule, {
+    parameters: {
+      stRifProxy: {
+        rifAddress: await rif.getAddress(),
+      },
+    },
+  })
+  return {
+    rif: rif as unknown as RIFToken,
+    stRIF: dao.stRif as unknown as StRIFToken,
+    timelock: dao.timelock as unknown as DaoTimelockUpgradable,
+    governor: dao.governor as unknown as RootDao,
+  }
 }
