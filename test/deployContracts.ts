@@ -16,7 +16,7 @@ export const deployContracts = async () => {
   })
   return {
     rif: rif as unknown as RIFToken,
-    stRif: dao.stRif as unknown as StRIFToken,
+    stRIF: dao.stRif as unknown as StRIFToken,
     timelock: dao.timelock as unknown as DaoTimelockUpgradable,
     governor: dao.governor as unknown as RootDao,
   }

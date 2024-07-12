@@ -14,21 +14,22 @@ describe('RootDAO Contact', () => {
 
   let rif: RIFToken
   let rifAddress: string
-  let stRif: StRIFToken
+  let stRIF: StRIFToken
   let timelock: DaoTimelockUpgradable
   let governor: RootDao
   let holders: SignerWithAddress[]
 
   before(async () => {
-    ;[, ...holders] = await ethers.getSigners()
-    ;({ rif, stRif, timelock, governor } = await loadFixture(deployContracts))
+    // prettier-ignore
+    ;[, ...holders] = await ethers.getSigners();
+    ;({ rif, stRIF, timelock, governor } = await loadFixture(deployContracts))
     rifAddress = await rif.getAddress()
   })
 
   describe('Upon deployment', () => {
     it('should deploy all contracts', async () => {
       expect(rifAddress).to.be.properAddress
-      expect(await stRif.getAddress()).to.be.properAddress
+      expect(await stRIF.getAddress()).to.be.properAddress
       expect(await timelock.getAddress()).to.be.properAddress
       expect(await governor.getAddress()).to.be.properAddress
     })
@@ -72,8 +73,8 @@ describe('RootDAO Contact', () => {
       const blockHeight = await ethers.provider.getBlockNumber()
       const votingDelay = await governor.votingDelay()
 
-      const calldata = stRif.interface.encodeFunctionData('symbol')
-      proposal = [[await stRif.getAddress()], [0n], [calldata]]
+      const calldata = stRIF.interface.encodeFunctionData('symbol')
+      proposal = [[await stRIF.getAddress()], [0n], [calldata]]
 
       proposalId = await governor
         .connect(holders[0])
@@ -100,13 +101,13 @@ describe('RootDAO Contact', () => {
             const rifBalance = await rif.balanceOf(voter.address)
             const votingPower = i === 0 ? rifBalance : rifBalance - parseEther(sendAmount)
 
-            const approvalTx = await rif.connect(voter).approve(await stRif.getAddress(), votingPower)
+            const approvalTx = await rif.connect(voter).approve(await stRIF.getAddress(), votingPower)
             await approvalTx.wait()
-            const depositTx = await stRif.connect(voter).depositFor(voter.address, votingPower)
+            const depositTx = await stRIF.connect(voter).depositFor(voter.address, votingPower)
             await depositTx.wait()
-            const delegateTx = await stRif.connect(voter).delegate(voter.address)
+            const delegateTx = await stRIF.connect(voter).delegate(voter.address)
             await delegateTx.wait()
-            const votes = await stRif.getVotes(voter.address)
+            const votes = await stRIF.getVotes(voter.address)
 
             expect(votes).to.equal(votingPower)
           }),
@@ -114,7 +115,7 @@ describe('RootDAO Contact', () => {
       })
 
       it('holder[0] should have enough voting power to initiate a proposal (above the Proposal Threshold)', async () => {
-        const balance = await stRif.balanceOf(holders[0])
+        const balance = await stRIF.balanceOf(holders[0])
         const threshold = await governor.proposalThreshold()
         expect(balance).greaterThanOrEqual(threshold)
       })
@@ -123,7 +124,7 @@ describe('RootDAO Contact', () => {
         const threshold = await governor.proposalThreshold()
         await Promise.all(
           holders.slice(1).map(async holder => {
-            const balance = await stRif.balanceOf(holder.address)
+            const balance = await stRIF.balanceOf(holder.address)
             expect(balance).lessThan(threshold)
           }),
         )
@@ -170,7 +171,7 @@ describe('RootDAO Contact', () => {
 
         const quorum = await governor.quorum(proposalSnapshot)
 
-        const snapshotTotalSupply = await stRif.getPastTotalSupply(proposalSnapshot)
+        const snapshotTotalSupply = await stRIF.getPastTotalSupply(proposalSnapshot)
         expect(quorum).to.equal((snapshotTotalSupply * 4n) / 100n)
       })
 
@@ -226,14 +227,14 @@ describe('RootDAO Contact', () => {
         const hasVoted = await governor.hasVoted(proposalId, holders[1])
         expect(hasVoted).to.be.true
         const { forVotes } = await governor.proposalVotes(proposalId)
-        expect(forVotes).to.be.equal(await stRif.getVotes(holders[1]))
+        expect(forVotes).to.be.equal(await stRIF.getVotes(holders[1]))
 
         const tx2 = await governor.connect(holders[2]).castVote(proposalId, 0)
         tx2.wait()
         const hasVoted2 = await governor.hasVoted(proposalId, holders[2])
         expect(hasVoted2).to.be.true
         const { againstVotes } = await governor.proposalVotes(proposalId)
-        expect(againstVotes).to.be.equal(await stRif.getVotes(holders[2]))
+        expect(againstVotes).to.be.equal(await stRIF.getVotes(holders[2]))
       })
 
       it('what happens when after voting holder burns tokens', async () => {
