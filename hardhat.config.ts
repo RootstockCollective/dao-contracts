@@ -6,7 +6,7 @@ dotent.config()
 
 const accounts = {
   mnemonic: process.env.MNEMONIC,
-  path: "m/44'/60'/0'/0",
+  // path: "m/44'/60'/0'/0",
 }
 
 const config: HardhatUserConfig = {
