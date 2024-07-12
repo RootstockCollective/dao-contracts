@@ -187,19 +187,17 @@ describe('RootDAO Contact', () => {
     describe('Voting', () => {
       it('voting power of holders should be locked at the proposal creation stage', async () => {
         const votesAtTheProposalSnapshot = await governor.getVotes(holders[0].address, proposalSnapshot)
-        const dispenseValue = await rif.tokenFaucet.dispenseValue()
+        const dispenseValue = parseEther('10')
 
         const { abstainVotes: beforeAbstainVotes } = await governor.proposalVotes(proposalId)
         expect(beforeAbstainVotes).to.equal(0n)
 
-        const dispenseTx = await rif.tokenFaucet.connect(holders[0]).dispense(holders[0].address)
+        const dispenseTx = await rif.transfer(holders[0].address, dispenseValue)
         await dispenseTx.wait()
-        const currentBalance = await rif.rifToken.balanceOf(holders[0].address)
+        const currentBalance = await rif.balanceOf(holders[0].address)
         expect(currentBalance).to.equal(dispenseValue)
 
-        const approvalTx = await rif.rifToken
-          .connect(holders[0])
-          .approve(await stRIF.getAddress(), currentBalance)
+        const approvalTx = await rif.connect(holders[0]).approve(await stRIF.getAddress(), currentBalance)
         await approvalTx.wait()
         const depositTx = await stRIF.connect(holders[0]).depositAndDelegate(holders[0], currentBalance)
         await depositTx.wait()
