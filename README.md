@@ -1,14 +1,12 @@
-# Sample Hardhat Project
+# Rootstock DAO
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a Hardhat Ignition module that deploys that contract.
+## Installation
 
-Try running some of the following tasks:
+- rename `template.env` to `.env` and paste the mnemonic phrase from your Rootstock account
+- make sure your node.js version `>= v20.15.0`
 
 ```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
+yarn
 ```
 
 ## stRIF
@@ -58,3 +56,9 @@ npx hardhat ignition deploy ignition/modules/GovernorModule.ts --parameters igni
 ```
 
 where parameter `--parameters` specifies the location of parameters file with the RIF token address
+
+## Deployed contracts
+
+Timelock - 0x30976FE9a78D78bFe9e8da223543DF27baA52572
+stRif - 0xAF17f7A0124E9F360ffA484b13566b041C0f5023
+Governor - 0x00ca74491D9493bFe5451246C8c72849Ba4A7F9D
