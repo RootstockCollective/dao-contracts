@@ -1,12 +1,15 @@
-import type { HardhatUserConfig } from 'hardhat/types'
+import type { HardhatUserConfig, HttpNetworkHDAccountsConfig } from 'hardhat/types'
 import '@nomicfoundation/hardhat-toolbox'
 import dotent from 'dotenv'
 
 dotent.config()
 
-const accounts = {
+const accounts: HttpNetworkHDAccountsConfig = {
   mnemonic: process.env.MNEMONIC,
-  // path: "m/44'/60'/0'/0",
+  path: "m/44'/60'/0'/0",
+  initialIndex: 0,
+  count: 20,
+  passphrase: '',
 }
 
 const config: HardhatUserConfig = {
