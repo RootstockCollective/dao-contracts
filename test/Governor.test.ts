@@ -9,7 +9,7 @@ import { deployContracts } from './deployContracts'
 
 describe('RootDAO Contact', () => {
   const initialVotingDelay = 1n
-  const initialVotingPeriod = 60n
+  const initialVotingPeriod = 240n // 2 hours
   const initialProposalThreshold = 10n * 10n ** 18n
 
   let rif: RIFToken
