@@ -1,6 +1,7 @@
 import type { HardhatUserConfig, HttpNetworkHDAccountsConfig } from 'hardhat/types'
 import '@nomicfoundation/hardhat-toolbox'
 import dotent from 'dotenv'
+import './tasks/loadCids'
 
 dotent.config()
 
@@ -20,6 +21,11 @@ const config: HardhatUserConfig = {
       },
       { version: '0.4.24' },
     ],
+  },
+  gasReporter: {
+    enabled: true,
+    reportPureAndViewMethods: true,
+    showUncalledMethods: false,
   },
   networks: {
     hardhat: {

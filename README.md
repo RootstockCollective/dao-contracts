@@ -49,7 +49,7 @@ slither . --filter-paths openzeppelin,rif-token-contracts
 
 ## Deploying contracts with Ignition
 
-This command will deploy all the DAO contracts to Rootstock testnet
+- Deploy all the DAO contracts to Rootstock Testnet
 
 ```shell
 npx hardhat ignition deploy ignition/modules/GovernorModule.ts --parameters ignition/deployedRif.json --network rootstockTestnet
@@ -57,8 +57,25 @@ npx hardhat ignition deploy ignition/modules/GovernorModule.ts --parameters igni
 
 where parameter `--parameters` specifies the location of parameters file with the RIF token address
 
-## Deployed contracts
+- Deploy Early Adopters NFT to Rootstock Testnet
+
+```shell
+npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --network rootstockTestnet
+```
+
+## Uploading CIDs to Early Adopters NFT
+
+Place tokens metadata IPFS CIDs to a file `tasks/cids.json` and run the command:
+
+```shell
+npx hardhat load-cids --network rootstockTestnet --nft 0xf24761C1B57b14EeA270B1485294D93494164246
+```
+
+where parameter `nft` means an address of deployed Early Adopters NFT smart contract
+
+## Deployed contracts (on Rootstock Testnet)
 
 Timelock - 0x30976FE9a78D78bFe9e8da223543DF27baA52572
 stRif - 0xAF17f7A0124E9F360ffA484b13566b041C0f5023
 Governor - 0x00ca74491D9493bFe5451246C8c72849Ba4A7F9D
+Early Adopters NFT - 0xf24761C1B57b14EeA270B1485294D93494164246
