@@ -9,7 +9,7 @@ export const timelockProxyModule = buildModule('TimelockProxy', m => {
       executors: accounts to be granted executor role
       admin: optional account to be granted admin role; disable with zero address
   */
-  const minDelay = m.getParameter('minDelay', 60 * 60 * 24) // 24 hours in seconds
+  const minDelay = m.getParameter('minDelay', 60 * 15) // 15 minutes in seconds
   const proposers: string[] = []
   const executors: string[] = []
   const admin = m.getAccount(0)
