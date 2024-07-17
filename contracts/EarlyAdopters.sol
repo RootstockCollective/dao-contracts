@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
  * @title Early Adopters Community NFT
- * @notice Owning one token determines membership in the Early Adopters Community
+ * @notice Owning one token grants membership in the Early Adopters Community.
  */
 contract EarlyAdopters is
   Initializable,
@@ -47,8 +47,8 @@ contract EarlyAdopters is
   }
 
   /**
-   * Mints an NFT for the Early Adopters community joiner. One address can
-   * have a maximum of one token
+   * @dev Mints an NFT for a new member of the Early Adopters community.
+   * Ensures that one address can hold a maximum of one token.
    */
   function mint() external virtual {
     // stop minting if the contract ran out of images
@@ -61,19 +61,19 @@ contract EarlyAdopters is
   }
 
   /**
-   * @dev Admin with `CIDS_LOADER_ROLE` can call this function to upload IPFS CIDs with NFT metadata.
-   * @param ipfsCIDs - array of strings of a kind `QmQR9mfvZ9fDFJuBne1xnRoeRCeKZdqajYGJJ9MEDchgqX`
-   * The array length should be no more than 50 CIDs. If there are more than 50 tokens to upload,
-   * call the function multiple times.
+   * @dev Allows an admin with the `CIDS_LOADER_ROLE` to upload IPFS CIDs with NFT metadata.
+   * @param ipfsCIDs - An array of strings representing IPFS CIDs, e.g., `QmQR9mfvZ9fDFJuBne1xnRoeRCeKZdqajYGJJ9MEDchgqX`.
+   * The array length should not exceed 50 CIDs. If there are more than 50 tokens to upload,
+   * call this function multiple times.
    */
   function loadCids(string[] calldata ipfsCIDs) external virtual onlyRole(CIDS_LOADER_ROLE) {
     /* 
-    Block gas limit is 6_800_000 gas units.
-    Uploading 1 CID costs about 68_000 gas unit.
+    The block gas limit is 6,800,000 gas units. Uploading 1 CID costs about 68,000 gas units.
     How many CIDs should be loaded within one transaction (one block)?
-    It would be reasonable to keep a place for other transactions in the
-    block, so, let's assume , we take half of the block gas, which would 
-    be 3_400_000, divide it by 68_000 and this equals exactly 50 CIDs
+
+    To ensure space for other transactions in the block, let’s assume we use half of the block
+    gas limit, which is 3,400,000 gas units. Dividing this by 68,000 gas units per CID, we can
+    load exactly 50 CIDs per transaction.
       */
     uint256 maxCids = 50;
     uint256 length = ipfsCIDs.length;
@@ -91,25 +91,25 @@ contract EarlyAdopters is
   }
 
   /**
-   * @dev Returns token ID by the owner address
-   * This is a simplified version of the function `tokenOfOwnerByIndex` without the index
-   * parameter, since a community member can have only one token
+   * @dev Returns the token ID for a given owner address.
+   * This is a simplified version of the `tokenOfOwnerByIndex` function without the index
+   * parameter, since a community member can only own one token.
    */
   function tokenIdByOwner(address owner) public view virtual returns (uint256) {
     return tokenOfOwnerByIndex(owner, 0);
   }
 
   /**
-   * @dev Returns token IPFS URI by the owner address
-   * A utility function - the combination of 2 view functions
+   * @dev Returns the token IPFS URI for the given owner address.
+   * This utility function combines two view functions.
    */
   function tokenUriByOwner(address owner) public view virtual returns (string memory) {
     return tokenURI(tokenIdByOwner(owner));
   }
 
   /**
-   * @dev Prevents transferring tokens to someone who already owns one.
-   * It follows that one address cannot own more than one token.
+   * @dev Prevents the transfer of tokens to addresses that already own one.
+   * Ensures that one address cannot own more than one token.
    */
   function _update(
     address to,

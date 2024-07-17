@@ -2,8 +2,8 @@
 
 ## Installation
 
-- rename `template.env` to `.env` and paste the mnemonic phrase from your Rootstock account
-- make sure your node.js version `>= v20.15.0`
+- Rename `template.env` to `.env` and paste the mnemonic phrase from your Rootstock account.
+- Ensure your Node.js version is `>= v20.15.0`.
 
 ```shell
 yarn
@@ -11,7 +11,7 @@ yarn
 
 ## stRIF
 
-The stRIF contract is a contract that allows users to stake RIF tokens in order to get voting power in the RIF DAO.
+The stRIF contract allows users to stake RIF tokens to gain voting power in the RIF DAO.
 
 ## RIF Token
 
@@ -41,7 +41,7 @@ We decided (in the meantime) to fork the repository and add it there [Forked Rep
 
 ## Slither - Solidity static analyzer
 
-Run this command to test smart contracts excluding OpenZeppelin and RIF
+Run this command to test smart contracts, excluding OpenZeppelin and RIF:
 
 ```shell
 slither . --filter-paths openzeppelin,rif-token-contracts
@@ -49,13 +49,13 @@ slither . --filter-paths openzeppelin,rif-token-contracts
 
 ## Deploying contracts with Ignition
 
-- Deploy all the DAO contracts to Rootstock Testnet
+- Deploy all the DAO contracts to the Rootstock Testnet:
 
 ```shell
 npx hardhat ignition deploy ignition/modules/GovernorModule.ts --parameters ignition/deployedRif.json --network rootstockTestnet
 ```
 
-where parameter `--parameters` specifies the location of parameters file with the RIF token address
+where the --parameters parameter specifies the location of the parameters file with the RIF token address.
 
 - Deploy Early Adopters NFT to Rootstock Testnet
 
@@ -65,13 +65,13 @@ npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --network ro
 
 ## Uploading CIDs to Early Adopters NFT
 
-Place tokens metadata IPFS CIDs to a file `tasks/cids.json` and run the command:
+Place token metadata IPFS CIDs in the file `tasks/cids.json` and run the command:
 
 ```shell
 npx hardhat load-cids --network rootstockTestnet --nft 0xf24761C1B57b14EeA270B1485294D93494164246
 ```
 
-where parameter `nft` means an address of deployed Early Adopters NFT smart contract
+where the `--nft` parameter is the address of the deployed Early Adopters NFT smart contract.
 
 ## Deployed contracts (on Rootstock Testnet)
 
