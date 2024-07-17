@@ -7,10 +7,10 @@ import cidsArray from './cids.json'
 const maxCids = 50
 
 /**
- * Loads an array of CIDs to Early Adopters NFT smart contract by portions
- * @param ea Early Adopters NFT smart contract ref
- * @param cidsArr array of CIDs to upload in portions
- * @param portionSize length of a portion
+ * @dev Loads an array of CIDs into the Early Adopters NFT smart contract in portions.
+ * @param ea Reference to the Early Adopters NFT smart contract.
+ * @param cidsArr Array of CIDs to upload in portions.
+ * @param portionSize Size of each portion to upload.
  */
 async function uploadInPortions(ea: EarlyAdopters, cidsArr: string[], portionSize: number): Promise<void> {
   try {
@@ -29,16 +29,17 @@ async function uploadInPortions(ea: EarlyAdopters, cidsArr: string[], portionSiz
     // call the function again until all the CIDs get uploaded
     await uploadInPortions(ea, cidsArr.slice(cids.length), portionSize)
   } catch (error) {
-    // if one of transactions failed, try to send it again until it succeeds
+    // If one of the transactions fails, retry until it succeeds.
     console.log('Tx failed. Trying again')
     await uploadInPortions(ea, cidsArr, portionSize)
   }
 }
 
 /**
- * Loads an array of IPFS CIDs info the Early Adopters NFT smart contract
- * @param nftAddress address of  deployed NFT smart contract
- * @param metaCids array of all CIDs needed to be loaded into NFT smart contract
+ * @dev Loads an array of IPFS CIDs into the Early Adopters NFT smart contract.
+ * @param hre Injected Hardhat runtime environment object.
+ * @param nftAddress The address of the deployed NFT smart contract.
+ * @param cids An array of CIDs to be loaded into the NFT smart contract.
  */
 async function loadNftCids(hre: HardhatRuntimeEnvironment, nftAddress: string, cids: string[]) {
   if (cids.length === 0) return console.log('No CIDs to upload')
