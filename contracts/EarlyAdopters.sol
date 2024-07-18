@@ -4,6 +4,7 @@ pragma solidity ^0.8.20;
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {ERC721EnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import {ERC721URIStorageUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
+import {ERC721BurnableUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
@@ -17,6 +18,7 @@ contract EarlyAdopters is
   ERC721Upgradeable,
   ERC721EnumerableUpgradeable,
   ERC721URIStorageUpgradeable,
+  ERC721BurnableUpgradeable,
   AccessControlUpgradeable,
   UUPSUpgradeable
 {
@@ -38,6 +40,7 @@ contract EarlyAdopters is
     __ERC721_init("EarlyAdopters", "EA");
     __ERC721Enumerable_init();
     __ERC721URIStorage_init();
+    __ERC721Burnable_init();
     __AccessControl_init();
     __UUPSUpgradeable_init();
 
@@ -58,6 +61,15 @@ contract EarlyAdopters is
     uint256 tokenId = _nextTokenId++;
     _safeMint(msg.sender, tokenId);
     _setTokenURI(tokenId, uri);
+  }
+
+  /**
+   * Burns the token an leaves the community.
+   * `ERC721Burnable` already has a function `burn(uint256)` to burn token by ID. 
+   * Here it's allowed to own only one token, thus there's no reason for specifying an ID.
+   */
+  function burn() external virtual {
+    burn(tokenIdByOwner(msg.sender));
   }
 
   /**
@@ -116,7 +128,8 @@ contract EarlyAdopters is
     uint256 tokenId,
     address auth
   ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (address) {
-    if (balanceOf(to) > 0) revert ERC721InvalidOwner(to);
+    // allow multiple transfers to zero address to enable burning
+    if (to != address(0) && balanceOf(to) > 0) revert ERC721InvalidOwner(to);
     return super._update(to, tokenId, auth);
   }
 

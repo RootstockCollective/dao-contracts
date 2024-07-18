@@ -154,4 +154,30 @@ describe('Early Adopters', () => {
         .withArgs(ethers.ZeroAddress, alice.address, 2)
     })
   })
+
+  describe('Burning NFTs', () => {
+    it('Bob should be able to burn his NFT', async () => {
+      const burnTx = await ea.connect(bob)['burn()']()
+      await expect(burnTx).to.emit(ea, 'Transfer')
+    })
+
+    it('Alice should be able to burn his NFT too', async () => {
+      const burnTx = await ea.connect(alice)['burn()']()
+      await expect(burnTx).to.emit(ea, 'Transfer')
+    })
+
+    it('Bob should no longer be a member of the community', async () => {
+      expect(await ea.balanceOf(bob.address)).to.equal(0)
+    })
+
+    it('Alice should no longer be a member of the community either', async () => {
+      expect(await ea.balanceOf(alice.address)).to.equal(0)
+    })
+
+    it('Non-member should not be able to burn', async () => {
+      await expect(ea.connect(alice)['burn()']())
+        .to.be.revertedWithCustomError(ea, 'ERC721OutOfBoundsIndex')
+        .withArgs(alice.address, 0)
+    })
+  })
 })
