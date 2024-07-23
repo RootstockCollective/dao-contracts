@@ -11,6 +11,8 @@ describe('RootDAO Contact', () => {
   const initialVotingDelay = 1n
   const initialVotingPeriod = 240n // 2 hours
   const initialProposalThreshold = 10n * 10n ** 18n
+  const sevenDays = 20160
+  const dispenseValue = parseEther('10')
 
   let rif: RIFToken
   let rifAddress: string
@@ -56,13 +58,14 @@ describe('RootDAO Contact', () => {
   })
 
   describe('Governance', () => {
-    const sendAmount = '2'
+    const sendAmount = parseEther('2')
     let proposal: Proposal
     let proposalId: bigint
     let proposalSnapshot: bigint
     // let proposalCalldata: string
 
     const getState = async () => await governor.state(proposalId)
+    const insufficientVotes = 'GovernorInsufficientProposerVotes'
 
     const defaultDescription = 'transfer money to acc2 address'
     const otherDesc = 'test success case'
@@ -96,10 +99,10 @@ describe('RootDAO Contact', () => {
       it('participants should gain voting power proportional to RIF tokens', async () => {
         await Promise.all(
           holders.map(async (voter, i) => {
-            const dispenseTx = await rif.transfer(voter.address, parseEther('10'))
+            const dispenseTx = await rif.transfer(voter.address, dispenseValue)
             await dispenseTx.wait()
             const rifBalance = await rif.balanceOf(voter.address)
-            const votingPower = i === 0 ? rifBalance : rifBalance - parseEther(sendAmount)
+            const votingPower = i === 0 ? rifBalance : rifBalance - sendAmount
 
             const approvalTx = await rif.connect(voter).approve(await stRIF.getAddress(), votingPower)
             await approvalTx.wait()
@@ -114,10 +117,26 @@ describe('RootDAO Contact', () => {
         )
       })
 
+      it('governor should only count voting power at seven days ago', async () => {
+        for (let i = 0; i < holders.length; i++) {
+          const balance = await stRIF.balanceOf(holders[i])
+          const votingPower = await governor.getVotes(holders[i], await ethers.provider.getBlockNumber())
+          expect(balance).to.equal(i === 0 ? dispenseValue : dispenseValue - sendAmount)
+          expect(votingPower).to.equal(0n)
+        }
+
+        await mine(sevenDays + 1)
+
+        for (let i = 0; i < holders.length; i++) {
+          const votingPowerAfter = await governor.getVotes(holders[i], await ethers.provider.getBlockNumber())
+          expect(votingPowerAfter).to.equal(i === 0 ? dispenseValue : dispenseValue - sendAmount)
+        }
+      })
+
       it('holder[0] should have enough voting power to initiate a proposal (above the Proposal Threshold)', async () => {
-        const balance = await stRIF.balanceOf(holders[0])
+        const votes = await governor.getVotes(holders[0], await ethers.provider.getBlockNumber())
         const threshold = await governor.proposalThreshold()
-        expect(balance).greaterThanOrEqual(threshold)
+        expect(votes).greaterThanOrEqual(threshold)
       })
 
       it('other holders except holder[0] stRIF balances should be below the Proposal Threshold', async () => {
@@ -160,7 +179,7 @@ describe('RootDAO Contact', () => {
             const tx = governor.connect(holder).propose(...proposal, defaultDescription)
             await expect(tx).to.be.revertedWithCustomError(
               { interface: governor.interface },
-              'GovernorInsufficientProposerVotes',
+              insufficientVotes,
             )
           }),
         )
@@ -182,19 +201,48 @@ describe('RootDAO Contact', () => {
         const remainingVotes = quorum - totalVotes
         expect(remainingVotes).equal(quorum)
       })
+
+      it('even if other holder add more stRIF they should not be able to create a proposal', async () => {
+        const address = holders[1].address
+        const blockNumber = await ethers.provider.getBlockNumber()
+        const balanceBefore = await stRIF.balanceOf(address)
+        const votesBefore = await governor.getVotes(address, blockNumber)
+
+        const dispenseTx = await rif.transfer(address, dispenseValue)
+        await dispenseTx.wait()
+        const approvalTx = await rif.connect(holders[1]).approve(await stRIF.getAddress(), dispenseValue)
+        await approvalTx.wait()
+        const depositForTx = await stRIF
+          .connect(holders[1])
+          .depositAndDelegate(holders[1].address, dispenseValue)
+        await depositForTx.wait()
+        const balance = await stRIF.balanceOf(holders[1].address)
+        expect(balance).to.equal(balanceBefore + dispenseValue)
+
+        await mine(1)
+
+        const currentVotes = await governor.getVotes(
+          holders[1].address,
+          await ethers.provider.getBlockNumber(),
+        )
+        expect(currentVotes).to.equal(votesBefore)
+
+        const stRIFBalance = await stRIF.balanceOf(address)
+        expect(stRIFBalance).to.be.greaterThan(await governor.proposalThreshold())
+
+        const proposalTx = await createProposal('DO SOMETHING QUICK')
+        expect(proposalTx).to.be.revertedWithCustomError({ interface: governor.interface }, insufficientVotes)
+      })
     })
 
     describe('Voting', () => {
-      it('voting power of holders should be locked at the proposal creation stage', async () => {
-        const votesAtTheProposalSnapshot = await governor.getVotes(holders[0].address, proposalSnapshot)
-        const dispenseValue = parseEther('10')
+      it('voting power of holders should be locked at seven days ago', async () => {
+        const address = holders[0].address
+        const votesAtTheProposalSnapshot = await governor.getVotes(address, proposalSnapshot)
 
-        const { abstainVotes: beforeAbstainVotes } = await governor.proposalVotes(proposalId)
-        expect(beforeAbstainVotes).to.equal(0n)
-
-        const dispenseTx = await rif.transfer(holders[0].address, dispenseValue)
+        const dispenseTx = await rif.transfer(address, dispenseValue)
         await dispenseTx.wait()
-        const currentBalance = await rif.balanceOf(holders[0].address)
+        const currentBalance = await rif.balanceOf(address)
         expect(currentBalance).to.equal(dispenseValue)
 
         const approvalTx = await rif.connect(holders[0]).approve(await stRIF.getAddress(), currentBalance)
@@ -203,10 +251,11 @@ describe('RootDAO Contact', () => {
         await depositTx.wait()
         await mine(2)
 
-        const currentVotes = await governor.getVotes(
+        const currentVotes = await stRIF.getPastVotes(
           holders[0].address,
-          BigInt((await ethers.provider.getBlockNumber()) - 1),
+          (await ethers.provider.getBlockNumber()) - 1,
         )
+
         expect(currentVotes).to.equal(dispenseValue * 2n)
 
         // cast Abstain Vote
@@ -225,14 +274,18 @@ describe('RootDAO Contact', () => {
         const hasVoted = await governor.hasVoted(proposalId, holders[1])
         expect(hasVoted).to.be.true
         const { forVotes } = await governor.proposalVotes(proposalId)
-        expect(forVotes).to.be.equal(await stRIF.getVotes(holders[1]))
+        expect(forVotes).to.be.equal(
+          await governor.getVotes(holders[1].address, await ethers.provider.getBlockNumber()),
+        )
 
         const tx2 = await governor.connect(holders[2]).castVote(proposalId, 0)
         tx2.wait()
         const hasVoted2 = await governor.hasVoted(proposalId, holders[2])
         expect(hasVoted2).to.be.true
         const { againstVotes } = await governor.proposalVotes(proposalId)
-        expect(againstVotes).to.be.equal(await stRIF.getVotes(holders[2]))
+        expect(againstVotes).to.be.equal(
+          await governor.getVotes(holders[2].address, await ethers.provider.getBlockNumber()),
+        )
       })
 
       it('what happens when after voting holder burns tokens', async () => {
