@@ -47,6 +47,15 @@ contract RootDao is
 
   function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
+  // this is for _castVote finction to work and follow original _castVote function
+  function validateStateBitmap(uint256 proposalId, bytes32 allowedStates) private view returns (ProposalState) {
+      ProposalState currentState = state(proposalId);
+      if (_encodeStateBitmap(currentState) & allowedStates == bytes32(0)) {
+          revert GovernorUnexpectedProposalState(proposalId, currentState, allowedStates);
+      }
+      return currentState;
+  }
+
   // The following functions are overrides required by Solidity.
 
   function votingDelay()
@@ -140,5 +149,40 @@ contract RootDao is
     returns (address)
   {
     return super._executor();
+  }
+
+  function getVotes(address account, uint256 timepoint) override public view virtual returns (uint256) {
+      int48 sevenDays = int48(clock()) - 20160;
+      uint48 _timepoint = sevenDays <= 0 ? 0 : uint48(sevenDays);
+
+      return _getVotes(
+          account, 
+          timepoint > _timepoint ? _timepoint : timepoint, 
+          _defaultParams()
+      );
+  }
+
+  function _castVote(
+      uint256 proposalId,
+      address account,
+      uint8 support,
+      string memory reason,
+      bytes memory params
+  ) override internal virtual returns (uint256) {
+      validateStateBitmap(proposalId, _encodeStateBitmap(ProposalState.Active));
+
+      int48 sevenDays = int48(clock()) - 20160;
+      uint256 timepoint = sevenDays <= 0 ? 0 : uint48(sevenDays);
+
+      uint256 weight = _getVotes(account, timepoint, params);
+      _countVote(proposalId, account, support, weight, params);
+
+      if (params.length == 0) {
+          emit VoteCast(account, proposalId, support, weight, reason);
+      } else {
+          emit VoteCastWithParams(account, proposalId, support, weight, reason, params);
+      }
+
+      return weight;
   }
 }
