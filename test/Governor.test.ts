@@ -439,5 +439,27 @@ describe('RootDAO Contact', () => {
         expect(state).to.equal(ProposalState.Executed)
       })
     })
+
+    describe('Governor Utils', () => {
+      it('should return governor votes and state in getStateAndVotes function', async () => {
+        const typeBigint = typeof 0n
+        const { againstVotes, abstainVotes, forVotes, proposalState } =
+          await governor.getStateAndVotes(proposalId)
+
+        expect(typeof againstVotes).to.equal(typeBigint)
+        expect(typeof abstainVotes).to.equal(typeBigint)
+        expect(typeof forVotes).to.equal(typeBigint)
+        expect(Number(proposalState.toString())).to.be.oneOf([
+          ProposalState.Active,
+          ProposalState.Canceled,
+          ProposalState.Defeated,
+          ProposalState.Executed,
+          ProposalState.Expired,
+          ProposalState.Pending,
+          ProposalState.Queued,
+          ProposalState.Succeeded,
+        ])
+      })
+    })
   })
 })
