@@ -185,4 +185,14 @@ contract RootDao is
 
       return weight;
   }
+
+  function getStateAndVotes (uint256 proposalId) 
+    public 
+    view 
+    returns(uint256 againstVotes, uint256 forVotes, uint256 abstainVotes, ProposalState proposalState) {
+      (uint256 minus, uint256 plus, uint256 neutral) = super.proposalVotes(proposalId);
+      ProposalState _state = super.state(proposalId);
+
+      return (minus, plus, neutral, _state);
+  }
 }
