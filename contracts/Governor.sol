@@ -102,6 +102,16 @@ contract RootDao is
   {
     return super.proposalThreshold();
   }
+  
+  function getStateAndVotes (uint256 proposalId) 
+    public 
+    view 
+    returns(uint256 againstVotes, uint256 forVotes, uint256 abstainVotes, ProposalState proposalState) {
+      (uint256 minus, uint256 plus, uint256 neutral) = super.proposalVotes(proposalId);
+      ProposalState _state = super.state(proposalId);
+
+      return (minus, plus, neutral, _state);
+  }
 
   function _propose(
     address[] memory targets,
@@ -152,7 +162,7 @@ contract RootDao is
   }
 
   function getVotes(address account, uint256 timepoint) override public view virtual returns (uint256) {
-      int48 sevenDays = int48(clock()) - 20160;
+      int48 sevenDays = _sevenDaysInTermsOfBlocks();
       uint48 _timepoint = sevenDays <= 0 ? 0 : uint48(sevenDays);
 
       return _getVotes(
@@ -171,7 +181,7 @@ contract RootDao is
   ) override internal virtual returns (uint256) {
       validateStateBitmap(proposalId, _encodeStateBitmap(ProposalState.Active));
 
-      int48 sevenDays = int48(clock()) - 20160;
+      int48 sevenDays = _sevenDaysInTermsOfBlocks();
       uint256 timepoint = sevenDays <= 0 ? 0 : uint48(sevenDays);
 
       uint256 weight = _getVotes(account, timepoint, params);
@@ -186,13 +196,8 @@ contract RootDao is
       return weight;
   }
 
-  function getStateAndVotes (uint256 proposalId) 
-    public 
-    view 
-    returns(uint256 againstVotes, uint256 forVotes, uint256 abstainVotes, ProposalState proposalState) {
-      (uint256 minus, uint256 plus, uint256 neutral) = super.proposalVotes(proposalId);
-      ProposalState _state = super.state(proposalId);
-
-      return (minus, plus, neutral, _state);
+  function _sevenDaysInTermsOfBlocks() internal view returns (int48) {
+    return int48(clock()) - 20160;
   }
+
 }
