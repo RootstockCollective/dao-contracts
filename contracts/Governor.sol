@@ -200,28 +200,28 @@ contract Governor is
       cancel(details.targets, details.values, details.calldatas, details.descriptionHash);
   }
 
-  function cancel(
-    address[] memory targets,
-    uint256[] memory values,
-    bytes[] memory calldatas,
-    bytes32 descriptionHash
-  ) public override(GovernorUpgradeable) returns (uint256) {
-    // The proposalId will be recomputed in the `_cancel` call further down. However we need the value before we
-    // do the internal call, because we need to check the proposal state BEFORE the internal `_cancel` call
-    // changes it. The `hashProposal` duplication has a cost that is limited, and that we accept.
-    uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
+  // function cancel(
+  //   address[] memory targets,
+  //   uint256[] memory values,
+  //   bytes[] memory calldatas,
+  //   bytes32 descriptionHash
+  // ) public override(GovernorUpgradeable) returns (uint256) {
+  //   // The proposalId will be recomputed in the `_cancel` call further down. However we need the value before we
+  //   // do the internal call, because we need to check the proposal state BEFORE the internal `_cancel` call
+  //   // changes it. The `hashProposal` duplication has a cost that is limited, and that we accept.
+  //   uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
 
-    if(_msgSender() != guardian) {
-      // public cancel restrictions (on top of existing _cancel restrictions).
-      validateStateBitmap(proposalId, _encodeStateBitmap(ProposalState.Pending));
-    }
+  //   if(_msgSender() != guardian) {
+  //     // public cancel restrictions (on top of existing _cancel restrictions).
+  //     validateStateBitmap(proposalId, _encodeStateBitmap(ProposalState.Pending));
+  //   }
 
-    if (_msgSender() != guardian && _msgSender() != proposalProposer(proposalId)) {
-        revert GovernorOnlyProposer(_msgSender());
-    }
+  //   if (_msgSender() != guardian && _msgSender() != proposalProposer(proposalId)) {
+  //       revert GovernorOnlyProposer(_msgSender());
+  //   }
 
-    return _cancel(targets, values, calldatas, descriptionHash);
-  }
+  //   return _cancel(targets, values, calldatas, descriptionHash);
+  // }
 
   /**
      * @dev Internal cancel mechanism with minimal restrictions. A proposal can be cancelled in any state other than
@@ -255,19 +255,42 @@ contract Governor is
       return proposalId;
     }
 
-  function setGuardian(address _guardian) public onlyOwner {
-    guardian = _guardian;
-  }
+  // function setGuardian(address _guardian) public onlyOwner {
+  //   guardian = _guardian;
+  // }
 
   /**
    * @dev Proposes a new action.
    * @param targets The addresses of the targets.
    * @param values The values to send.
    * @param calldatas The calldatas.
-   * @param description The description of the proposal.
-   * @param proposer The address of the proposer.
+   * @param descriptionHash The description of the proposal.
    * @return The ID of the proposal.
    */
+  function cancel(
+    address[] memory targets,
+    uint256[] memory values,
+    bytes[] memory calldatas,
+    bytes32 descriptionHash
+  ) public override(GovernorUpgradeable) returns (uint256) {
+    // The proposalId will be recomputed in the `_cancel` call further down. However we need the value before we
+    // do the internal call, because we need to check the proposal state BEFORE the internal `_cancel` call
+    // changes it. The `hashProposal` duplication has a cost that is limited, and that we accept.
+    uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
+
+    // public cancel restrictions (on top of existing _cancel restrictions).
+    validateStateBitmap(proposalId, _encodeStateBitmap(ProposalState.Pending));
+    if (_msgSender() != guardian && _msgSender() != proposalProposer(proposalId)) {
+        revert GovernorOnlyProposer(_msgSender());
+    }
+
+    return _cancel(targets, values, calldatas, descriptionHash);
+  }
+
+  function setGuardian(address _guardian) public onlyOwner {
+    guardian = _guardian;
+  }
+
   function _propose(
     address[] memory targets,
     uint256[] memory values,
