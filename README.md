@@ -19,13 +19,13 @@ This contract has been brought to the project is the RIF Token contract [RIFLabs
 
 A few simple tests have been created to make sure that the token works.
 
-Refer to ```test/RIFToken.test.ts```
+Refer to `test/RIFToken.test.ts`
 
 What is tested:
 
 - That the contract has the initial balance defined in the RIFToken.sol
-- That the function ```.validAddress(address)``` works
-- That the ```transferAll()``` function works by using ```.setAuthorizedManagerContract```
+- That the function `.validAddress(address)` works
+- That the `transferAll()` function works by using `.setAuthorizedManagerContract`
 - That we can transfer token between accounts
 - That it emits a Transfer event
 
@@ -33,7 +33,7 @@ What is tested:
 
 We will be using RIF-Token from the repository [RIFLabs RIF-Token](https://github.com/riflabs/RIF-Token)
 
-The repository does not contain a package.json, causing hardhat to error when running ```yarn compile```
+The repository does not contain a package.json, causing hardhat to error when running `yarn compile`
 
 We decided (in the meantime) to fork the repository and add it there [Forked Repository](https://github.com/Freshenext/RIF-Token)
 
@@ -75,7 +75,7 @@ where the `--nft` parameter is the address of the deployed Early Adopters NFT sm
 
 ## Deployed contracts (on Rootstock Testnet)
 
-Timelock - 0x30976FE9a78D78bFe9e8da223543DF27baA52572
-stRif - 0xAF17f7A0124E9F360ffA484b13566b041C0f5023
-Governor - 0x00ca74491D9493bFe5451246C8c72849Ba4A7F9D
+Timelock - 0x8A6D7acCD476a88Ea25e7a9DdEB6fd0408C0d5F1
+stRif - 0xb65a7bccBa50461708E412EE8280e47EEaA9013d
+Governor - 0xd8833F288C357a5a517BC150a59Ec676De655c72
 Early Adopters NFT - 0xf24761C1B57b14EeA270B1485294D93494164246
