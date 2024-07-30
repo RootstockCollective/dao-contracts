@@ -25,31 +25,44 @@ contract RootDao is
   OwnableUpgradeable,
   UUPSUpgradeable
 {
+  /// @notice The address of the Governor Guardian
+  address public guardian;
+
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
     _disableInitializers();
   }
 
-  /**
-   * @dev Initializes the contract.
-   * @param voteToken The address of the vote token contract.
-   * @param timelockController The address of the timelock controller contract.
-   * @param initialOwner The address of the initial owner.
-   */
-  function initialize(
-    IVotes voteToken,
-    TimelockControllerUpgradeable timelockController,
-    address initialOwner
-  ) public initializer {
-    __Governor_init("RootDao");
-    __GovernorSettings_init(1 /* 1 block */, 240 /* 2 hours */, 10 * 10 ** 18);
-    __GovernorCountingSimple_init();
-    __GovernorStorage_init();
-    __GovernorVotes_init(voteToken);
-    __GovernorVotesQuorumFraction_init(4);
-    __GovernorTimelockControl_init(timelockController);
-    __Ownable_init(initialOwner);
-    __UUPSUpgradeable_init();
+    /**
+     * @dev Initializes the contract.
+     * @param voteToken The address of the vote token contract.
+     * @param timelockController The address of the timelock controller contract.
+     * @param initialOwner The address of the initial owner.
+     */
+    function initialize(
+        IVotes voteToken, 
+        TimelockControllerUpgradeable timelockController, 
+        address initialOwner
+    ) public initializer {
+        __Governor_init("RootDao");
+        __GovernorSettings_init(1 /* 1 block */, 240 /* 2 hours */, 10 * 10 ** 18);
+        __GovernorCountingSimple_init();
+        __GovernorStorage_init();
+        __GovernorVotes_init(voteToken);
+        __GovernorVotesQuorumFraction_init(4);
+        __GovernorTimelockControl_init(timelockController);
+        __Ownable_init(initialOwner);
+        __UUPSUpgradeable_init();
+        guardian = initialOwner;
+    }
+
+  // this is for _castVote finction to work and follow original _castVote function
+  function validateStateBitmap(uint256 proposalId, bytes32 allowedStates) private view returns (ProposalState) {
+      ProposalState currentState = state(proposalId);
+      if (_encodeStateBitmap(currentState) & allowedStates == bytes32(0)) {
+          revert GovernorUnexpectedProposalState(proposalId, currentState, allowedStates);
+      }
+      return currentState;
   }
 
   // The following functions are overrides required by Solidity.
@@ -154,6 +167,30 @@ contract RootDao is
     ProposalState _state = super.state(proposalId);
 
     return (minus, plus, neutral, _state);
+  }
+
+  function cancel(
+    address[] memory targets,
+    uint256[] memory values,
+    bytes[] memory calldatas,
+    bytes32 descriptionHash
+  ) public override(GovernorUpgradeable) returns (uint256) {
+    // The proposalId will be recomputed in the `_cancel` call further down. However we need the value before we
+    // do the internal call, because we need to check the proposal state BEFORE the internal `_cancel` call
+    // changes it. The `hashProposal` duplication has a cost that is limited, and that we accept.
+    uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
+
+    // public cancel restrictions (on top of existing _cancel restrictions).
+    validateStateBitmap(proposalId, _encodeStateBitmap(ProposalState.Pending));
+    if (_msgSender() != guardian && _msgSender() != proposalProposer(proposalId)) {
+        revert GovernorOnlyProposer(_msgSender());
+    }
+
+    return _cancel(targets, values, calldatas, descriptionHash);
+  }
+
+  function setGuardian(address _guardian) public onlyOwner {
+    guardian = _guardian;
   }
 
   /**
