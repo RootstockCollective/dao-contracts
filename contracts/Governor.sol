@@ -52,30 +52,6 @@ contract RootDao is
     __UUPSUpgradeable_init();
   }
 
-  /**
-   * @dev Authorizes the upgrade to a new implementation contract.
-   * @param newImplementation The address of the new implementation contract.
-   */
-  function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
-
-  /**
-   * @dev Validates the state bitmap for a given proposal.
-   * @param proposalId The ID of the proposal.
-   * @param allowedStates The allowed states bitmap.
-   * @return The current state of the proposal.
-   */
-  function validateStateBitmap(uint256 proposalId, bytes32 allowedStates)
-    private
-    view
-    returns (ProposalState)
-  {
-    ProposalState currentState = state(proposalId);
-    if (_encodeStateBitmap(currentState) & allowedStates == bytes32(0)) {
-      revert GovernorUnexpectedProposalState(proposalId, currentState, allowedStates);
-    }
-    return currentState;
-  }
-
   // The following functions are overrides required by Solidity.
 
   /**
@@ -181,6 +157,38 @@ contract RootDao is
   }
 
   /**
+   * @dev Returns the votes for an account at a given timepoint.
+   * @param account The address of the account.
+   * @param timepoint The timepoint.
+   * @return The votes.
+   */
+  function getVotes(address account, uint256 timepoint) override public view virtual returns (uint256) {
+    int48 sevenDays = _sevenDaysInTermsOfBlocks();
+    uint48 _timepoint = sevenDays <= 0 ? 0 : uint48(sevenDays);
+
+    return
+      _getVotes(account, timepoint > _timepoint ? _timepoint : timepoint, _defaultParams());
+  }
+  
+  /**
+   * @dev Validates the state bitmap for a given proposal.
+   * @param proposalId The ID of the proposal.
+   * @param allowedStates The allowed states bitmap.
+   * @return The current state of the proposal.
+   */
+  function validateStateBitmap(uint256 proposalId, bytes32 allowedStates)
+    private
+    view
+    returns (ProposalState)
+  {
+    ProposalState currentState = state(proposalId);
+    if (_encodeStateBitmap(currentState) & allowedStates == bytes32(0)) {
+      revert GovernorUnexpectedProposalState(proposalId, currentState, allowedStates);
+    }
+    return currentState;
+  }
+
+  /**
    * @dev Proposes a new action.
    * @param targets The addresses of the targets.
    * @param values The values to send.
@@ -267,20 +275,6 @@ contract RootDao is
   }
 
   /**
-   * @dev Returns the votes for an account at a given timepoint.
-   * @param account The address of the account.
-   * @param timepoint The timepoint.
-   * @return The votes.
-   */
-  function getVotes(address account, uint256 timepoint) override public view virtual returns (uint256) {
-    int48 sevenDays = _sevenDaysInTermsOfBlocks();
-    uint48 _timepoint = sevenDays <= 0 ? 0 : uint48(sevenDays);
-
-    return
-      _getVotes(account, timepoint > _timepoint ? _timepoint : timepoint, _defaultParams());
-  }
-
-  /**
    * @dev Casts a vote for a proposal.
    * @param proposalId The ID of the proposal.
    * @param account The address of the account.
@@ -320,4 +314,10 @@ contract RootDao is
   function _sevenDaysInTermsOfBlocks() internal view returns (int48) {
     return int48(clock()) - 20160;
   }
+
+  /**
+   * @dev Authorizes the upgrade to a new implementation contract.
+   * @param newImplementation The address of the new implementation contract.
+   */
+  function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 }
