@@ -75,7 +75,7 @@ where the `--nft` parameter is the address of the deployed Early Adopters NFT sm
 
 ## Deployed contracts (on Rootstock Testnet)
 
-Timelock - 0x8A6D7acCD476a88Ea25e7a9DdEB6fd0408C0d5F1
-stRif - 0xb65a7bccBa50461708E412EE8280e47EEaA9013d
-Governor - 0xd8833F288C357a5a517BC150a59Ec676De655c72
+Timelock - 0x67D299406cCc0eB02Fa6dc9e6d2f93d7fE5Ef19c
+stRif- 0xd6Eb12591559C42e28d672197265b331B1ad867d
+Governor- 0xEc6bd0C8117b74904849af2CED73f30090DB6cd1
 Early Adopters NFT - 0xf24761C1B57b14EeA270B1485294D93494164246
