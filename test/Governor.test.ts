@@ -23,7 +23,7 @@ describe('RootDAO Contact', () => {
   before(async () => {
     // prettier-ignore
     ;[, ...holders] = await ethers.getSigners();
-    ; ({ rif, stRIF, timelock, governor } = await loadFixture(deployContracts))
+    ;({ rif, stRIF, timelock, governor } = await loadFixture(deployContracts))
     rifAddress = await rif.getAddress()
   })
 
@@ -188,7 +188,7 @@ describe('RootDAO Contact', () => {
     })
 
     describe('Voting', () => {
-      it('voting power of holders should be locked at seven days ago', async () => {
+      it('voting power of holders should be locked at proposal creation', async () => {
         const address = holders[0].address
         const votesAtTheProposalSnapshot = await governor.getVotes(address, proposalSnapshot)
 
@@ -226,18 +226,14 @@ describe('RootDAO Contact', () => {
         const hasVoted = await governor.hasVoted(proposalId, holders[1])
         expect(hasVoted).to.be.true
         const { forVotes } = await governor.proposalVotes(proposalId)
-        expect(forVotes).to.be.equal(
-          await stRIF.getVotes(holders[1]),
-        )
+        expect(forVotes).to.be.equal(await stRIF.getVotes(holders[1]))
 
         const tx2 = await governor.connect(holders[2]).castVote(proposalId, 0)
         tx2.wait()
         const hasVoted2 = await governor.hasVoted(proposalId, holders[2])
         expect(hasVoted2).to.be.true
         const { againstVotes } = await governor.proposalVotes(proposalId)
-        expect(againstVotes).to.be.equal(
-          await stRIF.getVotes(holders[2]),
-        )
+        expect(againstVotes).to.be.equal(await stRIF.getVotes(holders[2]))
       })
 
       it('what happens when after voting holder burns tokens', async () => {
