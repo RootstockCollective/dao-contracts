@@ -64,7 +64,7 @@ contract EarlyAdopters is
 
     string memory uri = _ipfsCids[_nextTokenId];
     uint256 tokenId = _nextTokenId++;
-    _safeMint(msg.sender, tokenId);
+    _safeMint(_msgSender(), tokenId);
     _setTokenURI(tokenId, uri);
   }
 
@@ -74,7 +74,7 @@ contract EarlyAdopters is
    * Here it's allowed to own only one token, thus there's no reason for specifying an ID.
    */
   function burn() external virtual {
-    burn(tokenIdByOwner(msg.sender));
+    burn(tokenIdByOwner(_msgSender()));
   }
 
   /**
@@ -134,6 +134,8 @@ contract EarlyAdopters is
     uint256 tokenId,
     address auth
   ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (address) {
+    // Disallow transfers by smart contracts, as only EOAs can be community members
+    if (_msgSender() != tx.origin) revert ERC721InvalidOwner(_msgSender());
     // allow multiple transfers to zero address to enable burning
     if (to != address(0) && balanceOf(to) > 0) revert ERC721InvalidOwner(to);
     return super._update(to, tokenId, auth);
