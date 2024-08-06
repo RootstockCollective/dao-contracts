@@ -25,8 +25,8 @@ contract EarlyAdopters is
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
   bytes32 public constant CIDS_LOADER_ROLE = keccak256("CIDS_LOADER_ROLE");
   uint256 private _nextTokenId;
-  mapping(uint256 => string) _ipfsCids;
-  uint256 _totalCids;
+  mapping(uint256 => string) private _ipfsCids;
+  uint256 private _totalCids;
 
   error InvalidCidsAmount(uint256 amount, uint256 maxAmount);
   error OutOfCids();
