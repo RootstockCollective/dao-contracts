@@ -25,7 +25,8 @@ contract EarlyAdopters is
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
   bytes32 public constant CIDS_LOADER_ROLE = keccak256("CIDS_LOADER_ROLE");
   uint256 private _nextTokenId;
-  string[] private _ipfsCids;
+  mapping(uint256 => string) _ipfsCids;
+  uint256 _totalCids;
 
   error InvalidCidsAmount(uint256 amount, uint256 maxAmount);
   error OutOfCids();
@@ -59,17 +60,17 @@ contract EarlyAdopters is
 
     string memory uri = _ipfsCids[_nextTokenId];
     uint256 tokenId = _nextTokenId++;
-    _safeMint(msg.sender, tokenId);
+    _safeMint(_msgSender(), tokenId);
     _setTokenURI(tokenId, uri);
   }
 
   /**
    * Burns the token an leaves the community.
-   * `ERC721Burnable` already has a function `burn(uint256)` to burn token by ID. 
+   * `ERC721Burnable` already has a function `burn(uint256)` to burn token by ID.
    * Here it's allowed to own only one token, thus there's no reason for specifying an ID.
    */
   function burn() external virtual {
-    burn(tokenIdByOwner(msg.sender));
+    burn(tokenIdByOwner(_msgSender()));
   }
 
   /**
@@ -90,16 +91,17 @@ contract EarlyAdopters is
     uint256 maxCids = 50;
     uint256 length = ipfsCIDs.length;
     if (length > maxCids) revert InvalidCidsAmount(length, maxCids);
-    for (uint256 i = 0; i < length; i++) _ipfsCids.push(ipfsCIDs[i]);
-    emit CidsLoaded(length, _ipfsCids.length);
+    for (uint256 i = 0; i < length; i++) _ipfsCids[i] = ipfsCIDs[i];
+    _totalCids += length;
+    emit CidsLoaded(length, _totalCids);
   }
 
   /**
    * @dev Returns the number of IPFS CIDs available for minting tokens
    */
   function cidsAvailable() public view virtual returns (uint256) {
-    if (_nextTokenId > _ipfsCids.length) return 0;
-    return _ipfsCids.length - _nextTokenId;
+    if (_nextTokenId > _totalCids) return 0;
+    return _totalCids - _nextTokenId;
   }
 
   /**
@@ -128,6 +130,8 @@ contract EarlyAdopters is
     uint256 tokenId,
     address auth
   ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (address) {
+    // Disallow transfers by smart contracts, as only EOAs can be community members
+    if (_msgSender() != tx.origin) revert ERC721InvalidOwner(_msgSender());
     // allow multiple transfers to zero address to enable burning
     if (to != address(0) && balanceOf(to) > 0) revert ERC721InvalidOwner(to);
     return super._update(to, tokenId, auth);

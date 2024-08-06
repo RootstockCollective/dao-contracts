@@ -10,6 +10,11 @@ async function deploy() {
   return ea as unknown as EarlyAdopters
 }
 
+/**
+ * Adds index number at the end of a string
+ */
+const addIndex = (cid: string, index: number) => cid.slice(0, cid.length - String(index).length) + index
+
 describe('Early Adopters', () => {
   let ea: EarlyAdopters
   let eaAddress: string
@@ -66,8 +71,15 @@ describe('Early Adopters', () => {
     })
 
     it('should load maximum of CIDs into the EA contract', async () => {
-      // URIs will be ipfs://0, ipfs://1...
-      await expect(ea.loadCids([...Array(50).keys()].map(String)))
+      await expect(
+        ea.loadCids(
+          /* 
+      Replace last symbols with array index.
+      URIs will be ipfs://QmQR9mfvZ9fDFJuBne1xnRoeRCeKZdqajYGJJ9MEDchgq0, ipfs://QmQR9mfvZ9fDFJuBne1xnRoeRCeKZdqajYGJJ9MEDchgq1...
+      */
+          [...Array(50).keys()].map(ind => addIndex(cidMock, ind)),
+        ),
+      )
         .to.emit(ea, 'CidsLoaded')
         .withArgs(50, 50)
     })
@@ -109,7 +121,7 @@ describe('Early Adopters', () => {
     })
 
     it('Alice should read her token URI by providing her account address', async () => {
-      expect(await ea.tokenUriByOwner(alice.address)).to.equal(`ipfs://0`)
+      expect(await ea.tokenUriByOwner(alice.address)).to.equal(`ipfs://` + addIndex(cidMock, 0))
     })
   })
 
@@ -137,7 +149,7 @@ describe('Early Adopters', () => {
     })
 
     it('Bob should read his token URI by providing his account address', async () => {
-      expect(await ea.tokenUriByOwner(bob.address)).to.equal(`ipfs://0`)
+      expect(await ea.tokenUriByOwner(bob.address)).to.equal(`ipfs://` + addIndex(cidMock, 0))
     })
 
     it('Deployer should not be able to transfer his ownership to Bob because Bob is already a member', async () => {
