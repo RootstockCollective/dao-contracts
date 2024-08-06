@@ -25,7 +25,12 @@ contract EarlyAdopters is
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
   bytes32 public constant CIDS_LOADER_ROLE = keccak256("CIDS_LOADER_ROLE");
   uint256 private _nextTokenId;
-  string[] private _ipfsCids;
+  /* 
+  To achieve small gas savings (approximately 200 gas units per CID), 
+  IPFS CIDs are stored using a mapping with a counter instead of an array
+   */
+  mapping(uint256 => string) private _ipfsCids;
+  uint256 private _totalCids;
 
   error InvalidCidsAmount(uint256 amount, uint256 maxAmount);
   error OutOfCids();
@@ -65,7 +70,7 @@ contract EarlyAdopters is
 
   /**
    * Burns the token an leaves the community.
-   * `ERC721Burnable` already has a function `burn(uint256)` to burn token by ID. 
+   * `ERC721Burnable` already has a function `burn(uint256)` to burn token by ID.
    * Here it's allowed to own only one token, thus there's no reason for specifying an ID.
    */
   function burn() external virtual {
@@ -90,16 +95,17 @@ contract EarlyAdopters is
     uint256 maxCids = 50;
     uint256 length = ipfsCIDs.length;
     if (length > maxCids) revert InvalidCidsAmount(length, maxCids);
-    for (uint256 i = 0; i < length; i++) _ipfsCids.push(ipfsCIDs[i]);
-    emit CidsLoaded(length, _ipfsCids.length);
+    for (uint256 i = 0; i < length; i++) _ipfsCids[i] = ipfsCIDs[i];
+    _totalCids += length;
+    emit CidsLoaded(length, _totalCids);
   }
 
   /**
    * @dev Returns the number of IPFS CIDs available for minting tokens
    */
   function cidsAvailable() public view virtual returns (uint256) {
-    if (_nextTokenId > _ipfsCids.length) return 0;
-    return _ipfsCids.length - _nextTokenId;
+    if (_nextTokenId > _totalCids) return 0;
+    return _totalCids - _nextTokenId;
   }
 
   /**
