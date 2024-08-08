@@ -12,6 +12,7 @@ import {GovernorTimelockControlUpgradeable, TimelockControllerUpgradeable} from 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 contract RootDao is
   Initializable,
@@ -25,6 +26,8 @@ contract RootDao is
   OwnableUpgradeable,
   UUPSUpgradeable
 {
+  using Math for uint256;
+
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
     _disableInitializers();
@@ -242,6 +245,15 @@ contract RootDao is
     return super._executor();
   }
   
+  function _voteSucceeded(uint256 proposalId) internal view virtual override(GovernorCountingSimpleUpgradeable, GovernorUpgradeable) returns (bool) {
+    (uint256 minus, uint256 plus,) = super.proposalVotes(proposalId);
+    (, uint256 floor) = plus.tryAdd(minus);
+    (, floor) = floor.tryMul(66);
+    (, floor) = floor.tryDiv(100);
+    
+    return plus > floor ? true : false;    
+}
+
   /**
    * @dev Authorizes the upgrade to a new implementation contract.
    * @param newImplementation The address of the new implementation contract.
