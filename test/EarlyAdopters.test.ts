@@ -6,15 +6,15 @@ import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import EarlyAdoptersModule from '../ignition/modules/EarlyAdoptersModule'
 
 const initialMaxSupply = 3
-const ipfs = 'QmU1Bu9v1k9ecQ89cDE4uHrRkMKHE8NQ3mxhqFqNJfsKPd'
-const nftUri = (id: number, _ipfs = ipfs) => `ipfs://${_ipfs}/${id}.json`
+const ipfsCid = 'QmU1Bu9v1k9ecQ89cDE4uHrRkMKHE8NQ3mxhqFqNJfsKPd'
+const nftUri = (id: number, _ipfs = ipfsCid) => `ipfs://${_ipfs}/${id}.json`
 
 async function deploy() {
   const [defaultAdmin, upgrader] = await ethers.getSigners()
   const { ea } = await ignition.deploy(EarlyAdoptersModule, {
     parameters: {
       EarlyAdoptersProxy: {
-        ipfs,
+        ipfs: ipfsCid,
         numFiles: initialMaxSupply,
         defaultAdmin: defaultAdmin.address,
         upgrader: upgrader.address,
@@ -44,10 +44,6 @@ describe('Early Adopters', () => {
       expect(eaAddress).to.be.properAddress
     })
 
-    it('it should set the maximum NFT supply', async () => {
-      expect(await ea.maxSupply()).to.equal(initialMaxSupply)
-    })
-
     it('should assign different roles to deployer, alice and bob', async () => {
       const defaultAdminRole = await ea.DEFAULT_ADMIN_ROLE()
       const upgraderRole = await ea.UPGRADER_ROLE()
@@ -55,8 +51,8 @@ describe('Early Adopters', () => {
       expect(await ea.hasRole(upgraderRole, alice.address)).to.be.true
     })
 
-    it('total minted tokens amount should be zero', async () => {
-      expect(await ea.totalMinted()).to.equal(0)
+    it('all tokens should be available for minting', async () => {
+      expect(await ea.tokensAvailable()).to.equal(initialMaxSupply)
     })
 
     it('deployer, Alice and Bob should own no tokens', async () => {
@@ -145,10 +141,6 @@ describe('Early Adopters', () => {
         .to.emit(ea, 'Transfer')
         .withArgs(ethers.ZeroAddress, alice.address, firstNftId + 2)
     })
-
-    it('total minted tokens amount should now be 3', async () => {
-      expect(await ea.totalMinted()).to.equal(3)
-    })
   })
 
   describe('Burning NFTs', () => {
@@ -172,8 +164,8 @@ describe('Early Adopters', () => {
     const newSupply = initialMaxSupply + 50
     const newIpfs = 'QmcTpDpoe1Y7Fw61yxLRBbRRsJQaVoq6yyWkHNAnHZPWgt'
 
-    it('total minted tokens amount should equal max supply', async () => {
-      expect(await ea.totalMinted()).to.equal(await ea.maxSupply())
+    it('no more tokens should be available for minting', async () => {
+      expect(await ea.tokensAvailable()).to.equal(0)
     })
 
     it('should not be possible to mint more tokens', async () => {
@@ -194,8 +186,8 @@ describe('Early Adopters', () => {
         .withArgs(newSupply, newIpfs)
     })
 
-    it('new max supply should be recorded', async () => {
-      expect(await ea.maxSupply()).to.equal(newSupply)
+    it('new tokens should be available for minting', async () => {
+      expect(await ea.tokensAvailable()).to.equal(newSupply - initialMaxSupply)
     })
 
     it('should be possible to mint more tokens after topping up the max supply', async () => {

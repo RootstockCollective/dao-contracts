@@ -15,8 +15,8 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
  * @notice This contract allows the minting of NFTs that grant membership to the Early Adopters Community.
  * Each token is linked to metadata stored in an IPFS directory. The maximum number of tokens
  * that can be minted is limited by the number of metadata files uploaded to the IPFS directory.
- * To increase the number of metadata files, you need to create a new IPFS directory, 
- * place the old and new files there, then call the `setIpfsFolder` function and pass the new 
+ * To increase the number of metadata files, you need to create a new IPFS directory,
+ * place the old and new files there, then call the `setIpfsFolder` function and pass the new
  * CID and the new number of files in the parameters.
  */
 contract EarlyAdopters is
@@ -31,8 +31,10 @@ contract EarlyAdopters is
   using Strings for uint256;
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
   // Counter for the total number of minted tokens
-  uint256 public totalMinted;
-  uint256 public maxSupply;
+  uint256 private _totalMinted;
+  // number of metadata files in the IPFS directory
+  uint256 private _maxSupply;
+  // IPFS CID of the tokens metadata directory
   string private _folderIpfsCid;
 
   error InvalidMaxSupply(uint256 invalidMaxSupply, uint256 maxSupply);
@@ -76,8 +78,8 @@ contract EarlyAdopters is
    * The collection starts from token ID #1
    */
   function mint() external virtual {
-    uint256 tokenId = ++totalMinted;
-    if (tokenId > maxSupply) revert OutOfTokens(maxSupply);
+    uint256 tokenId = ++_totalMinted;
+    if (tokenId > _maxSupply) revert OutOfTokens(_maxSupply);
     string memory fileName = string.concat(tokenId.toString(), ".json"); // 1.json, 2.json ...
     _safeMint(_msgSender(), tokenId);
     _setTokenURI(tokenId, fileName);
@@ -104,6 +106,14 @@ contract EarlyAdopters is
     string calldata newIpfsCid
   ) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     _setIpfsFolder(newMaxSupply, newIpfsCid);
+  }
+
+  /**
+   * @dev Returns the number of tokens available for minting
+   */
+  function tokensAvailable() public view virtual returns (uint256) {
+    if (_totalMinted >= _maxSupply) return 0;
+    return _maxSupply - _totalMinted;
   }
 
   /**
@@ -154,8 +164,8 @@ contract EarlyAdopters is
    * @param ipfs The new IPFS CID for the metadata folder.
    */
   function _setIpfsFolder(uint256 newMaxSupply, string calldata ipfs) internal virtual {
-    if (newMaxSupply <= maxSupply) revert InvalidMaxSupply(newMaxSupply, maxSupply);
-    maxSupply = newMaxSupply;
+    if (newMaxSupply <= _maxSupply) revert InvalidMaxSupply(newMaxSupply, _maxSupply);
+    _maxSupply = newMaxSupply;
     _folderIpfsCid = ipfs;
     emit IpfsFolderChanged(newMaxSupply, ipfs);
   }
