@@ -13,9 +13,11 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 /**
  * @title Early Adopters Community NFT
  * @notice This contract allows the minting of NFTs that grant membership to the Early Adopters Community.
- * Each token is linked to metadata stored in an IPNS directory on IPFS. The maximum number of tokens
- * that can be minted is limited by the number of metadata files uploaded to the IPNS directory.
- * The contract also supports upgradable functionality and access control for administrative actions.
+ * Each token is linked to metadata stored in an IPFS directory. The maximum number of tokens
+ * that can be minted is limited by the number of metadata files uploaded to the IPFS directory.
+ * To increase the number of metadata files, you need to create a new IPFS directory, 
+ * place the old and new files there, then call the `setIpfsFolder` function and pass the new 
+ * CID and the new number of files in the parameters.
  */
 contract EarlyAdopters is
   Initializable,
@@ -46,7 +48,7 @@ contract EarlyAdopters is
    * @dev Called during deployment instead of a constructor to initialize the contract.
    * @param defaultAdmin EOA with admin privileges
    * @param upgrader EOA able to upgrade the contract and set new max supply
-   * @param numFiles the number of NFT meta JSON files, stored in the IPNS folder
+   * @param numFiles the number of NFT meta JSON files, stored in the IPFS folder
    * @param ipfsCid IPFS CID of NFT metadata folder
    */
   function initialize(
