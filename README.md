@@ -99,4 +99,4 @@ where the --parameters parameter specifies the location of the parameters file w
 Timelock - 0x67D299406cCc0eB02Fa6dc9e6d2f93d7fE5Ef19c
 stRif- 0xd6Eb12591559C42e28d672197265b331B1ad867d
 Governor- 0xEc6bd0C8117b74904849af2CED73f30090DB6cd1
-Early Adopters NFT - 0xa3Dcdac1883f29aA9FafbdeDDCA0c745B2F05b53
+Early Adopters NFT - 0x1928B2135984f0B5921Ff00404B650DcC6BD3b9e
