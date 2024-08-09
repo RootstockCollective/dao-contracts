@@ -7,10 +7,11 @@ export const earlyAdoptersProxyModule = buildModule('EarlyAdoptersProxy', m => {
   // deploy ERC1967 proxy in order to use UUPS upgradable smart contracts
   const defaultAdmin = m.getParameter('defaultAdmin', deployer)
   const upgrader = m.getParameter('upgrader', deployer)
-  const cidsLoader = m.getParameter('cidsLoader', deployer)
+  const numFiles = m.getParameter('numFiles')
+  const ipfs = m.getParameter('ipfs')
   const eaProxy = m.contract('ERC1967Proxy', [
     ea,
-    m.encodeFunctionCall(ea, 'initialize', [defaultAdmin, upgrader, cidsLoader]),
+    m.encodeFunctionCall(ea, 'initialize', [defaultAdmin, upgrader, numFiles, ipfs]),
   ])
   return { eaProxy }
 })

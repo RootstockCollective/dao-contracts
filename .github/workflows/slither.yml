@@ -15,5 +15,5 @@ jobs:
         with:
           node-version: 20
           fail-on: none
-          slither-args: --filter-paths "openzeppelin,RIF,util" --checklist --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/
+          slither-args: --filter-paths "openzeppelin,RIF,util,exploit" --checklist --markdown-root ${{ github.server_url }}/${{ github.repository }}/blob/${{ github.sha }}/
           target: .

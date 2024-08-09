@@ -1,7 +1,7 @@
 import type { HardhatUserConfig, HttpNetworkHDAccountsConfig } from 'hardhat/types'
 import '@nomicfoundation/hardhat-toolbox'
 import dotent from 'dotenv'
-import './tasks/loadCids'
+import './tasks/updateIpfsFolder'
 
 dotent.config()
 

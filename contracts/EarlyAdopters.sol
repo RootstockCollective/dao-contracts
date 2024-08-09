@@ -8,10 +8,16 @@ import {ERC721BurnableUpgradeable} from "@openzeppelin/contracts-upgradeable/tok
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * @title Early Adopters Community NFT
- * @notice Owning one token grants membership in the Early Adopters Community.
+ * @notice This contract allows the minting of NFTs that grant membership to the Early Adopters Community.
+ * Each token is linked to metadata stored in an IPFS directory. The maximum number of tokens
+ * that can be minted is limited by the number of metadata files uploaded to the IPFS directory.
+ * To increase the number of metadata files, you need to create a new IPFS directory,
+ * place the old and new files there, then call the `setIpfsFolder` function and pass the new
+ * CID and the new number of files in the parameters.
  */
 contract EarlyAdopters is
   Initializable,
@@ -22,26 +28,37 @@ contract EarlyAdopters is
   AccessControlUpgradeable,
   UUPSUpgradeable
 {
+  using Strings for uint256;
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
-  bytes32 public constant CIDS_LOADER_ROLE = keccak256("CIDS_LOADER_ROLE");
-  uint256 private _nextTokenId;
-  /* 
-  To achieve small gas savings (approximately 200 gas units per CID), 
-  IPFS CIDs are stored using a mapping with a counter instead of an array
-   */
-  mapping(uint256 => string) private _ipfsCids;
-  uint256 private _totalCids;
+  // Counter for the total number of minted tokens
+  uint256 private _totalMinted;
+  // number of metadata files in the IPFS directory
+  uint256 private _maxSupply;
+  // IPFS CID of the tokens metadata directory
+  string private _folderIpfsCid;
 
-  error InvalidCidsAmount(uint256 amount, uint256 maxAmount);
-  error OutOfCids();
-  event CidsLoaded(uint256 numCids, uint256 totalCids);
+  error InvalidMaxSupply(uint256 invalidMaxSupply, uint256 maxSupply);
+  error OutOfTokens(uint256 maxSupply);
+  event IpfsFolderChanged(uint256 newNumFiles, string newIpfs);
 
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
     _disableInitializers();
   }
 
-  function initialize(address defaultAdmin, address upgrader, address cidsLoader) public initializer {
+  /**
+   * @dev Called during deployment instead of a constructor to initialize the contract.
+   * @param defaultAdmin EOA with admin privileges
+   * @param upgrader EOA able to upgrade the contract and set new max supply
+   * @param numFiles the number of NFT meta JSON files, stored in the IPFS folder
+   * @param ipfsCid IPFS CID of NFT metadata folder
+   */
+  function initialize(
+    address defaultAdmin,
+    address upgrader,
+    uint256 numFiles,
+    string calldata ipfsCid
+  ) public initializer {
     __ERC721_init("EarlyAdopters", "EA");
     __ERC721Enumerable_init();
     __ERC721URIStorage_init();
@@ -51,25 +68,25 @@ contract EarlyAdopters is
 
     _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
     _grantRole(UPGRADER_ROLE, upgrader);
-    _grantRole(CIDS_LOADER_ROLE, cidsLoader);
+
+    _setIpfsFolder(numFiles, ipfsCid);
   }
 
   /**
    * @dev Mints an NFT for a new member of the Early Adopters community.
    * Ensures that one address can hold a maximum of one token.
+   * The collection starts from token ID #1
    */
   function mint() external virtual {
-    // stop minting if the contract ran out of images
-    if (cidsAvailable() == 0) revert OutOfCids();
-
-    string memory uri = _ipfsCids[_nextTokenId];
-    uint256 tokenId = _nextTokenId++;
+    uint256 tokenId = ++_totalMinted;
+    if (tokenId > _maxSupply) revert OutOfTokens(_maxSupply);
+    string memory fileName = string.concat(tokenId.toString(), ".json"); // 1.json, 2.json ...
     _safeMint(_msgSender(), tokenId);
-    _setTokenURI(tokenId, uri);
+    _setTokenURI(tokenId, fileName);
   }
 
   /**
-   * Burns the token an leaves the community.
+   * Burns the token and leaves the community.
    * `ERC721Burnable` already has a function `burn(uint256)` to burn token by ID.
    * Here it's allowed to own only one token, thus there's no reason for specifying an ID.
    */
@@ -78,34 +95,25 @@ contract EarlyAdopters is
   }
 
   /**
-   * @dev Allows an admin with the `CIDS_LOADER_ROLE` to upload IPFS CIDs with NFT metadata.
-   * @param ipfsCIDs - An array of strings representing IPFS CIDs, e.g., `QmQR9mfvZ9fDFJuBne1xnRoeRCeKZdqajYGJJ9MEDchgqX`.
-   * The array length should not exceed 50 CIDs. If there are more than 50 tokens to upload,
-   * call this function multiple times.
+   * @dev Sets a new IPFS folder and updates the maximum supply of tokens that can be minted.
+   * This function is meant to be called by an admin when the metadata folder on IPFS is updated.
+   * It ensures that the new maximum supply is greater than the previous one.
+   * @param newMaxSupply The new maximum number of tokens that can be minted.
+   * @param newIpfsCid The new IPFS CID for the metadata folder.
    */
-  function loadCids(string[] calldata ipfsCIDs) external virtual onlyRole(CIDS_LOADER_ROLE) {
-    /* 
-    The block gas limit is 6,800,000 gas units. Uploading 1 CID costs about 68,000 gas units.
-    How many CIDs should be loaded within one transaction (one block)?
-
-    To ensure space for other transactions in the block, let’s assume we use half of the block
-    gas limit, which is 3,400,000 gas units. Dividing this by 68,000 gas units per CID, we can
-    load exactly 50 CIDs per transaction.
-      */
-    uint256 maxCids = 50;
-    uint256 length = ipfsCIDs.length;
-    if (length > maxCids) revert InvalidCidsAmount(length, maxCids);
-    for (uint256 i = 0; i < length; i++) _ipfsCids[i] = ipfsCIDs[i];
-    _totalCids += length;
-    emit CidsLoaded(length, _totalCids);
+  function setIpfsFolder(
+    uint256 newMaxSupply,
+    string calldata newIpfsCid
+  ) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
+    _setIpfsFolder(newMaxSupply, newIpfsCid);
   }
 
   /**
-   * @dev Returns the number of IPFS CIDs available for minting tokens
+   * @dev Returns the number of tokens available for minting
    */
-  function cidsAvailable() public view virtual returns (uint256) {
-    if (_nextTokenId > _totalCids) return 0;
-    return _totalCids - _nextTokenId;
+  function tokensAvailable() public view virtual returns (uint256) {
+    if (_totalMinted >= _maxSupply) return 0;
+    return _maxSupply - _totalMinted;
   }
 
   /**
@@ -135,14 +143,31 @@ contract EarlyAdopters is
     address auth
   ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (address) {
     // Disallow transfers by smart contracts, as only EOAs can be community members
+    // slither-disable-next-line tx-origin
     if (_msgSender() != tx.origin) revert ERC721InvalidOwner(_msgSender());
     // allow multiple transfers to zero address to enable burning
     if (to != address(0) && balanceOf(to) > 0) revert ERC721InvalidOwner(to);
     return super._update(to, tokenId, auth);
   }
 
-  function _baseURI() internal pure virtual override returns (string memory) {
-    return "ipfs://";
+  /**
+   * @dev Returns the base URI used for constructing the token URI.
+   * @return The base URI string.
+   */
+  function _baseURI() internal view virtual override returns (string memory) {
+    return string.concat("ipfs://", _folderIpfsCid, "/");
+  }
+
+  /**
+   * @dev Internal function to set the IPFS folder and update the maximum supply of tokens.
+   * @param newMaxSupply The new maximum number of tokens that can be minted.
+   * @param ipfs The new IPFS CID for the metadata folder.
+   */
+  function _setIpfsFolder(uint256 newMaxSupply, string calldata ipfs) internal virtual {
+    if (newMaxSupply <= _maxSupply) revert InvalidMaxSupply(newMaxSupply, _maxSupply);
+    _maxSupply = newMaxSupply;
+    _folderIpfsCid = ipfs;
+    emit IpfsFolderChanged(newMaxSupply, ipfs);
   }
 
   function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {
