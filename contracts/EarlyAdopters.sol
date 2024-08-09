@@ -12,7 +12,10 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * @title Early Adopters Community NFT
- * @notice Owning one token grants membership in the Early Adopters Community.
+ * @notice This contract allows the minting of NFTs that grant membership to the Early Adopters Community.
+ * Each token is linked to metadata stored in an IPNS directory on IPFS. The maximum number of tokens
+ * that can be minted is limited by the number of metadata files uploaded to the IPNS directory.
+ * The contract also supports upgradable functionality and access control for administrative actions.
  */
 contract EarlyAdopters is
   Initializable,
@@ -25,24 +28,32 @@ contract EarlyAdopters is
 {
   using Strings for uint256;
   bytes32 public constant UPGRADER_ROLE = keccak256("UPGRADER_ROLE");
-  bytes32 public constant IPFS_ADMIN = keccak256("IPFS_ADMIN");
-  uint256 private _nextTokenId;
-  string private _ipns;
+  // Counter for the total number of minted tokens
+  uint256 public totalMinted;
+  uint256 public maxSupply;
+  string private _folderIpfsCid;
 
-  error InvalidCidsAmount(uint256 amount, uint256 maxAmount);
-  error OutOfCids();
-  event CidsLoaded(uint256 numCids, uint256 totalCids);
+  error InvalidMaxSupply(uint256 invalidMaxSupply, uint256 maxSupply);
+  error OutOfTokens(uint256 maxSupply);
+  event IpfsFolderChanged(uint256 newNumFiles, string newIpfs);
 
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
     _disableInitializers();
   }
 
+  /**
+   * @dev Called during deployment instead of a constructor to initialize the contract.
+   * @param defaultAdmin EOA with admin privileges
+   * @param upgrader EOA able to upgrade the contract and set new max supply
+   * @param numFiles the number of NFT meta JSON files, stored in the IPNS folder
+   * @param ipfsCid IPFS CID of NFT metadata folder
+   */
   function initialize(
     address defaultAdmin,
     address upgrader,
-    address ipfsAdmin,
-    string calldata ipns
+    uint256 numFiles,
+    string calldata ipfsCid
   ) public initializer {
     __ERC721_init("EarlyAdopters", "EA");
     __ERC721Enumerable_init();
@@ -53,35 +64,44 @@ contract EarlyAdopters is
 
     _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
     _grantRole(UPGRADER_ROLE, upgrader);
-    _grantRole(IPFS_ADMIN, ipfsAdmin);
-  }
 
-  function updateIpns(string calldata newIpns) external virtual onlyRole(IPFS_ADMIN) {
-    _updateIpns(newIpns);
-  }
-
-  function _updateIpns(string calldata newIpns) internal virtual {
-    _ipns = newIpns;
+    _setIpfsFolder(numFiles, ipfsCid);
   }
 
   /**
    * @dev Mints an NFT for a new member of the Early Adopters community.
    * Ensures that one address can hold a maximum of one token.
+   * The collection starts from token ID #1
    */
   function mint() external virtual {
-    uint256 tokenId = _nextTokenId++;
-    string memory fileName = string.concat(tokenId.toString(), ".json"); // 0.json, 1.json
+    uint256 tokenId = ++totalMinted;
+    if (tokenId > maxSupply) revert OutOfTokens(maxSupply);
+    string memory fileName = string.concat(tokenId.toString(), ".json"); // 1.json, 2.json ...
     _safeMint(_msgSender(), tokenId);
     _setTokenURI(tokenId, fileName);
   }
 
   /**
-   * Burns the token an leaves the community.
+   * Burns the token and leaves the community.
    * `ERC721Burnable` already has a function `burn(uint256)` to burn token by ID.
    * Here it's allowed to own only one token, thus there's no reason for specifying an ID.
    */
   function burn() external virtual {
     burn(tokenIdByOwner(_msgSender()));
+  }
+
+  /**
+   * @dev Sets a new IPFS folder and updates the maximum supply of tokens that can be minted.
+   * This function is meant to be called by an admin when the metadata folder on IPFS is updated.
+   * It ensures that the new maximum supply is greater than the previous one.
+   * @param newMaxSupply The new maximum number of tokens that can be minted.
+   * @param newIpfsCid The new IPFS CID for the metadata folder.
+   */
+  function setIpfsFolder(
+    uint256 newMaxSupply,
+    string calldata newIpfsCid
+  ) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
+    _setIpfsFolder(newMaxSupply, newIpfsCid);
   }
 
   /**
@@ -111,14 +131,31 @@ contract EarlyAdopters is
     address auth
   ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (address) {
     // Disallow transfers by smart contracts, as only EOAs can be community members
+    // slither-disable-next-line tx-origin
     if (_msgSender() != tx.origin) revert ERC721InvalidOwner(_msgSender());
     // allow multiple transfers to zero address to enable burning
     if (to != address(0) && balanceOf(to) > 0) revert ERC721InvalidOwner(to);
     return super._update(to, tokenId, auth);
   }
 
-  function _baseURI() internal pure virtual override returns (string memory) {
-    return "ipfs://";
+  /**
+   * @dev Returns the base URI used for constructing the token URI.
+   * @return The base URI string.
+   */
+  function _baseURI() internal view virtual override returns (string memory) {
+    return string.concat("ipfs://", _folderIpfsCid, "/");
+  }
+
+  /**
+   * @dev Internal function to set the IPFS folder and update the maximum supply of tokens.
+   * @param newMaxSupply The new maximum number of tokens that can be minted.
+   * @param ipfs The new IPFS CID for the metadata folder.
+   */
+  function _setIpfsFolder(uint256 newMaxSupply, string calldata ipfs) internal virtual {
+    if (newMaxSupply <= maxSupply) revert InvalidMaxSupply(newMaxSupply, maxSupply);
+    maxSupply = newMaxSupply;
+    _folderIpfsCid = ipfs;
+    emit IpfsFolderChanged(newMaxSupply, ipfs);
   }
 
   function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {

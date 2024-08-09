@@ -44,7 +44,7 @@ We decided (in the meantime) to fork the repository and add it there [Forked Rep
 Run this command to test smart contracts, excluding OpenZeppelin and RIF:
 
 ```shell
-slither . --filter-paths openzeppelin,rif-token-contracts
+slither . --filter-paths openzeppelin,rif-token-contracts,exploit
 ```
 
 ## Deploying contracts with Ignition
@@ -57,25 +57,46 @@ npx hardhat ignition deploy ignition/modules/GovernorModule.ts --parameters igni
 
 where the --parameters parameter specifies the location of the parameters file with the RIF token address.
 
-- Deploy Early Adopters NFT to Rootstock Testnet
+### Deploy Early Adopters NFT to Rootstock Testnet
 
-```shell
-npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --network rootstockTestnet
-```
+1. Create an IPFS directory on Pinata and place the JSON files with NFT metadata there. It's important that the file names start from 1 and are sequential without any gaps.
 
-## Uploading CIDs to Early Adopters NFT
+2. Edit the `ignition/eaNft.json` file to provide the following parameters:
 
-Place token metadata IPFS CIDs in the file `tasks/cids.json` and run the command:
+    - Default Admin address
+    - Upgrader address
+    - IPFS ID of the directory containing the prepared JSON metadata files for the NFTs
+    - The amount of files in the directory
 
-```shell
-npx hardhat load-cids --network rootstockTestnet --nft 0xf24761C1B57b14EeA270B1485294D93494164246
-```
+    Then run the command:
 
-where the `--nft` parameter is the address of the deployed Early Adopters NFT smart contract.
+      ```shell
+      npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --parameters ignition/eaNft.json --network rootstockTestnet
+      ```
+
+3. To upload additional JSON files with metadata for new NFT tokens, you need to:
+
+    - Create a new directory on IPFS (Pinata), adding both the old and new files.
+    - Copy the CID of the created directory.
+    - Run the Hardhat task to update the IPFS folder CID in the smart contract
+
+    ```shell
+    npx hardhat update-ipfs-folder 
+        --nft <EA NFT Address> 
+        --cid <New folder CID> 
+        --files <amount of files in folder>
+        --network rootstockTestnet
+    ```
+
+    for example:
+
+    ```shell
+    npx hardhat update-ipfs-folder --nft 0xa3Dcdac1883f29aA9FafbdeDDCA0c745B2F05b53 --cid QmU1Bu9v1k9ecQ89cDE4uHrRkMKHE8NQ3mxhqFqNJfsKPd --files 50 --network rootstockTestnet
+    ```
 
 ## Deployed contracts (on Rootstock Testnet)
 
 Timelock - 0x67D299406cCc0eB02Fa6dc9e6d2f93d7fE5Ef19c
 stRif- 0xd6Eb12591559C42e28d672197265b331B1ad867d
 Governor- 0xEc6bd0C8117b74904849af2CED73f30090DB6cd1
-Early Adopters NFT - 0xf24761C1B57b14EeA270B1485294D93494164246
+Early Adopters NFT - 0xa3Dcdac1883f29aA9FafbdeDDCA0c745B2F05b53

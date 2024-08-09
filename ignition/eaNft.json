@@ -1,0 +1,8 @@
+{
+  "EarlyAdoptersProxy": {
+    "defaultAdmin": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4",
+    "upgrader": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4",
+    "numFiles": 50,
+    "ipfs": "QmU1Bu9v1k9ecQ89cDE4uHrRkMKHE8NQ3mxhqFqNJfsKPd"
+  }
+}

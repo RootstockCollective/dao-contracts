@@ -5,15 +5,24 @@ import { EarlyAdopters } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import EarlyAdoptersModule from '../ignition/modules/EarlyAdoptersModule'
 
+const initialMaxSupply = 3
+const ipfs = 'QmU1Bu9v1k9ecQ89cDE4uHrRkMKHE8NQ3mxhqFqNJfsKPd'
+const nftUri = (id: number, _ipfs = ipfs) => `ipfs://${_ipfs}/${id}.json`
+
 async function deploy() {
-  const { ea } = await ignition.deploy(EarlyAdoptersModule)
+  const [defaultAdmin, upgrader] = await ethers.getSigners()
+  const { ea } = await ignition.deploy(EarlyAdoptersModule, {
+    parameters: {
+      EarlyAdoptersProxy: {
+        ipfs,
+        numFiles: initialMaxSupply,
+        defaultAdmin: defaultAdmin.address,
+        upgrader: upgrader.address,
+      },
+    },
+  })
   return ea as unknown as EarlyAdopters
 }
-
-/**
- * Adds index number at the end of a CID string
- */
-const addIndex = (cid: string, index: number) => cid.slice(0, cid.length - String(index).length) + index
 
 describe('Early Adopters', () => {
   let ea: EarlyAdopters
@@ -22,7 +31,7 @@ describe('Early Adopters', () => {
   let alice: SignerWithAddress
   let bob: SignerWithAddress
 
-  const cidMock = 'QmQR9mfvZ9fDFJuBne1xnRoeRCeKZdqajYGJJ9MEDchgqX'
+  const firstNftId = 1
 
   before(async () => {
     ;[deployer, alice, bob] = await ethers.getSigners()
@@ -35,17 +44,19 @@ describe('Early Adopters', () => {
       expect(eaAddress).to.be.properAddress
     })
 
-    it('deployer should be granted Default Admin, Upgrader and Cids Loader roles', async () => {
-      const adminRole = await ea.DEFAULT_ADMIN_ROLE()
-      const upgrader = await ea.UPGRADER_ROLE()
-      const cidsLoader = await ea.CIDS_LOADER_ROLE()
-      expect(await ea.hasRole(adminRole, deployer.address)).to.be.true
-      expect(await ea.hasRole(upgrader, deployer.address)).to.be.true
-      expect(await ea.hasRole(cidsLoader, deployer.address)).to.be.true
+    it('it should set the maximum NFT supply', async () => {
+      expect(await ea.maxSupply()).to.equal(initialMaxSupply)
     })
 
-    it('should be no CIDs available for minting yet', async () => {
-      expect(await ea.cidsAvailable()).to.equal(0)
+    it('should assign different roles to deployer, alice and bob', async () => {
+      const defaultAdminRole = await ea.DEFAULT_ADMIN_ROLE()
+      const upgraderRole = await ea.UPGRADER_ROLE()
+      expect(await ea.hasRole(defaultAdminRole, deployer.address)).to.be.true
+      expect(await ea.hasRole(upgraderRole, alice.address)).to.be.true
+    })
+
+    it('total minted tokens amount should be zero', async () => {
+      expect(await ea.totalMinted()).to.equal(0)
     })
 
     it('deployer, Alice and Bob should own no tokens', async () => {
@@ -65,46 +76,10 @@ describe('Early Adopters', () => {
     })
   })
 
-  describe('Loading IPFS CIDs to EA smart contract', () => {
-    it('should be OK to load 0 cids', async () => {
-      await expect(ea.loadCids([])).to.emit(ea, 'CidsLoaded').withArgs(0, 0)
-    })
-
-    it('should load maximum of CIDs into the EA contract', async () => {
-      await expect(
-        ea.loadCids(
-          /* 
-      Replace last CID symbols with array index.
-      This is done so that the CID is the same length and consumes the same
-      amount of gas as the real one, but at the same time it contains an 
-      index for identification.
-      URIs will look like:
-        - ipfs://QmQR9mfvZ9fDFJuBne1xnRoeRCeKZdqajYGJJ9MEDchgq0
-        - ipfs://QmQR9mfvZ9fDFJuBne1xnRoeRCeKZdqajYGJJ9MEDchgq1
-      */
-          [...Array(50).keys()].map(ind => addIndex(cidMock, ind)),
-        ),
-      )
-        .to.emit(ea, 'CidsLoaded')
-        .withArgs(50, 50)
-    })
-
-    it('should be 50 cids available for minting now', async () => {
-      expect(await ea.cidsAvailable()).to.equal(50)
-    })
-
-    it('should not be possible to load more than 50 CIDs at once', async () => {
-      await expect(ea.loadCids(Array(55).fill(cidMock)))
-        .to.be.revertedWithCustomError(ea, 'InvalidCidsAmount')
-        .withArgs(55, 50)
-    })
-  })
-
   describe('Join Early Adopters community / Minting NFTs', () => {
     it('Alice should join the EA community by minting an Nft', async () => {
       const mintTx = await ea.connect(alice).mint()
-      const newId = 0
-      await expect(mintTx).to.emit(ea, 'Transfer').withArgs(ethers.ZeroAddress, alice.address, newId)
+      await expect(mintTx).to.emit(ea, 'Transfer').withArgs(ethers.ZeroAddress, alice.address, firstNftId)
     })
 
     it('Alice cannot join the community second time', async () => {
@@ -117,28 +92,28 @@ describe('Early Adopters', () => {
       expect(await ea.balanceOf(alice.address)).to.equal(1)
     })
 
-    it('Alice should be the owner of NFT with ID 0', async () => {
-      expect(await ea.ownerOf(0)).to.equal(alice.address)
+    it('Alice should be owner of the first NFT', async () => {
+      expect(await ea.ownerOf(firstNftId)).to.equal(alice.address)
     })
 
     it('Alice should get her token ID by providing her account address', async () => {
-      expect(await ea.tokenIdByOwner(alice.address)).to.equal(0)
+      expect(await ea.tokenIdByOwner(alice.address)).to.equal(firstNftId)
     })
 
     it('Alice should read her token URI by providing her account address', async () => {
-      expect(await ea.tokenUriByOwner(alice.address)).to.equal(`ipfs://` + addIndex(cidMock, 0))
+      expect(await ea.tokenUriByOwner(alice.address)).to.equal(nftUri(firstNftId))
     })
   })
 
   describe('Transferring NFTs / changing EA membership', () => {
     it('Alice should not be able to transfer her token to zero address', async () => {
-      const transferTx = ea.connect(alice).transferFrom(alice.address, ethers.ZeroAddress, 0)
+      const transferTx = ea.connect(alice).transferFrom(alice.address, ethers.ZeroAddress, firstNftId)
       await expect(transferTx).to.be.reverted
     })
 
     it('Alice should transfer her token to Bob', async () => {
-      const transferTx = ea.connect(alice).transferFrom(alice.address, bob.address, 0)
-      await expect(transferTx).to.emit(ea, 'Transfer').withArgs(alice.address, bob.address, 0)
+      const transferTx = ea.connect(alice).transferFrom(alice.address, bob.address, firstNftId)
+      await expect(transferTx).to.emit(ea, 'Transfer').withArgs(alice.address, bob.address, firstNftId)
     })
 
     it('Alice should no longer be a member of EA community', async () => {
@@ -149,18 +124,18 @@ describe('Early Adopters', () => {
       expect(await ea.balanceOf(bob.address)).to.equal(1)
     })
 
-    it('Bob should now be the owner of NFT with ID 0', async () => {
-      expect(await ea.ownerOf(0)).to.equal(bob.address)
+    it('Bob should now be the owner of the first NFT', async () => {
+      expect(await ea.ownerOf(firstNftId)).to.equal(bob.address)
     })
 
     it('Bob should read his token URI by providing his account address', async () => {
-      expect(await ea.tokenUriByOwner(bob.address)).to.equal(`ipfs://` + addIndex(cidMock, 0))
+      expect(await ea.tokenUriByOwner(bob.address)).to.equal(nftUri(firstNftId))
     })
 
     it('Deployer should not be able to transfer his ownership to Bob because Bob is already a member', async () => {
       await (await ea.connect(deployer).mint()).wait()
-      expect(await ea.ownerOf(1)).to.equal(deployer.address)
-      await expect(ea.transferFrom(deployer.address, bob.address, 1))
+      expect(await ea.ownerOf(firstNftId + 1)).to.equal(deployer.address)
+      await expect(ea.transferFrom(deployer.address, bob.address, firstNftId + 1))
         .to.be.revertedWithCustomError(ea, 'ERC721InvalidOwner')
         .withArgs(bob.address)
     })
@@ -168,7 +143,11 @@ describe('Early Adopters', () => {
     it('Alice should be able to join the EA community once again and get a new NFT instead of transferred one', async () => {
       await expect(await ea.connect(alice).mint())
         .to.emit(ea, 'Transfer')
-        .withArgs(ethers.ZeroAddress, alice.address, 2)
+        .withArgs(ethers.ZeroAddress, alice.address, firstNftId + 2)
+    })
+
+    it('total minted tokens amount should now be 3', async () => {
+      expect(await ea.totalMinted()).to.equal(3)
     })
   })
 
@@ -178,23 +157,59 @@ describe('Early Adopters', () => {
       await expect(burnTx).to.emit(ea, 'Transfer')
     })
 
-    it('Alice should be able to burn his NFT too', async () => {
-      const burnTx = await ea.connect(alice)['burn()']()
-      await expect(burnTx).to.emit(ea, 'Transfer')
-    })
-
     it('Bob should no longer be a member of the community', async () => {
       expect(await ea.balanceOf(bob.address)).to.equal(0)
     })
 
-    it('Alice should no longer be a member of the community either', async () => {
-      expect(await ea.balanceOf(alice.address)).to.equal(0)
+    it('Non-member should not be able to burn', async () => {
+      await expect(ea.connect(bob)['burn()']())
+        .to.be.revertedWithCustomError(ea, 'ERC721OutOfBoundsIndex')
+        .withArgs(bob.address, 0)
+    })
+  })
+
+  describe('Adding the metadata files to IPNS folder', () => {
+    const newSupply = initialMaxSupply + 50
+    const newIpfs = 'QmcTpDpoe1Y7Fw61yxLRBbRRsJQaVoq6yyWkHNAnHZPWgt'
+
+    it('total minted tokens amount should equal max supply', async () => {
+      expect(await ea.totalMinted()).to.equal(await ea.maxSupply())
     })
 
-    it('Non-member should not be able to burn', async () => {
-      await expect(ea.connect(alice)['burn()']())
-        .to.be.revertedWithCustomError(ea, 'ERC721OutOfBoundsIndex')
-        .withArgs(alice.address, 0)
+    it('should not be possible to mint more tokens', async () => {
+      await expect(ea.connect(bob).mint())
+        .to.be.revertedWithCustomError(ea, 'OutOfTokens')
+        .withArgs(initialMaxSupply)
+    })
+
+    it('should not be possible to set a new IPFS folder with insufficient files', async () => {
+      await expect(ea.setIpfsFolder(initialMaxSupply, newIpfs))
+        .to.be.revertedWithCustomError(ea, 'InvalidMaxSupply')
+        .withArgs(initialMaxSupply, initialMaxSupply)
+    })
+
+    it('should set a new IPFS directory', async () => {
+      await expect(ea.setIpfsFolder(newSupply, newIpfs))
+        .to.emit(ea, 'IpfsFolderChanged')
+        .withArgs(newSupply, newIpfs)
+    })
+
+    it('new max supply should be recorded', async () => {
+      expect(await ea.maxSupply()).to.equal(newSupply)
+    })
+
+    it('should be possible to mint more tokens after topping up the max supply', async () => {
+      await expect(ea.connect(bob).mint())
+        .to.emit(ea, 'Transfer')
+        .withArgs(ethers.ZeroAddress, bob.address, 4)
+    })
+
+    it('Alice should have the same token ID after the folder change', async () => {
+      expect(await ea.tokenIdByOwner(alice.address)).to.equal(3)
+    })
+
+    it(`Alice's NFT should change URI after the IPFS directory change`, async () => {
+      expect(await ea.tokenUriByOwner(alice.address)).to.equal(nftUri(3, newIpfs))
     })
   })
 })

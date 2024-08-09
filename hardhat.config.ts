@@ -1,7 +1,7 @@
 import type { HardhatUserConfig, HttpNetworkHDAccountsConfig } from 'hardhat/types'
 import '@nomicfoundation/hardhat-toolbox'
 import dotent from 'dotenv'
-import './tasks/loadCids'
+import './tasks/updateIpfsFolder'
 
 dotent.config()
 
@@ -9,6 +9,7 @@ const accounts: Partial<HttpNetworkHDAccountsConfig> = {
   mnemonic: process.env.MNEMONIC ?? '',
   path: "m/44'/60'/0'/0",
 }
+console.log('🚀 ~ accounts:', accounts)
 
 const config: HardhatUserConfig = {
   solidity: {
