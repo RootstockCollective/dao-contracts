@@ -59,7 +59,7 @@ where the --parameters parameter specifies the location of the parameters file w
 
 ### Deploy Early Adopters NFT to Rootstock Testnet
 
-See the NFT images/metadata creation details [here](`./nft/README.md`)
+See the NFT images/metadata creation details [here](./nft/README.md)
 
 1. Create an IPFS directory on Pinata and place the JSON files with NFT metadata there. It's important that the file names start from 1 and are sequential without any gaps.
 
