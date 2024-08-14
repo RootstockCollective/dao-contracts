@@ -59,6 +59,8 @@ where the --parameters parameter specifies the location of the parameters file w
 
 ### Deploy Early Adopters NFT to Rootstock Testnet
 
+See the NFT images/metadata creation details [here](`./nft/README.md`)
+
 1. Create an IPFS directory on Pinata and place the JSON files with NFT metadata there. It's important that the file names start from 1 and are sequential without any gaps.
 
 2. Edit the `ignition/eaNft.json` file to provide the following parameters:
@@ -99,4 +101,4 @@ where the --parameters parameter specifies the location of the parameters file w
 Timelock - 0x67D299406cCc0eB02Fa6dc9e6d2f93d7fE5Ef19c
 stRif- 0xd6Eb12591559C42e28d672197265b331B1ad867d
 Governor- 0xEc6bd0C8117b74904849af2CED73f30090DB6cd1
-Early Adopters NFT - 0x1928B2135984f0B5921Ff00404B650DcC6BD3b9e
+Early Adopters NFT - 0x687E04Bb759B3A010eb797301E5D1D05e135E90f
