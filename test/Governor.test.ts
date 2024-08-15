@@ -18,11 +18,16 @@ describe('RootDAO Contact', () => {
   let stRIF: StRIFToken
   let timelock: DaoTimelockUpgradable
   let governor: RootDao
+  let deployer: SignerWithAddress
   let holders: SignerWithAddress[]
+
+  //queuing the proposal
+  let eta: bigint = 0n
+  let timelockPropId: string
 
   before(async () => {
     // prettier-ignore
-    ;[, ...holders] = await ethers.getSigners();
+    ;[deployer, ...holders] = await ethers.getSigners();
     ;({ rif, stRIF, timelock, governor } = await loadFixture(deployContracts))
     rifAddress = await rif.getAddress()
   })
@@ -62,6 +67,7 @@ describe('RootDAO Contact', () => {
     let proposalId: bigint
     let proposalSnapshot: bigint
     // let proposalCalldata: string
+    const unexpectedProposalState = 'GovernorUnexpectedProposalState'
 
     const getState = async () => await governor.state(proposalId)
     const insufficientVotes = 'GovernorInsufficientProposerVotes'
@@ -71,7 +77,7 @@ describe('RootDAO Contact', () => {
     const generateDescriptionHash = (proposalDesc?: string) =>
       solidityPackedKeccak256(['string'], [proposalDesc ?? defaultDescription])
 
-    const createProposal = async (proposalDesc = defaultDescription) => {
+    const createProposal = async (proposalDesc = defaultDescription, connectSigner?: SignerWithAddress) => {
       const blockHeight = await ethers.provider.getBlockNumber()
       const votingDelay = await governor.votingDelay()
 
@@ -79,7 +85,7 @@ describe('RootDAO Contact', () => {
       proposal = [[await stRIF.getAddress()], [0n], [calldata]]
 
       proposalId = await governor
-        .connect(holders[0])
+        .connect(connectSigner ?? holders[0])
         .hashProposal(...proposal, generateDescriptionHash(proposalDesc))
 
       const proposalTx = await governor.connect(holders[0]).propose(...proposal, proposalDesc)
@@ -92,6 +98,35 @@ describe('RootDAO Contact', () => {
       const { forVotes } = await governor.proposalVotes(proposalId)
 
       return forVotes
+    }
+
+    const voteToSucceed = async () => {
+      proposalSnapshot = await governor.proposalSnapshot(proposalId)
+      const quorum = await governor.quorum(proposalSnapshot)
+
+      for (const holder of holders.slice(2, holders.length)) {
+        if ((await checkVotes()) <= quorum) {
+          await governor.connect(holder).castVote(proposalId, 1)
+        }
+      }
+
+      await mine(initialVotingPeriod + 1n)
+    }
+
+    const queueProposal = async () => {
+      const minDelay = await timelock.getMinDelay()
+      const lastBlockTimestamp = await time.latest()
+
+      // Estimated Time of Arrival
+      eta = BigInt(lastBlockTimestamp) + minDelay + 1n
+      const fromBlock = await time.latestBlock()
+      const tx = await governor['queue(uint256)'](proposalId)
+
+      //event ProposalQueued(uint256 proposalId, uint256 etaSeconds)
+      await expect(tx).to.emit(governor, 'ProposalQueued').withArgs(proposalId, eta)
+      await tx.wait()
+
+      return { fromBlock }
     }
 
     describe('Proposal Creation', () => {
@@ -236,7 +271,7 @@ describe('RootDAO Contact', () => {
         expect(againstVotes).to.be.equal(await stRIF.getVotes(holders[2]))
       })
 
-      it('what happens when after voting holder burns tokens', async () => {
+      it('votes before should be the same as votes after the burn of tokens if holder hasVoted for the proposal', async () => {
         const value = parseEther('5')
         const votesBefore = await governor.proposalVotes(proposalId)
 
@@ -268,7 +303,7 @@ describe('RootDAO Contact', () => {
       it('the proposal should not be executed if there is not enough votes', async () => {
         expect(governor.connect(holders[2])['execute(uint256)'](proposalId)).to.be.revertedWithCustomError(
           { interface: governor.interface },
-          'GovernorUnexpectedProposalState',
+          unexpectedProposalState,
         )
       })
 
@@ -283,25 +318,13 @@ describe('RootDAO Contact', () => {
         await createProposal(otherDesc)
         await mine((await governor.votingDelay()) + 1n)
 
-        proposalSnapshot = await governor.proposalSnapshot(proposalId)
-        const quorum = await governor.quorum(proposalSnapshot)
-
-        for (const holder of holders.slice(2, holders.length)) {
-          if ((await checkVotes()) <= quorum) {
-            await governor.connect(holder).castVote(proposalId, 1)
-          }
-        }
-
-        await mine(initialVotingPeriod + 1n)
+        await voteToSucceed()
 
         expect(await getState()).to.be.equal(ProposalState.Succeeded)
       })
     })
 
     describe('Queueing the Proposal', () => {
-      let eta: bigint = 0n
-      let timelockPropId: string
-
       /* 
       https://docs.openzeppelin.com/contracts/5.x/api/governance#IGovernor-queue-address---uint256---bytes---bytes32-
       Queue a proposal. Some governors require this step to be performed before execution
@@ -385,6 +408,87 @@ describe('RootDAO Contact', () => {
       it('proposal should move to Executed state after execution', async () => {
         const state = await governor.state(proposalId)
         expect(state).to.equal(ProposalState.Executed)
+      })
+    })
+
+    describe('Cancelling proposals and Guardian role', () => {
+      it('should set deployer as guardian', async () => {
+        const guardianAddress = await governor.guardian()
+        expect(deployer.address).to.equal(guardianAddress)
+      })
+
+      it('should not be possible to cancel the proposal by proposalProposer if not in Pending state', async () => {
+        await createProposal('should it be possible to cancel when not in pending?')
+        await mine((await governor.votingDelay()) + 1n)
+
+        const state = await governor.state(proposalId)
+        expect(state).to.equal(ProposalState.Active)
+        const tx = governor['cancel(uint256)'](proposalId)
+
+        expect(tx).to.be.revertedWithCustomError({ interface: governor.interface }, unexpectedProposalState)
+      })
+
+      describe('guardian should be able to cancel proposals even if it is not proposalProposer', async () => {
+        it('should be able to cancel ProposalState.Pending', async () => {
+          await createProposal('guardian cancelling pending', holders[1])
+          const pendingState = await governor.state(proposalId)
+          expect(pendingState).to.equal(ProposalState.Pending)
+          await governor.connect(deployer)['cancel(uint256)'](proposalId)
+          const state = await governor.state(proposalId)
+          expect(state).to.equal(ProposalState.Canceled)
+        })
+
+        it('should be able to cancel ProposalState.Active', async () => {
+          await createProposal('guardian cancelling active', holders[1])
+          await mine((await governor.votingDelay()) + 1n)
+          const activeState = await governor.state(proposalId)
+          expect(activeState).to.equal(ProposalState.Active)
+          await governor.connect(deployer)['cancel(uint256)'](proposalId)
+          const cancelledState = await governor.state(proposalId)
+          expect(cancelledState).to.equal(ProposalState.Canceled)
+        })
+
+        it('should NOT be able to cancel ProposalState.Cancelled', async () => {
+          const cancelledState = await governor.state(proposalId)
+          expect(cancelledState).to.equal(ProposalState.Canceled)
+          const tx = governor.connect(deployer)['cancel(uint256)'](proposalId)
+          expect(tx).to.be.revertedWithCustomError({ interface: governor.interface }, unexpectedProposalState)
+          console.log('CANCELLING IN CANCELLED FAILURE SUCCESSS')
+        })
+
+        it('should be able to cancel ProposalState.Succceded', async () => {
+          //cancelling ProposalState.Succceded as guardian
+          await createProposal('guardian cancelling succeeded', holders[1])
+          await mine((await governor.votingDelay()) + 1n)
+
+          await voteToSucceed()
+
+          expect(await getState()).to.be.equal(ProposalState.Succeeded)
+          await governor.connect(deployer)['cancel(uint256)'](proposalId)
+          const proposalState = await governor.state(proposalId)
+          expect(proposalState).to.equal(ProposalState.Canceled)
+          console.log('CANCELLING IN SUCCEED SUCCESS')
+        })
+
+        it('should be able to cancel ProposalState.Queued', async () => {
+          await createProposal('should it be able?', holders[1])
+          await mine((await governor.votingDelay()) + 1n)
+
+          await voteToSucceed()
+          const succeededState = await governor.state(proposalId)
+          expect(succeededState).to.equal(ProposalState.Succeeded)
+
+          const needsQueuing = await governor.proposalNeedsQueuing(proposalId)
+          expect(needsQueuing).to.be.true
+
+          await queueProposal()
+          const queuedState = await governor.state(proposalId)
+          expect(queuedState).to.be.equal(ProposalState.Queued)
+
+          await governor.connect(deployer)['cancel(uint256)'](proposalId)
+          const cancelledState = await governor.state(proposalId)
+          expect(cancelledState).to.equal(ProposalState.Canceled)
+        })
       })
     })
 
