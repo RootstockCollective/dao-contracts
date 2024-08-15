@@ -70,6 +70,10 @@ describe('Early Adopters', () => {
         }),
       )
     })
+
+    it('there should be no members in the EA community yet', async () => {
+      expect(await ea.totalSupply()).to.equal(0)
+    })
   })
 
   describe('Join Early Adopters community / Minting NFTs', () => {
@@ -98,6 +102,10 @@ describe('Early Adopters', () => {
 
     it('Alice should read her token URI by providing her account address', async () => {
       expect(await ea.tokenUriByOwner(alice.address)).to.equal(nftUri(firstNftId))
+    })
+
+    it('EA community should now have 1 member', async () => {
+      expect(await ea.totalSupply()).to.equal(1)
     })
   })
 
@@ -128,6 +136,10 @@ describe('Early Adopters', () => {
       expect(await ea.tokenUriByOwner(bob.address)).to.equal(nftUri(firstNftId))
     })
 
+    it('the number of members in the EA community should not change', async () => {
+      expect(await ea.totalSupply()).to.equal(1)
+    })
+
     it('Deployer should not be able to transfer his ownership to Bob because Bob is already a member', async () => {
       await (await ea.connect(deployer).mint()).wait()
       expect(await ea.ownerOf(firstNftId + 1)).to.equal(deployer.address)
@@ -140,6 +152,10 @@ describe('Early Adopters', () => {
       await expect(await ea.connect(alice).mint())
         .to.emit(ea, 'Transfer')
         .withArgs(ethers.ZeroAddress, alice.address, firstNftId + 2)
+    })
+
+    it('the number of members in the EA community should increase by 2', async () => {
+      expect(await ea.totalSupply()).to.equal(3)
     })
   })
 
@@ -157,6 +173,10 @@ describe('Early Adopters', () => {
       await expect(ea.connect(bob)['burn()']())
         .to.be.revertedWithCustomError(ea, 'ERC721OutOfBoundsIndex')
         .withArgs(bob.address, 0)
+    })
+
+    it('the number of members in the EA community should decrease by 1', async () => {
+      expect(await ea.totalSupply()).to.equal(2)
     })
   })
 
@@ -194,6 +214,10 @@ describe('Early Adopters', () => {
       await expect(ea.connect(bob).mint())
         .to.emit(ea, 'Transfer')
         .withArgs(ethers.ZeroAddress, bob.address, 4)
+    })
+
+    it('should increase the number of members in the EA by 1', async () => {
+      expect(await ea.totalSupply()).to.equal(3)
     })
 
     it('Alice should have the same token ID after the folder change', async () => {
