@@ -80,7 +80,6 @@ contract RootDao is
         guardian = initialOwner;
     }
 
-  // this is for _castVote finction to work and follow original _castVote function
   function validateStateBitmap(uint256 proposalId, bytes32 allowedStates) private view returns (ProposalState) {
       ProposalState currentState = state(proposalId);
       if (_encodeStateBitmap(currentState) & allowedStates == bytes32(0)) {
@@ -215,7 +214,6 @@ contract RootDao is
     uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
 
     if(_msgSender() != guardian) {
-      console.log('NOT A GUARDING IN cancel');
       // public cancel restrictions (on top of existing _cancel restrictions).
       validateStateBitmap(proposalId, _encodeStateBitmap(ProposalState.Pending));
     }
@@ -252,13 +250,6 @@ contract RootDao is
               _encodeStateBitmap(ProposalState.Executed)
         );
       }
-
-      validateStateBitmap(
-        proposalId,
-        _encodeStateBitmap(ProposalState.Canceled) ^
-        _encodeStateBitmap(ProposalState.Expired) ^ 
-        _encodeStateBitmap(ProposalState.Executed)
-      );
 
       $._proposals[proposalId].canceled = true;
       emit ProposalCanceled(proposalId);
