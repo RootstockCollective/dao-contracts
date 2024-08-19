@@ -32,15 +32,8 @@ contract RootDaoV2 is
 
   /**
    * @dev Initializes the contract.
-   * @param voteToken The address of the vote token contract.
-   * @param timelockController The address of the timelock controller contract.
-   * @param initialOwner The address of the initial owner.
    */
-  function initialize(
-    IVotes voteToken,
-    TimelockControllerUpgradeable timelockController,
-    address initialOwner
-  ) public initializer {}
+  function initialize() public initializer {}
 
   function version() public pure override returns (string memory) {
     return "2";
