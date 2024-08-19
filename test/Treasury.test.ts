@@ -7,13 +7,17 @@ import { parseEther } from 'ethers'
 import { expect } from 'chai'
 
 describe('Treasury Contract', () => {
-  let owner: SignerWithAddress, beneficiary: SignerWithAddress
+  let deployer: SignerWithAddress,
+    owner: SignerWithAddress,
+    beneficiary: SignerWithAddress,
+    guardian: SignerWithAddress
   let rif: RIFToken
   let treasury: TreasuryDao
 
   before(async () => {
-    ;[, owner, beneficiary] = await ethers.getSigners()
+    ;[deployer, owner, beneficiary, guardian] = await ethers.getSigners()
     ;({ rif, treasury } = await loadFixture(deployContracts))
+    await treasury.addToWhitelist(rif)
   })
 
   it('Receive RBTC', async () => {
@@ -80,6 +84,11 @@ describe('Treasury Contract', () => {
   it('Withdraw with a non ERC20 token address should revert', async () => {
     const amount = parseEther('1')
     const sentTx = treasury.withdrawERC20(owner.address, beneficiary, amount)
-    await expect(sentTx).to.be.revertedWithoutReason()
+    await expect(sentTx).to.be.revertedWith('Token forbidden')
+  })
+
+  it('Transfer guardianship', async () => {
+    const sentTx = await treasury.transferGuardianship(guardian)
+    await expect(sentTx).to.emit(treasury, 'GuardianshipTransferred').withArgs(deployer, guardian)
   })
 })
