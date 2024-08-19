@@ -3,7 +3,7 @@ import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import { deployContracts } from './deployContracts'
 import { RIFToken, StRIFToken, TreasuryDao } from '../typechain-types'
-import { parseEther } from 'ethers'
+import { AddressLike, parseEther } from 'ethers'
 import { expect } from 'chai'
 
 describe('Treasury Contract', () => {
@@ -11,15 +11,21 @@ describe('Treasury Contract', () => {
     owner: SignerWithAddress,
     beneficiary: SignerWithAddress,
     guardian: SignerWithAddress,
-    collector: SignerWithAddress
+    collector: SignerWithAddress,
+    token1: AddressLike,
+    token2: AddressLike,
+    token3: AddressLike
   let rif: RIFToken
   let treasury: TreasuryDao
   let stRIF: StRIFToken
+  let GuardianRole: string, AdminRole: string
 
   before(async () => {
-    ;[deployer, owner, beneficiary, guardian, collector] = await ethers.getSigners()
+    ;[deployer, owner, beneficiary, guardian, collector, token1, token2, token3] = await ethers.getSigners()
     ;({ stRIF, rif, treasury } = await loadFixture(deployContracts))
     await treasury.addToWhitelist(rif)
+    GuardianRole = await treasury.GUARDIAN_ROLE()
+    AdminRole = await treasury.DEFAULT_ADMIN_ROLE()
   })
 
   describe('Withdraw token and RBTC to any account', () => {
@@ -49,8 +55,8 @@ describe('Treasury Contract', () => {
       const amount = parseEther('10')
       const sentTx = treasury.connect(owner).withdraw(beneficiary, amount)
       await expect(sentTx)
-        .to.be.revertedWithCustomError(treasury, 'OwnableUnauthorizedAccount')
-        .withArgs(owner.address)
+        .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
+        .withArgs(owner.address, AdminRole)
     })
 
     it('Can not withdraw RBTC to a beneficiary if balance is insufficient', async () => {
@@ -89,8 +95,8 @@ describe('Treasury Contract', () => {
       const amount = parseEther('1')
       const sentTx = treasury.connect(owner).withdrawERC20(rif, beneficiary, amount)
       await expect(sentTx)
-        .to.be.revertedWithCustomError(treasury, 'OwnableUnauthorizedAccount')
-        .withArgs(owner.address)
+        .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
+        .withArgs(owner.address, AdminRole)
     })
 
     it('Withdraw with a non ERC20 token address should revert', async () => {
@@ -101,92 +107,127 @@ describe('Treasury Contract', () => {
   })
 
   describe('Withdraw all assets to Collector', () => {
-    it('Transfer guardianship', async () => {
-      const sentTx = treasury.transferGuardianship(guardian)
-      await expect(sentTx).to.emit(treasury, 'GuardianshipTransferred').withArgs(deployer, guardian)
+    it('Grant guardian role', async () => {
+      const sentTx = treasury.grantRole(GuardianRole, guardian)
+      await expect(sentTx).to.emit(treasury, 'RoleGranted').withArgs(GuardianRole, guardian, deployer)
     })
 
     it('Withdraw RBTC to collector', async () => {
       const amount = await ethers.provider.getBalance(treasury)
-      const sentTx = await treasury.connect(guardian).withdrawAll(collector)
+      const sentTx = await treasury.connect(guardian).emergencyWithdraw(collector)
       await expect(() => sentTx).to.changeEtherBalances([treasury, collector], [-amount, amount])
       await expect(sentTx).to.emit(treasury, 'Withdrawn').withArgs(collector, amount)
     })
 
     it('Collector can not be zero address', async () => {
-      const sentTx = treasury.connect(guardian).withdrawAll(ethers.ZeroAddress)
+      const sentTx = treasury.connect(guardian).emergencyWithdraw(ethers.ZeroAddress)
       await expect(sentTx).to.be.revertedWith('Zero Address is not allowed')
     })
 
     it('Only guardian can withdraw RBTC to collector', async () => {
-      const sentTx = treasury.connect(beneficiary).withdrawAll(collector)
+      const sentTx = treasury.connect(beneficiary).emergencyWithdraw(collector)
       await expect(sentTx)
-        .to.be.revertedWithCustomError(treasury, 'GuardianUnauthorizedAccount')
-        .withArgs(beneficiary)
-    })
-
-    it('Only guardian can transfer guardianship', async () => {
-      const sentTx = treasury.connect(beneficiary).transferGuardianship(guardian)
-      await expect(sentTx)
-        .to.be.revertedWithCustomError(treasury, 'GuardianUnauthorizedAccount')
-        .withArgs(beneficiary)
-    })
-
-    it('Zero Address can not be guardian', async () => {
-      const sentTx = treasury.connect(guardian).transferGuardianship(ethers.ZeroAddress)
-      await expect(sentTx)
-        .to.be.revertedWithCustomError(treasury, 'InvalidGuardian')
-        .withArgs(ethers.ZeroAddress)
+        .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
+        .withArgs(beneficiary, GuardianRole)
     })
 
     it('Withdraw ERC20 token to collector', async () => {
       const rifBalance = await rif.balanceOf(treasury)
-      const sentTx = await treasury.connect(guardian).withdrawAllERC20(rif, collector)
+      const sentTx = await treasury.connect(guardian).emergencyWithdrawERC20(rif, collector)
       const balance = await rif.balanceOf(treasury)
       expect(balance).to.equals(parseEther('0'))
       await expect(sentTx).to.emit(treasury, 'WithdrawnERC20').withArgs(rif, collector, rifBalance)
     })
 
     it('Only guardian can withdraw ERC20 token to collector', async () => {
-      const sentTx = treasury.connect(beneficiary).withdrawAllERC20(rif, collector)
+      const sentTx = treasury.connect(beneficiary).emergencyWithdrawERC20(rif, collector)
       await expect(sentTx)
-        .to.be.revertedWithCustomError(treasury, 'GuardianUnauthorizedAccount')
-        .withArgs(beneficiary)
+        .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
+        .withArgs(beneficiary, GuardianRole)
     })
 
     it('Only can withdraw whitelisted ERC20 token to collector', async () => {
-      const sentTx = treasury.connect(guardian).withdrawAllERC20(stRIF, collector)
+      const sentTx = treasury.connect(guardian).emergencyWithdrawERC20(stRIF, collector)
       await expect(sentTx).to.be.revertedWith('Token forbidden')
     })
 
     it('Collector can not be zero address', async () => {
-      const sentTx = treasury.connect(guardian).withdrawAllERC20(rif, ethers.ZeroAddress)
+      const sentTx = treasury.connect(guardian).emergencyWithdrawERC20(rif, ethers.ZeroAddress)
       await expect(sentTx).to.be.revertedWith('Zero Address is not allowed')
     })
 
     it('Add new token to whitelist', async () => {
       expect(await treasury.whitelist(stRIF)).to.equal(false)
-      await treasury.connect(deployer).addToWhitelist(stRIF)
+      const sentTx = treasury.connect(deployer).addToWhitelist(stRIF)
+      await expect(sentTx).to.emit(treasury, 'TokenWhitelisted').withArgs(stRIF)
       const flag = await treasury.whitelist(stRIF)
       expect(flag).to.equal(true)
     })
 
-    it('Only owner can add new token to whitelist', async () => {
+    it('Only account with Guardian Role can add new token to whitelist', async () => {
       await treasury.connect(deployer).removeFromWhitelist(stRIF)
       expect(await treasury.whitelist(stRIF)).to.equal(false)
 
       const sentTx = treasury.connect(beneficiary).addToWhitelist(stRIF)
       await expect(sentTx)
-        .to.be.revertedWithCustomError(treasury, 'OwnableUnauthorizedAccount')
-        .withArgs(beneficiary.address)
+        .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
+        .withArgs(beneficiary.address, GuardianRole)
     })
 
-    it('Only owner can add new token to whitelist', async () => {
+    it('Only account with Guardian Role can remove a token to whitelist', async () => {
       const sentTx = treasury.connect(beneficiary).removeFromWhitelist(rif)
       await expect(sentTx)
-        .to.be.revertedWithCustomError(treasury, 'OwnableUnauthorizedAccount')
-        .withArgs(beneficiary.address)
+        .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
+        .withArgs(beneficiary.address, GuardianRole)
       expect(await treasury.whitelist(rif)).to.equal(true)
+    })
+
+    it('Whitelist three tokens', async () => {
+      const tokens = [token1, token2, token3]
+      await treasury.connect(guardian).batchAddWhitelist(tokens)
+      const events = await treasury.queryFilter(treasury.filters.TokenWhitelisted, -1)
+      const token1Event = events.find(async event => event.args.includes(token1 as string))
+      const token2Event = events.find(async event => event.args.includes(token2 as string))
+      const token3Event = events.find(async event => event.args.includes(token3 as string))
+      expect(events.length).to.equal(tokens.length)
+      expect(token1Event?.eventName).to.equal('TokenWhitelisted')
+      expect(token2Event?.eventName).to.equal('TokenWhitelisted')
+      expect(token3Event?.eventName).to.equal('TokenWhitelisted')
+      expect(await treasury.whitelist(token1)).to.equal(true)
+      expect(await treasury.whitelist(token2)).to.equal(true)
+      expect(await treasury.whitelist(token3)).to.equal(true)
+    })
+
+    it('Unwhitelist three tokens', async () => {
+      const tokens = [token1, token2, token3]
+      await treasury.connect(guardian).batchRemoveWhitelist(tokens)
+      const events = await treasury.queryFilter(treasury.filters.TokenUnwhitelisted, -1)
+      const token1Event = events.find(async event => event.args.includes(token1 as string))
+      const token2Event = events.find(async event => event.args.includes(token2 as string))
+      const token3Event = events.find(async event => event.args.includes(token3 as string))
+      expect(events.length).to.equal(tokens.length)
+      expect(token1Event?.eventName).to.equal('TokenUnwhitelisted')
+      expect(token2Event?.eventName).to.equal('TokenUnwhitelisted')
+      expect(token3Event?.eventName).to.equal('TokenUnwhitelisted')
+      expect(await treasury.whitelist(token1)).to.equal(false)
+      expect(await treasury.whitelist(token2)).to.equal(false)
+      expect(await treasury.whitelist(token3)).to.equal(false)
+    })
+
+    it('Only account with Guardian Role can batch whitelist', async () => {
+      const tokens = [token1, token2, token3]
+      const sentTx = treasury.connect(beneficiary).batchAddWhitelist(tokens)
+      await expect(sentTx)
+        .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
+        .withArgs(beneficiary.address, GuardianRole)
+    })
+
+    it('Only account with Guardian Role can batch unwhitelist', async () => {
+      const tokens = [token1, token2, token3]
+      const sentTx = treasury.connect(beneficiary).batchRemoveWhitelist(tokens)
+      await expect(sentTx)
+        .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
+        .withArgs(beneficiary.address, GuardianRole)
     })
   })
 })
