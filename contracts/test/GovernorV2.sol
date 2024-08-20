@@ -25,6 +25,8 @@ contract RootDaoV2 is
   OwnableUpgradeable,
   UUPSUpgradeable
 {
+  uint256 public variableV2;
+
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
     _disableInitializers();
@@ -33,11 +35,14 @@ contract RootDaoV2 is
   /**
    * @dev Initializes the contract.
    */
-  function initialize() public initializer {}
+  function initializeV2() public reinitializer(2) onlyProxy {
+    variableV2 = 99;
+  }
 
   function version() public pure override returns (string memory) {
     return "2";
   }
+
   // The following functions are overrides required by Solidity.
 
   /**
@@ -71,12 +76,9 @@ contract RootDaoV2 is
    * @param blockNumber The block number.
    * @return The quorum.
    */
-  function quorum(uint256 blockNumber)
-    public
-    view
-    override(GovernorUpgradeable, GovernorVotesQuorumFractionUpgradeable)
-    returns (uint256)
-  {
+  function quorum(
+    uint256 blockNumber
+  ) public view override(GovernorUpgradeable, GovernorVotesQuorumFractionUpgradeable) returns (uint256) {
     return super.quorum(blockNumber);
   }
 
@@ -85,12 +87,9 @@ contract RootDaoV2 is
    * @param proposalId The ID of the proposal.
    * @return The state of the proposal.
    */
-  function state(uint256 proposalId)
-    public
-    view
-    override(GovernorUpgradeable, GovernorTimelockControlUpgradeable)
-    returns (ProposalState)
-  {
+  function state(
+    uint256 proposalId
+  ) public view override(GovernorUpgradeable, GovernorTimelockControlUpgradeable) returns (ProposalState) {
     return super.state(proposalId);
   }
 
@@ -99,12 +98,9 @@ contract RootDaoV2 is
    * @param proposalId The ID of the proposal.
    * @return True if the proposal needs queuing, false otherwise.
    */
-  function proposalNeedsQueuing(uint256 proposalId)
-    public
-    view
-    override(GovernorUpgradeable, GovernorTimelockControlUpgradeable)
-    returns (bool)
-  {
+  function proposalNeedsQueuing(
+    uint256 proposalId
+  ) public view override(GovernorUpgradeable, GovernorTimelockControlUpgradeable) returns (bool) {
     return super.proposalNeedsQueuing(proposalId);
   }
 
@@ -126,15 +122,12 @@ contract RootDaoV2 is
    * @param proposalId The ID of the proposal.
    * @return againstVotes forVotes abstainVotes proposalState The votes against, votes for, abstain votes, and proposal state.
    */
-  function getStateAndVotes(uint256 proposalId)
+  function getStateAndVotes(
+    uint256 proposalId
+  )
     public
     view
-    returns (
-      uint256 againstVotes,
-      uint256 forVotes,
-      uint256 abstainVotes,
-      ProposalState proposalState
-    )
+    returns (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes, ProposalState proposalState)
   {
     (uint256 minus, uint256 plus, uint256 neutral) = super.proposalVotes(proposalId);
     ProposalState _state = super.state(proposalId);
@@ -227,7 +220,7 @@ contract RootDaoV2 is
   {
     return super._executor();
   }
-  
+
   /**
    * @dev Authorizes the upgrade to a new implementation contract.
    * @param newImplementation The address of the new implementation contract.
