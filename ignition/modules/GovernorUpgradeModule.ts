@@ -12,16 +12,17 @@ const governorUpgradeModule = buildModule('GovernorUpgrade', m => {
   //`RootDaoV2` is the new version
   const newGovernorImplementation = m.contract('RootDaoV2')
 
+  // The new version number
+  const newVersion = 2;
+
   // Prepare upgrade data
-  const upgradeData = m.encodeFunctionCall(newGovernorImplementation, 'initializeV2', [])
+  const upgradeData = m.encodeFunctionCall(newGovernorImplementation, 'initializeV2', [newVersion])
 
   // Perform the upgrade
   const upgradeTx = m.call(governorProxyAddr, 'upgradeToAndCall', [newGovernorImplementation, upgradeData], {
     from: deployer,
     id: 'upgrade_governor',
   })
-
-  console.log(`Governor upgrade tx: ${upgradeTx}`)
 
   return { governorProxyAddr, newGovernorImplementation }
 })

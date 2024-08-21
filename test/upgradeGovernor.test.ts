@@ -10,7 +10,7 @@ describe('Upgrade Governor', () => {
   let governorV2: RootDaoV2
 
   before(async () => {
-    ;({ governor } = await loadFixture(deployContracts))
+    ; ({ governor } = await loadFixture(deployContracts))
   })
 
   it('Governor V1 should be deployed', async () => {
@@ -44,6 +44,6 @@ describe('Upgrade Governor', () => {
   })
 
   it('New variable should be stored after the re-initialization', async () => {
-    expect(await governorV2.variableV2()).to.equal(99)
+    expect(await governorV2.actualVersion()).to.equal(2)
   })
 })
