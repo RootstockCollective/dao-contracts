@@ -25,7 +25,7 @@ contract RootDaoV2 is
   OwnableUpgradeable,
   UUPSUpgradeable
 {
-  uint256 public variableV2;
+  uint64 public actualVersion;
 
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
@@ -34,13 +34,35 @@ contract RootDaoV2 is
 
   /**
    * @dev Initializes the contract.
+   * @param voteToken The address of the vote token contract.
+   * @param timelockController The address of the timelock controller contract.
+   * @param initialOwner The address of the initial owner.
    */
-  function initializeV2() public reinitializer(2) onlyProxy {
-    variableV2 = 99;
+  function initialize(
+    IVotes voteToken,
+    TimelockControllerUpgradeable timelockController,
+    address initialOwner
+  ) public initializer {
+    __Governor_init("RootDao");
+    __GovernorSettings_init(1 /* 1 block */, 240 /* 2 hours */, 10 * 10 ** 18);
+    __GovernorCountingSimple_init();
+    __GovernorStorage_init();
+    __GovernorVotes_init(voteToken);
+    __GovernorVotesQuorumFraction_init(4);
+    __GovernorTimelockControl_init(timelockController);
+    __Ownable_init(initialOwner);
+    __UUPSUpgradeable_init();
+  }
+  
+  /**
+   * @dev Initializes the contract.
+   */
+  function initializeV2(uint64 _version) public reinitializer(_version) onlyProxy {
+    actualVersion = _version;
   }
 
-  function version() public pure override returns (string memory) {
-    return "2";
+  function version() public view override returns (string memory) {
+    return string(abi.encodePacked(actualVersion));
   }
 
   // The following functions are overrides required by Solidity.
