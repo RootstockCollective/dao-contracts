@@ -13,7 +13,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract RootDao is
+contract Governor is
   Initializable,
   GovernorUpgradeable,
   GovernorSettingsUpgradeable,
@@ -56,38 +56,36 @@ contract RootDao is
       _;
     }
 
-    /**
-     * @dev Initializes the contract.
-     * @param voteToken The address of the vote token contract.
-     * @param timelockController The address of the timelock controller contract.
-     * @param initialOwner The address of the initial owner.
-    */
-
-    function initialize(
-        IVotes voteToken, 
-        TimelockControllerUpgradeable timelockController, 
-        address initialOwner
-    ) public initializer {
-        __Governor_init("RootDao");
-        __GovernorSettings_init(1 /* 1 block */, 240 /* 2 hours */, 10 * 10 ** 18);
-        __GovernorCountingSimple_init();
-        __GovernorStorage_init();
-        __GovernorVotes_init(voteToken);
-        __GovernorVotesQuorumFraction_init(4);
-        __GovernorTimelockControl_init(timelockController);
-        __Ownable_init(initialOwner);
-        __UUPSUpgradeable_init();
-        guardian = initialOwner;
-    }
-
-  function validateStateBitmap(uint256 proposalId, bytes32 allowedStates) private view returns (ProposalState) {
-      ProposalState currentState = state(proposalId);
-      if (_encodeStateBitmap(currentState) & allowedStates == bytes32(0)) {
-          revert GovernorUnexpectedProposalState(proposalId, currentState, allowedStates);
-      }
-      return currentState;
+  /**
+   * @dev Initializes the contract.
+   * @param voteToken The address of the vote token contract.
+   * @param timelockController The address of the timelock controller contract.
+   * @param initialOwner The address of the initial owner.
+   */
+  function initialize(
+    IVotes voteToken,
+    TimelockControllerUpgradeable timelockController,
+    address initialOwner
+  ) public initializer {
+    __Governor_init("RootstockCollective");
+    __GovernorSettings_init(1 /* 1 block */, 240 /* 2 hours */, 10 * 10 ** 18);
+    __GovernorCountingSimple_init();
+    __GovernorStorage_init();
+    __GovernorVotes_init(voteToken);
+    __GovernorVotesQuorumFraction_init(4);
+    __GovernorTimelockControl_init(timelockController);
+    __Ownable_init(initialOwner);
+    __UUPSUpgradeable_init();
+    guardian = initialOwner;
   }
 
+  function validateStateBitmap(uint256 proposalId, bytes32 allowedStates) private view returns (ProposalState) {
+    ProposalState currentState = state(proposalId);
+    if (_encodeStateBitmap(currentState) & allowedStates == bytes32(0)) {
+        revert GovernorUnexpectedProposalState(proposalId, currentState, allowedStates);
+    }
+    return currentState;
+}
   // The following functions are overrides required by Solidity.
 
   /**

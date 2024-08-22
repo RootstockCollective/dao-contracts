@@ -1,13 +1,13 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { loadFixture, mine, time } from '@nomicfoundation/hardhat-toolbox/network-helpers'
-import { RIFToken, RootDao, StRIFToken, DaoTimelockUpgradable, ProposalTarget } from '../typechain-types'
+import { RIFToken, Governor, StRIFToken, DaoTimelockUpgradable, ProposalTarget } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { ContractTransactionResponse, parseEther, solidityPackedKeccak256 } from 'ethers'
 import { Proposal, ProposalState, OperationState } from '../types'
 import { deployContracts } from './deployContracts'
 
-describe('RootDAO Contact', () => {
+describe('Governor Contact', () => {
   const initialVotingDelay = 1n
   const initialVotingPeriod = 240n // 2 hours
   const initialProposalThreshold = 10n * 10n ** 18n
@@ -17,8 +17,12 @@ describe('RootDAO Contact', () => {
   let rifAddress: string
   let stRIF: StRIFToken
   let timelock: DaoTimelockUpgradable
+<<<<<<< HEAD
   let governor: RootDao
   let deployer: SignerWithAddress
+=======
+  let governor: Governor
+>>>>>>> 0efc63c (Change the name of the contract from RootDao to Governor,)
   let proposalTarget: ProposalTarget
   let holders: SignerWithAddress[]
 
