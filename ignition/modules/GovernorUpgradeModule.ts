@@ -16,7 +16,7 @@ const governorUpgradeModule = buildModule('GovernorUpgrade', m => {
   const newVersion = 2;
 
   // Prepare upgrade data
-  const upgradeData = m.encodeFunctionCall(newGovernorImplementation, 'initializeV2', [newVersion])
+  const upgradeData = m.encodeFunctionCall(newGovernorImplementation, 'reInitialize', [newVersion])
 
   // Perform the upgrade
   const upgradeTx = m.call(governorProxyAddr, 'upgradeToAndCall', [newGovernorImplementation, upgradeData], {
