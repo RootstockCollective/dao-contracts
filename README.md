@@ -65,36 +65,48 @@ See the NFT images/metadata creation details [here](./nft/README.md)
 
 2. Edit the `ignition/eaNft.json` file to provide the following parameters:
 
-    - Default Admin address
-    - Upgrader address
-    - IPFS ID of the directory containing the prepared JSON metadata files for the NFTs
-    - The amount of files in the directory
+   - Default Admin address
+   - Upgrader address
+   - IPFS ID of the directory containing the prepared JSON metadata files for the NFTs
+   - The amount of files in the directory
 
-    Then run the command:
+   Then run the command:
 
-      ```shell
-      npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --parameters ignition/eaNft.json --network rootstockTestnet
-      ```
+   ```shell
+   npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --parameters ignition/eaNft.json --network rootstockTestnet
+   ```
 
 3. To upload additional JSON files with metadata for new NFT tokens, you need to:
 
-    - Create a new directory on IPFS (Pinata), adding both the old and new files.
-    - Copy the CID of the created directory.
-    - Run the Hardhat task to update the IPFS folder CID in the smart contract
+   - Create a new directory on IPFS (Pinata), adding both the old and new files.
+   - Copy the CID of the created directory.
+   - Run the Hardhat task to update the IPFS folder CID in the smart contract
 
-    ```shell
-    npx hardhat update-ipfs-folder 
-        --nft <EA NFT Address> 
-        --cid <New folder CID> 
-        --files <amount of files in folder>
-        --network rootstockTestnet
-    ```
+   ```shell
+   npx hardhat update-ipfs-folder
+       --nft <EA NFT Address>
+       --cid <New folder CID>
+       --files <amount of files in folder>
+       --network rootstockTestnet
+   ```
 
-    for example:
+   for example:
 
-    ```shell
-    npx hardhat update-ipfs-folder --nft 0xa3Dcdac1883f29aA9FafbdeDDCA0c745B2F05b53 --cid QmU1Bu9v1k9ecQ89cDE4uHrRkMKHE8NQ3mxhqFqNJfsKPd --files 50 --network rootstockTestnet
-    ```
+   ```shell
+   npx hardhat update-ipfs-folder --nft 0xa3Dcdac1883f29aA9FafbdeDDCA0c745B2F05b53 --cid QmU1Bu9v1k9ecQ89cDE4uHrRkMKHE8NQ3mxhqFqNJfsKPd --files 50 --network rootstockTestnet
+   ```
+
+## Upgrading Governor contracts with Ignition
+
+1. Locate the file named: `deployedGovernorProxy.json` inside `ignition` folder.
+
+2. Change the value of `governorProxyAddress` field with the actual Governor Proxy address
+
+3. Run the command bellow
+
+```shell
+npx hardhat ignition deploy ignition/modules/GovernorUpgradeModule.ts --parameters ignition/deployedGovernorProxy.json --network rootstockTestnet
+```
 
 ## Deployed contracts (on Rootstock Testnet)
 
