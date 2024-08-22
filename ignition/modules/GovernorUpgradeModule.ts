@@ -7,10 +7,10 @@ const governorUpgradeModule = buildModule('GovernorUpgrade', m => {
   const governorProxyAddress = m.getParameter('governorProxyAddress')
 
   // Use the module to fetch the existing proxy
-  const governorProxyAddr = m.contractAt('RootDao', governorProxyAddress)
+  const governorProxyAddr = m.contractAt('Governor', governorProxyAddress)
 
-  //`RootDaoV2` is the new version
-  const newGovernorImplementation = m.contract('RootDaoV2')
+  //`GovernorV2` is the new version
+  const newGovernorImplementation = m.contract('GovernorV2')
 
   // The new version number
   const newVersion = 2;
@@ -29,7 +29,7 @@ const governorUpgradeModule = buildModule('GovernorUpgrade', m => {
 
 const governorV2Module = buildModule('GovernorV2', m => {
   const { governorProxyAddr } = m.useModule(governorUpgradeModule)
-  const gV2 = m.contractAt('RootDaoV2', governorProxyAddr)
+  const gV2 = m.contractAt('GovernorV2', governorProxyAddr)
 
   return { gV2 }
 })

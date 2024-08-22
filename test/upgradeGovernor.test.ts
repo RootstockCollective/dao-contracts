@@ -1,13 +1,13 @@
 import { expect } from 'chai'
 import { ethers, ignition } from 'hardhat'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
-import { RootDao, RootDaoV2 } from '../typechain-types'
+import { Governor, GovernorV2 } from '../typechain-types'
 import { deployContracts } from './deployContracts'
 import governorV2Module from '../ignition/modules/GovernorUpgradeModule'
 
 describe('Upgrade Governor', () => {
-  let governor: RootDao
-  let governorV2: RootDaoV2
+  let governor: Governor
+  let governorV2: GovernorV2
 
   before(async () => {
     ; ({ governor } = await loadFixture(deployContracts))
@@ -26,7 +26,7 @@ describe('Upgrade Governor', () => {
           },
         },
       })
-    ).gV2 as unknown as RootDaoV2
+    ).gV2 as unknown as GovernorV2
   })
 
   it('Governor V2 and V1 should have the same addresses', async () => {
