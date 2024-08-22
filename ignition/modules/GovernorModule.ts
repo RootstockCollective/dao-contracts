@@ -5,7 +5,7 @@ import StRifModule from './StRifModule'
 export const governorProxyModule = buildModule('GovernorProxy', m => {
   const deployer = m.getAccount(0)
   // deploy implementation
-  const governor = m.contract('RootDao')
+  const governor = m.contract('Governor')
   // deploy ERC1967 proxy in order to use UUPS upgradable smart contracts
   const { timelock } = m.useModule(TimelockModule)
   const { stRif } = m.useModule(StRifModule)
@@ -20,7 +20,7 @@ const governorModule = buildModule('Governor', m => {
   const deployer = m.getAccount(0)
   const { governorProxy, timelock, stRif } = m.useModule(governorProxyModule)
   // Use proxy address to interact with the deployed contract
-  const governor = m.contractAt('RootDao', governorProxy)
+  const governor = m.contractAt('Governor', governorProxy)
 
   // grant Proposer role to the Governor
   const proposerRole = m.staticCall(timelock, 'PROPOSER_ROLE')

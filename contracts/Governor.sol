@@ -13,7 +13,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract RootDao is
+contract Governor is
   Initializable,
   GovernorUpgradeable,
   GovernorSettingsUpgradeable,
@@ -41,7 +41,7 @@ contract RootDao is
     TimelockControllerUpgradeable timelockController,
     address initialOwner
   ) public initializer {
-    __Governor_init("RootDao");
+    __Governor_init("RootstockCollective");
     __GovernorSettings_init(1 /* 1 block */, 240 /* 2 hours */, 10 * 10 ** 18);
     __GovernorCountingSimple_init();
     __GovernorStorage_init();

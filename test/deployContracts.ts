@@ -1,5 +1,5 @@
 import { ignition } from 'hardhat'
-import { RIFToken, StRIFToken, DaoTimelockUpgradable, RootDao, TreasuryDao } from '../typechain-types'
+import { RIFToken, StRIFToken, DaoTimelockUpgradable, Governor, TreasuryDao } from '../typechain-types'
 import RifModule from '../ignition/modules/RifModule'
 import GovernorModule from '../ignition/modules/GovernorModule'
 import TreasuryModule from '../ignition/modules/TreasuryModule'
@@ -21,7 +21,7 @@ export const deployContracts = async () => {
     rif: rif as unknown as RIFToken,
     stRIF: dao.stRif as unknown as StRIFToken,
     timelock: dao.timelock as unknown as DaoTimelockUpgradable,
-    governor: dao.governor as unknown as RootDao,
+    governor: dao.governor as unknown as Governor,
     treasury: treasury as unknown as TreasuryDao,
   }
 }
