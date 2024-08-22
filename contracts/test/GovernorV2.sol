@@ -53,12 +53,13 @@ contract RootDaoV2 is
     __Ownable_init(initialOwner);
     __UUPSUpgradeable_init();
   }
-  
+
   /**
    * @dev Initializes the contract.
    */
-  function initializeV2(uint64 _version) public reinitializer(_version) onlyProxy {
-    actualVersion = _version;
+  function reInitialize(uint64 versionAfterUpgrade) public reinitializer(versionAfterUpgrade) onlyProxy {
+    require(versionAfterUpgrade > actualVersion, "RootDaoV2: given version must be greater than actual version");
+    actualVersion = versionAfterUpgrade;
   }
 
   function version() public view override returns (string memory) {
