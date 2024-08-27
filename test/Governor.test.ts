@@ -156,7 +156,6 @@ describe('Governor Contact', () => {
       })
 
       it('holder[0] should have enough voting power to initiate a proposal (above the Proposal Threshold)', async () => {
-        // const votes = await governor.getVotes(holders[0], await ethers.provider.getBlockNumber())
         const balance = await stRIF.balanceOf(holders[0])
         const threshold = await governor.proposalThreshold()
         expect(balance).greaterThanOrEqual(threshold)
@@ -359,7 +358,6 @@ describe('Governor Contact', () => {
         const fromBlock = await time.latestBlock()
         const tx = await governor['queue(uint256)'](proposalId)
 
-        //event ProposalQueued(uint256 proposalId, uint256 etaSeconds)
         await expect(tx).to.emit(governor, 'ProposalQueued').withArgs(proposalId, eta)
         await tx.wait()
 
@@ -450,9 +448,6 @@ describe('Governor Contact', () => {
 
         const state = await governor.state(proposalId)
 
-        console.log('STATE', state)
-        console.log('ProposalState.Active', ProposalState.Active)
-
         expect(state).to.equal(ProposalState.Active)
         const tx = governor['cancel(uint256)'](proposalId)
 
@@ -498,7 +493,6 @@ describe('Governor Contact', () => {
           expect(cancelledState).to.equal(ProposalState.Canceled)
           const tx = governor.connect(deployer)['cancel(uint256)'](proposalId)
           expect(tx).to.be.revertedWithCustomError({ interface: governor.interface }, unexpectedProposalState)
-          console.log('CANCELLING IN CANCELLED FAILURE SUCCESSS')
         })
 
         it('should be able to cancel ProposalState.Succceded', async () => {
@@ -512,7 +506,6 @@ describe('Governor Contact', () => {
           await governor.connect(deployer)['cancel(uint256)'](proposalId)
           const proposalState = await governor.state(proposalId)
           expect(proposalState).to.equal(ProposalState.Canceled)
-          console.log('CANCELLING IN SUCCEED SUCCESS')
         })
 
         it('should be able to cancel ProposalState.Queued', async () => {
