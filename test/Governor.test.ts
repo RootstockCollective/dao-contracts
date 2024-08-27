@@ -75,7 +75,6 @@ describe('Governor Contact', () => {
     const insufficientVotes = 'GovernorInsufficientProposerVotes'
 
     const defaultDescription = 'transfer money to acc2 address'
-    const otherDesc = 'test success case'
 
     const generateDescriptionHash = (proposalDesc: string) =>
       solidityPackedKeccak256(['string'], [proposalDesc ?? defaultDescription])
@@ -87,11 +86,13 @@ describe('Governor Contact', () => {
       const calldata = proposalTarget.interface.encodeFunctionData('logExecutor')
       proposal = [[await proposalTarget.getAddress()], [0n], [calldata]]
 
+      const signer = connectSigner ?? holders[0]
+
       proposalId = await governor
-        .connect(holders[0])
+        .connect(signer)
         .hashProposal(...proposal, generateDescriptionHash(proposalDesc))
 
-      const proposalTx = await governor.connect(holders[0]).propose(...proposal, proposalDesc)
+      const proposalTx = await governor.connect(signer).propose(...proposal, proposalDesc)
       await proposalTx.wait()
       proposalSnapshot = votingDelay + BigInt(blockHeight) + 1n
       return proposalTx
@@ -459,6 +460,20 @@ describe('Governor Contact', () => {
       })
 
       describe('guardian should be able to cancel proposals even if it is not proposalProposer', async () => {
+        before(async () => {
+          const dispenseTx = await rif.transfer(holders[1].address, dispenseValue)
+          await dispenseTx.wait()
+          const rifBalance = await rif.balanceOf(holders[1].address)
+          const votingPower = rifBalance
+
+          const approvalTx = await rif.connect(holders[1]).approve(await stRIF.getAddress(), votingPower)
+          await approvalTx.wait()
+          const depositTx = await stRIF.connect(holders[1]).depositFor(holders[1].address, votingPower)
+          await depositTx.wait()
+          const delegateTx = await stRIF.connect(holders[1]).delegate(holders[1].address)
+          await delegateTx.wait()
+        })
+
         it('should be able to cancel ProposalState.Pending', async () => {
           await createProposal('guardian cancelling pending', holders[1])
           const pendingState = await governor.state(proposalId)
