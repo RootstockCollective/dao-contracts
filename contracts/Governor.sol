@@ -25,14 +25,6 @@ contract Governor is
   OwnableUpgradeable,
   UUPSUpgradeable
 {
-  /// @notice The address of the Governor Guardian
-  address public guardian;
-
-  /// @custom:oz-upgrades-unsafe-allow constructor
-  constructor() {
-    _disableInitializers();
-  }
-
   bytes32 private constant ALL_PROPOSAL_STATES_BITMAP =
     bytes32((2 ** (uint8(type(ProposalState).max) + 1)) - 1);
   // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Governor")) - 1)) & ~bytes32(uint256(0xff))
@@ -41,6 +33,12 @@ contract Governor is
   // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.GovernorStorage")) - 1)) & ~bytes32(uint256(0xff))
   bytes32 private constant GovernorStorageStorageLocation =
     0x7fd223d3380145bd26132714391e777c488a0df7ac2dd4b66419d8549fb3a600;
+
+  /// @notice The actual version of the contract
+  uint64 public actualVersion;
+
+  /// @notice The address of the Governor Guardian
+  address public guardian;
 
   function getGovernorStorageStorage() private pure returns (GovernorStorageStorage storage $) {
     assembly {
@@ -57,6 +55,11 @@ contract Governor is
   modifier onlyGuardian() {
     require(_msgSender() == guardian, "OPERATION NOT PERMITTED!");
     _;
+  }
+
+  /// @custom:oz-upgrades-unsafe-allow constructor
+  constructor() {
+    _disableInitializers();
   }
 
   /**
@@ -80,6 +83,11 @@ contract Governor is
     __Ownable_init(initialOwner);
     __UUPSUpgradeable_init();
     guardian = initialOwner;
+    actualVersion = 1;
+  }
+
+  function version() public view override returns (string memory) {
+    return string(abi.encodePacked(actualVersion));
   }
 
   function validateStateBitmap(
