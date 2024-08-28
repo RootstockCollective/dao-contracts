@@ -65,6 +65,6 @@ interface ITreasury {
    * 
    * Emits an {Withdrawn} event.
    */
-  function emergencyWithdraw(address to) external;
+  function emergencyWithdraw(address payable to) external;
 
 }

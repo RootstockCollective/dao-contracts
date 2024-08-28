@@ -164,21 +164,21 @@ describe('Treasury Contract', () => {
       expect(flag).to.equal(true)
     })
 
-    it('Only account with Guardian Role can add new token to whitelist', async () => {
+    it('Only account with Admin Role can add new token to whitelist', async () => {
       await treasury.connect(deployer).removeFromWhitelist(stRIF)
       expect(await treasury.whitelist(stRIF)).to.equal(false)
 
       const sentTx = treasury.connect(beneficiary).addToWhitelist(stRIF)
       await expect(sentTx)
         .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
-        .withArgs(beneficiary.address, GuardianRole)
+        .withArgs(beneficiary.address, AdminRole)
     })
 
-    it('Only account with Guardian Role can remove a token to whitelist', async () => {
+    it('Only account with Admin Role can remove a token to whitelist', async () => {
       const sentTx = treasury.connect(beneficiary).removeFromWhitelist(rif)
       await expect(sentTx)
         .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
-        .withArgs(beneficiary.address, GuardianRole)
+        .withArgs(beneficiary.address, AdminRole)
       expect(await treasury.whitelist(rif)).to.equal(true)
     })
 

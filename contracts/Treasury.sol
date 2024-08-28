@@ -70,9 +70,17 @@ contract TreasuryDao is AccessControl, ReentrancyGuard, ITreasury {
 
   /**
    * @dev Withdraw RBTC to a third-party address.
+   * The `withdraw` function is used to transfer funds to the Governor,
+   * and the `arbitrary-send-eth` warning is disabled because is mitigated. 
+   * This warning indicates that arbitrary transfers are not allowed 
+   * to prevent unauthorized use. We mitigate risks by using modifiers
+   * such as `onlyRole`, which ensures that only authorized users 
+   * can execute the function, and `nonReentrant`.
+   * which protects against reentrant attacks.
    * @param to The third-party address
    * @param amount The value to send
    */
+  // slither-disable-next-line arbitrary-send-eth
   function withdraw(address payable to, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
     require(address(this).balance >= amount, "Insufficient Balance");
     require(to != address(0), "Zero Address is not allowed");
@@ -83,12 +91,19 @@ contract TreasuryDao is AccessControl, ReentrancyGuard, ITreasury {
 
   /**
    * @dev Withdraw RBTC to a third-party address.
+   * The `emergencyWithdraw` function is used to transfer funds to the Governor,
+   * and the `arbitrary-send-eth` function is disabled as a precaution. 
+   * This warning indicates that arbitrary transfers are not allowed 
+   * to prevent unauthorized use. We mitigate risks by using modifiers
+   * such as `onlyRole`, which ensures that only authorized users 
+   * can execute the function, and `nonReentrant`.
    * @param to The third-party address.
    */
-  function emergencyWithdraw(address to) external nonReentrant onlyRole(GUARDIAN_ROLE){
+  // slither-disable-next-line arbitrary-send-eth
+  function emergencyWithdraw(address payable to) external nonReentrant onlyRole(GUARDIAN_ROLE){
     require(to != address(0), "Zero Address is not allowed");
     uint256 amount = address(this).balance;
-    bool success = payable(to).send(amount);
+    bool success = to.send(amount);
     require(success, "Failed to sent");
     emit Withdrawn(to, amount);
   }
@@ -97,29 +112,57 @@ contract TreasuryDao is AccessControl, ReentrancyGuard, ITreasury {
    * @dev Add to whitelist a new ERC20 token
    * @param token ERC20 token
    */
-  function addToWhitelist(address token) public onlyRole(GUARDIAN_ROLE) {
+  function _addToWhitelist(address token) private {
     whitelist[token] = true;
     emit TokenWhitelisted(token);
+  }
+
+  /**
+   * @dev Add to whitelist a new ERC20 token
+   * requires admin role
+   * @param token ERC20 token
+   */
+  function addToWhitelist(address token) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    _addToWhitelist(token);
   }
 
   /**
    * @dev Remove from whitelist an ERC20 token
    * @param token ERC20 token
    */
-  function removeFromWhitelist(address token) public onlyRole(GUARDIAN_ROLE) {
+  function _removeFromWhitelist(address token) private {
     whitelist[token] = false;
     emit TokenUnwhitelisted(token);
   }
 
+  /**
+   * @dev Remove from whitelist an ERC20 token
+   * requires admin role
+   * @param token ERC20 token
+   */
+  function removeFromWhitelist(address token) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    _removeFromWhitelist(token);
+  }
+
+  /**
+   * @dev Add to whitelist many ERC20 tokens
+   * requires guardian role
+   * @param tokens ERC20 token array
+   */
   function batchAddWhitelist(address[] memory tokens) external onlyRole(GUARDIAN_ROLE) {
     for (uint256 i=0; i<tokens.length; i++) {
-      addToWhitelist(tokens[i]);
+      _addToWhitelist(tokens[i]);
     }
   }
 
+  /**
+   * @dev Remove from whitelist many ERC20 tokens
+   * requires guardian role
+   * @param tokens ERC20 token array
+   */
   function batchRemoveWhitelist(address[] memory tokens) external onlyRole(GUARDIAN_ROLE) {
     for (uint256 i=0; i<tokens.length; i++) {
-      removeFromWhitelist(tokens[i]);
+      _removeFromWhitelist(tokens[i]);
     }
   }
   
