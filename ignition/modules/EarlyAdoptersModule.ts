@@ -9,9 +9,11 @@ export const earlyAdoptersProxyModule = buildModule('EarlyAdoptersProxy', m => {
   const upgrader = m.getParameter('upgrader', deployer)
   const numFiles = m.getParameter('numFiles')
   const ipfs = m.getParameter('ipfs')
+  const stRif = m.getParameter('stRif')
+  const stRifThreshold = m.getParameter('stRifThreshold')
   const eaProxy = m.contract('ERC1967Proxy', [
     ea,
-    m.encodeFunctionCall(ea, 'initialize', [defaultAdmin, upgrader, numFiles, ipfs]),
+    m.encodeFunctionCall(ea, 'initialize', [defaultAdmin, upgrader, stRif, stRifThreshold, numFiles, ipfs]),
   ])
   return { eaProxy }
 })

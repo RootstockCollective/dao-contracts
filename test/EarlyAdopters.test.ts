@@ -1,31 +1,18 @@
 import { expect } from 'chai'
-import { ethers, ignition } from 'hardhat'
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
-import { EarlyAdopters } from '../typechain-types'
+import { ethers } from 'hardhat'
+import { EarlyAdopters, StRIFToken, RIFToken } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import EarlyAdoptersModule from '../ignition/modules/EarlyAdoptersModule'
+import { deployContracts } from './deployContracts'
 
-const initialMaxSupply = 3
+const initialNftSupply = 3
 const ipfsCid = 'QmU1Bu9v1k9ecQ89cDE4uHrRkMKHE8NQ3mxhqFqNJfsKPd'
+const stRifThreshold = 100n * 10n ** 18n
 const nftUri = (id: number, _ipfs = ipfsCid) => `ipfs://${_ipfs}/${id}.json`
-
-async function deploy() {
-  const [defaultAdmin, upgrader] = await ethers.getSigners()
-  const { ea } = await ignition.deploy(EarlyAdoptersModule, {
-    parameters: {
-      EarlyAdoptersProxy: {
-        ipfs: ipfsCid,
-        numFiles: initialMaxSupply,
-        defaultAdmin: defaultAdmin.address,
-        upgrader: upgrader.address,
-      },
-    },
-  })
-  return ea as unknown as EarlyAdopters
-}
 
 describe('Early Adopters', () => {
   let ea: EarlyAdopters
+  let rif: RIFToken
+  let stRIF: StRIFToken
   let eaAddress: string
   let deployer: SignerWithAddress
   let alice: SignerWithAddress
@@ -33,10 +20,19 @@ describe('Early Adopters', () => {
 
   const firstNftId = 1
 
+  async function sendStRifsTo(...holders: SignerWithAddress[]) {
+    for (const holder of holders) {
+      await (await rif.transfer(holder.address, stRifThreshold)).wait()
+      await (await rif.connect(holder).approve(await stRIF.getAddress(), stRifThreshold)).wait()
+      await (await stRIF.connect(holder).depositAndDelegate(holder.address, stRifThreshold)).wait()
+    }
+  }
+
   before(async () => {
-    ;[deployer, alice, bob] = await ethers.getSigners()
-    ea = await loadFixture(deploy)
+    ;;[deployer, alice, bob] = await ethers.getSigners()
+    ;({ ea, rif, stRIF } = await deployContracts(initialNftSupply, ipfsCid, stRifThreshold))
     eaAddress = await ea.getAddress()
+    await sendStRifsTo(deployer, alice, bob)
   })
 
   describe('Upon deployment', () => {
@@ -52,7 +48,7 @@ describe('Early Adopters', () => {
     })
 
     it('all tokens should be available for minting', async () => {
-      expect(await ea.tokensAvailable()).to.equal(initialMaxSupply)
+      expect(await ea.tokensAvailable()).to.equal(initialNftSupply)
     })
 
     it('deployer, Alice and Bob should own no tokens', async () => {
@@ -73,6 +69,14 @@ describe('Early Adopters', () => {
 
     it('there should be no members in the EA community yet', async () => {
       expect(await ea.totalSupply()).to.equal(0)
+    })
+
+    it('deployer, Alice and Bob should should have enough stRIFs', async () => {
+      await Promise.all(
+        [deployer, alice, bob].map(async owner => {
+          expect(await stRIF.balanceOf(owner.address)).to.equal(stRifThreshold)
+        }),
+      )
     })
   })
 
@@ -181,7 +185,7 @@ describe('Early Adopters', () => {
   })
 
   describe('Adding the metadata files to IPNS folder', () => {
-    const newSupply = initialMaxSupply + 50
+    const newSupply = initialNftSupply + 50
     const newIpfs = 'QmcTpDpoe1Y7Fw61yxLRBbRRsJQaVoq6yyWkHNAnHZPWgt'
 
     it('no more tokens should be available for minting', async () => {
@@ -191,13 +195,13 @@ describe('Early Adopters', () => {
     it('should not be possible to mint more tokens', async () => {
       await expect(ea.connect(bob).mint())
         .to.be.revertedWithCustomError(ea, 'OutOfTokens')
-        .withArgs(initialMaxSupply)
+        .withArgs(initialNftSupply)
     })
 
     it('should not be possible to set a new IPFS folder with insufficient files', async () => {
-      await expect(ea.setIpfsFolder(initialMaxSupply, newIpfs))
+      await expect(ea.setIpfsFolder(initialNftSupply, newIpfs))
         .to.be.revertedWithCustomError(ea, 'InvalidMaxSupply')
-        .withArgs(initialMaxSupply, initialMaxSupply)
+        .withArgs(initialNftSupply, initialNftSupply)
     })
 
     it('should set a new IPFS directory', async () => {
@@ -207,7 +211,7 @@ describe('Early Adopters', () => {
     })
 
     it('new tokens should be available for minting', async () => {
-      expect(await ea.tokensAvailable()).to.equal(newSupply - initialMaxSupply)
+      expect(await ea.tokensAvailable()).to.equal(newSupply - initialNftSupply)
     })
 
     it('should be possible to mint more tokens after topping up the max supply', async () => {
