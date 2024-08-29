@@ -191,19 +191,6 @@ contract Governor is
     return (minus, plus, neutral, _state);
   }
 
-  /**
-   * @dev ProposalId version of {IGovernor-cancel}.
-   */
-  function cancel(uint256 proposalId) public override(GovernorStorageUpgradeable) {
-    (
-      address[] memory targets,
-      uint256[] memory values,
-      bytes[] memory calldatas,
-      bytes32 descriptionHash
-    ) = proposalDetails(proposalId);
-    cancel(targets, values, calldatas, descriptionHash);
-  }
-
   /// @notice this is a custom implementation of the GovernorUpgradeable cancel function
   /// @param targets The addresses of the targets.
   /// @param values The values to send.
