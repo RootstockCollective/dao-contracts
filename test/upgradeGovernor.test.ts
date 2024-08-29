@@ -14,7 +14,7 @@ describe('Upgrade Governor', () => {
   })
 
   it('Governor V1 should be deployed', async () => {
-    expect(await governor.version()).to.equal('1')
+    expect(await governor.actualVersion()).to.equal(1)
   })
 
   it('Ignition should deploy Governor V2', async () => {

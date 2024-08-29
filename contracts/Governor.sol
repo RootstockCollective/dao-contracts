@@ -25,6 +25,42 @@ contract Governor is
   OwnableUpgradeable,
   UUPSUpgradeable
 {
+  bytes32 private constant ALL_PROPOSAL_STATES_BITMAP =
+    bytes32((2 ** (uint8(type(ProposalState).max) + 1)) - 1);
+
+  // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.Governor")) - 1)) & ~bytes32(uint256(0xff))
+  bytes32 private constant GovernorStorageLocation =
+    0x7c712897014dbe49c045ef1299aa2d5f9e67e48eea4403efa21f1e0f3ac0cb00;
+
+  // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.GovernorStorage")) - 1)) & ~bytes32(uint256(0xff))
+  bytes32 private constant GovernorStorageStorageLocation =
+    0x7fd223d3380145bd26132714391e777c488a0df7ac2dd4b66419d8549fb3a600;
+
+  /// @notice The actual version of the contract
+  uint64 public actualVersion;
+
+  /// @notice The address of the Governor Guardian
+  address public guardian;
+
+  /// @notice returns the storage slot for GovernorStorageStorage
+  function getGovernorStorageStorage() private pure returns (GovernorStorageStorage storage $) {
+    assembly {
+      $.slot := GovernorStorageStorageLocation
+    }
+  }
+
+  /// @notice returns the storage slot for GovernorStorage
+  function getGovernorStorage() private pure returns (GovernorStorage storage $) {
+    assembly {
+      $.slot := GovernorStorageLocation
+    }
+  }
+
+  modifier onlyGuardian() {
+    require(_msgSender() == guardian, "OPERATION NOT PERMITTED!");
+    _;
+  }
+
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
     _disableInitializers();
@@ -50,6 +86,28 @@ contract Governor is
     __GovernorTimelockControl_init(timelockController);
     __Ownable_init(initialOwner);
     __UUPSUpgradeable_init();
+    guardian = initialOwner;
+    actualVersion = 1;
+  }
+
+  /// @notice Returns the version of the contract
+  function version() public view override returns (string memory) {
+    return string(abi.encodePacked(actualVersion));
+  }
+
+  /// @notice this will validate the current proposal state against the allowed states
+  /// @param proposalId The ID of the proposal.
+  /// @param allowedStates The allowed states.
+  /// @return The current state of the proposal.
+  function validateStateBitmap(
+    uint256 proposalId,
+    bytes32 allowedStates
+  ) private view returns (ProposalState) {
+    ProposalState currentState = state(proposalId);
+    if (_encodeStateBitmap(currentState) & allowedStates == bytes32(0)) {
+      revert GovernorUnexpectedProposalState(proposalId, currentState, allowedStates);
+    }
+    return currentState;
   }
 
   // The following functions are overrides required by Solidity.
@@ -85,12 +143,9 @@ contract Governor is
    * @param blockNumber The block number.
    * @return The quorum.
    */
-  function quorum(uint256 blockNumber)
-    public
-    view
-    override(GovernorUpgradeable, GovernorVotesQuorumFractionUpgradeable)
-    returns (uint256)
-  {
+  function quorum(
+    uint256 blockNumber
+  ) public view override(GovernorUpgradeable, GovernorVotesQuorumFractionUpgradeable) returns (uint256) {
     return super.quorum(blockNumber);
   }
 
@@ -99,12 +154,9 @@ contract Governor is
    * @param proposalId The ID of the proposal.
    * @return The state of the proposal.
    */
-  function state(uint256 proposalId)
-    public
-    view
-    override(GovernorUpgradeable, GovernorTimelockControlUpgradeable)
-    returns (ProposalState)
-  {
+  function state(
+    uint256 proposalId
+  ) public view override(GovernorUpgradeable, GovernorTimelockControlUpgradeable) returns (ProposalState) {
     return super.state(proposalId);
   }
 
@@ -113,12 +165,9 @@ contract Governor is
    * @param proposalId The ID of the proposal.
    * @return True if the proposal needs queuing, false otherwise.
    */
-  function proposalNeedsQueuing(uint256 proposalId)
-    public
-    view
-    override(GovernorUpgradeable, GovernorTimelockControlUpgradeable)
-    returns (bool)
-  {
+  function proposalNeedsQueuing(
+    uint256 proposalId
+  ) public view override(GovernorUpgradeable, GovernorTimelockControlUpgradeable) returns (bool) {
     return super.proposalNeedsQueuing(proposalId);
   }
 
@@ -140,15 +189,12 @@ contract Governor is
    * @param proposalId The ID of the proposal.
    * @return againstVotes forVotes abstainVotes proposalState The votes against, votes for, abstain votes, and proposal state.
    */
-  function getStateAndVotes(uint256 proposalId)
+  function getStateAndVotes(
+    uint256 proposalId
+  )
     public
     view
-    returns (
-      uint256 againstVotes,
-      uint256 forVotes,
-      uint256 abstainVotes,
-      ProposalState proposalState
-    )
+    returns (uint256 againstVotes, uint256 forVotes, uint256 abstainVotes, ProposalState proposalState)
   {
     (uint256 minus, uint256 plus, uint256 neutral) = super.proposalVotes(proposalId);
     ProposalState _state = super.state(proposalId);
@@ -157,12 +203,86 @@ contract Governor is
   }
 
   /**
+   * @dev ProposalId version of {IGovernor-cancel}.
+   */
+  function cancel(uint256 proposalId) public override(GovernorStorageUpgradeable) {
+    GovernorStorageStorage storage $ = getGovernorStorageStorage();
+    ProposalDetails storage details = $._proposalDetails[proposalId];
+    cancel(details.targets, details.values, details.calldatas, details.descriptionHash);
+  }
+
+  /// @notice this is a custom implementation of the GovernorUpgradeable cancel function
+  /// @param targets The addresses of the targets.
+  /// @param values The values to send.
+  /// @param calldatas The calldatas.
+  /// @param descriptionHash The hash of the description.
+  /// @return The ID of the proposal.
+  function cancel(
+    address[] memory targets,
+    uint256[] memory values,
+    bytes[] memory calldatas,
+    bytes32 descriptionHash
+  ) public override(GovernorUpgradeable) returns (uint256) {
+    // The proposalId will be recomputed in the `_cancel` call further down. However we need the value before we
+    // do the internal call, because we need to check the proposal state BEFORE the internal `_cancel` call
+    // changes it. The `hashProposal` duplication has a cost that is limited, and that we accept.
+    uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
+
+    if (_msgSender() != guardian) {
+      // public cancel restrictions (on top of existing _cancel restrictions).
+      validateStateBitmap(proposalId, _encodeStateBitmap(ProposalState.Pending));
+    }
+
+    if (_msgSender() != guardian && _msgSender() != proposalProposer(proposalId)) {
+      revert GovernorOnlyProposer(_msgSender());
+    }
+
+    return _cancel(targets, values, calldatas, descriptionHash);
+  }
+
+  /**
+   * @dev Internal cancel mechanism with minimal restrictions. A proposal can be cancelled in any state other than
+   * Canceled, Expired, or Executed. Once cancelled a proposal can't be re-submitted.
+   *
+   * Emits a {IGovernor-ProposalCanceled} event.
+   */
+  function _cancel(
+    address[] memory targets,
+    uint256[] memory values,
+    bytes[] memory calldatas,
+    bytes32 descriptionHash
+  ) internal override(GovernorUpgradeable, GovernorTimelockControlUpgradeable) returns (uint256) {
+    GovernorStorage storage $ = getGovernorStorage();
+    uint256 proposalId = hashProposal(targets, values, calldatas, descriptionHash);
+
+    if (_msgSender() != guardian) {
+      validateStateBitmap(
+        proposalId,
+        ALL_PROPOSAL_STATES_BITMAP ^
+          _encodeStateBitmap(ProposalState.Canceled) ^
+          _encodeStateBitmap(ProposalState.Expired) ^
+          _encodeStateBitmap(ProposalState.Executed)
+      );
+    }
+
+    $._proposals[proposalId].canceled = true;
+    emit ProposalCanceled(proposalId);
+
+    return proposalId;
+  }
+
+  /// @notice set the guardian address only by the owner
+  /// @param _guardian The address of the guardian
+  function setGuardian(address _guardian) public onlyOwner {
+    guardian = _guardian;
+  }
+
+  /**
    * @dev Proposes a new action.
    * @param targets The addresses of the targets.
    * @param values The values to send.
    * @param calldatas The calldatas.
    * @param description The description of the proposal.
-   * @param proposer The address of the proposer.
    * @return The ID of the proposal.
    */
   function _propose(
@@ -213,23 +333,6 @@ contract Governor is
   }
 
   /**
-   * @dev Cancels a proposal.
-   * @param targets The addresses of the targets.
-   * @param values The values to send.
-   * @param calldatas The calldatas.
-   * @param descriptionHash The hash of the description.
-   * @return The ID of the proposal.
-   */
-  function _cancel(
-    address[] memory targets,
-    uint256[] memory values,
-    bytes[] memory calldatas,
-    bytes32 descriptionHash
-  ) internal override(GovernorUpgradeable, GovernorTimelockControlUpgradeable) returns (uint256) {
-    return super._cancel(targets, values, calldatas, descriptionHash);
-  }
-
-  /**
    * @dev Returns the executor.
    * @return The executor.
    */
@@ -241,7 +344,7 @@ contract Governor is
   {
     return super._executor();
   }
-  
+
   /**
    * @dev Authorizes the upgrade to a new implementation contract.
    * @param newImplementation The address of the new implementation contract.

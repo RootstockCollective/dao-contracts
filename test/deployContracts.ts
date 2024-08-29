@@ -3,10 +3,11 @@ import { RIFToken, StRIFToken, DaoTimelockUpgradable, Governor, TreasuryDao } fr
 import RifModule from '../ignition/modules/RifModule'
 import GovernorModule from '../ignition/modules/GovernorModule'
 import TreasuryModule from '../ignition/modules/TreasuryModule'
+import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 
-export const deployContracts = async () => {
+export const deployContracts = async (sender?: SignerWithAddress) => {
   // deploy RIF before the rest DAO contracts
-  const { rif } = await ignition.deploy(RifModule)
+  const { rif } = await ignition.deploy(RifModule, { defaultSender: sender?.address })
   // deploy Treasury
   const { treasury } = await ignition.deploy(TreasuryModule)
   // insert RIF address as a parameter to stRIF deployment module

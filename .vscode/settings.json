@@ -1,5 +1,8 @@
 {
   "solidity.compileUsingRemoteVersion": "v0.8.24+commit.e11b9ed9",
   "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "[solidity]": {
+    "editor.defaultFormatter": "NomicFoundation.hardhat-solidity"
+  }
 }
