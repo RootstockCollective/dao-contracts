@@ -32,22 +32,11 @@ contract Governor is
   bytes32 private constant GovernorStorageLocation =
     0x7c712897014dbe49c045ef1299aa2d5f9e67e48eea4403efa21f1e0f3ac0cb00;
 
-  // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.GovernorStorage")) - 1)) & ~bytes32(uint256(0xff))
-  bytes32 private constant GovernorStorageStorageLocation =
-    0x7fd223d3380145bd26132714391e777c488a0df7ac2dd4b66419d8549fb3a600;
-
   /// @notice The actual version of the contract
   uint64 public actualVersion;
 
   /// @notice The address of the Governor Guardian
   address public guardian;
-
-  /// @notice returns the storage slot for GovernorStorageStorage
-  function getGovernorStorageStorage() private pure returns (GovernorStorageStorage storage $) {
-    assembly {
-      $.slot := GovernorStorageStorageLocation
-    }
-  }
 
   /// @notice returns the storage slot for GovernorStorage
   function getGovernorStorage() private pure returns (GovernorStorage storage $) {
@@ -206,9 +195,13 @@ contract Governor is
    * @dev ProposalId version of {IGovernor-cancel}.
    */
   function cancel(uint256 proposalId) public override(GovernorStorageUpgradeable) {
-    GovernorStorageStorage storage $ = getGovernorStorageStorage();
-    ProposalDetails storage details = $._proposalDetails[proposalId];
-    cancel(details.targets, details.values, details.calldatas, details.descriptionHash);
+    (
+      address[] memory targets,
+      uint256[] memory values,
+      bytes[] memory calldatas,
+      bytes32 descriptionHash
+    ) = proposalDetails(proposalId);
+    cancel(targets, values, calldatas, descriptionHash);
   }
 
   /// @notice this is a custom implementation of the GovernorUpgradeable cancel function
