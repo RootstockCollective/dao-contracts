@@ -2,7 +2,8 @@ import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { EarlyAdopters, StRIFToken, RIFToken } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { deployContracts } from './deployContracts'
+import { deployContracts, deployNFT } from './deployContracts'
+import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 
 const initialNftSupply = 3
 const ipfsCid = 'QmU1Bu9v1k9ecQ89cDE4uHrRkMKHE8NQ3mxhqFqNJfsKPd'
@@ -30,8 +31,9 @@ describe('Early Adopters', () => {
   }
 
   before(async () => {
-    ;[deployer, alice, bob, mike] = await ethers.getSigners()
-    ;({ ea, rif, stRIF } = await deployContracts(initialNftSupply, ipfsCid, stRifThreshold))
+    ;;[deployer, alice, bob, mike] = await ethers.getSigners()
+    ;({ rif, stRIF } = await loadFixture(deployContracts))
+    ea = await deployNFT(ipfsCid, initialNftSupply, await stRIF.getAddress(), stRifThreshold)
     eaAddress = await ea.getAddress()
     await sendStRifsTo(deployer, alice, bob)
   })
