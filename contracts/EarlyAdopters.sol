@@ -92,7 +92,7 @@ contract EarlyAdopters is
    * The collection starts from token ID #1
    */
   function mint() external virtual {
-    // make sure the minter owns some stRIF tokens
+    // make sure the minter's stRIF balance is above the minimum threshold
     uint256 stRifBalance = _stRif.balanceOf(_msgSender());
     if (stRifBalance < stRifThreshold) revert BelowStRifThreshold(stRifBalance, stRifThreshold);
     // make sure we still have some CIDs for minting new tokens
@@ -128,7 +128,8 @@ contract EarlyAdopters is
   }
 
   /**
-   * @dev Set a new minimum StRIF balance to claim the EarlyAdopters NFT
+   * @dev Sets a new minimum StRIF balance to claim the EarlyAdopters NFT. Can be only called
+   * by the admin
    */
   function setStRifThreshold(uint256 newThreshold) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     _setStRifThreshold(newThreshold);
@@ -168,22 +169,20 @@ contract EarlyAdopters is
   }
 
   /**
-   * @dev Prevents the transfer of tokens to addresses that already own one.
-   * Ensures that one address cannot own more than one token.
+   * @dev Override the `transferFrom` function to disallow transfers before all tokens are minted
    */
   function transferFrom(
     address from,
     address to,
     uint256 tokenId
   ) public virtual override(IERC721, ERC721Upgradeable) {
-    // Disallow transfer before all tokens are minted
     uint256 tokensLeft = tokensAvailable();
     if (tokensLeft > 0) revert DistributionActive(tokensLeft);
     super.transferFrom(from, to, tokenId);
   }
 
   /**
-   * @dev Prevents the transfer of tokens to addresses that already own one.
+   * @dev Prevents the transfer and mint of tokens to addresses that already own one.
    * Ensures that one address cannot own more than one token.
    */
   function _update(
@@ -194,7 +193,7 @@ contract EarlyAdopters is
     // Disallow transfers by smart contracts, as only EOAs can be community members
     // slither-disable-next-line tx-origin
     if (_msgSender() != tx.origin) revert ERC721InvalidOwner(_msgSender());
-    // allow multiple transfers to zero address to enable burning
+    // disallow transfers to members (excluding zero-address for enabling burning)
     if (to != address(0) && balanceOf(to) > 0) revert ERC721InvalidOwner(to);
     return super._update(to, tokenId, auth);
   }
@@ -219,6 +218,9 @@ contract EarlyAdopters is
     emit IpfsFolderChanged(newMaxSupply, ipfs);
   }
 
+  /**
+   * @dev Sets new Staked RIF token balance threshold
+   */
   function _setStRifThreshold(uint256 newStRifThreshold) internal virtual {
     stRifThreshold = newStRifThreshold;
   }
