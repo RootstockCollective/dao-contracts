@@ -31,7 +31,7 @@ describe('Early Adopters', () => {
   }
 
   before(async () => {
-    ;;[deployer, alice, bob, mike] = await ethers.getSigners()
+    ;[deployer, alice, bob, mike] = await ethers.getSigners()
     ;({ rif, stRIF } = await loadFixture(deployContracts))
     ea = await deployNFT(ipfsCid, initialNftSupply, await stRIF.getAddress(), stRifThreshold)
     eaAddress = await ea.getAddress()
@@ -58,6 +58,12 @@ describe('Early Adopters', () => {
       expect(await ea.balanceOf(deployer.address)).to.equal(0)
       expect(await ea.balanceOf(alice.address)).to.equal(0)
       expect(await ea.balanceOf(bob.address)).to.equal(0)
+    })
+
+    it('deployer, Alice and Bob should not be members of the community', async () => {
+      expect(await ea.isMember(deployer.address)).to.be.false
+      expect(await ea.isMember(alice.address)).to.be.false
+      expect(await ea.isMember(bob.address)).to.be.false
     })
 
     it('deployer, Alice and Bob should should have no token URIs', async () => {
@@ -102,6 +108,7 @@ describe('Early Adopters', () => {
 
     it('Alice should be a member of EA community', async () => {
       expect(await ea.balanceOf(alice.address)).to.equal(1)
+      expect(await ea.isMember(alice.address)).to.be.true
     })
 
     it('Alice should be owner of the first NFT', async () => {
@@ -136,6 +143,7 @@ describe('Early Adopters', () => {
           await expect(ea.connect(signer).mint())
             .to.emit(ea, 'Transfer')
             .withArgs(ethers.ZeroAddress, signer.address, i + 2)
+          expect(await ea.isMember(signer.address)).to.be.true
         }),
       )
       expect(await ea.tokensAvailable()).to.equal(0)
@@ -156,11 +164,11 @@ describe('Early Adopters', () => {
     })
 
     it('Alice should no longer be a member of EA community', async () => {
-      expect(await ea.balanceOf(alice.address)).to.equal(0)
+      expect(await ea.isMember(alice.address)).to.be.false
     })
 
     it('Mike should now be a member of EA community', async () => {
-      expect(await ea.balanceOf(mike.address)).to.equal(1)
+      expect(await ea.isMember(mike.address)).to.be.true
     })
 
     it('Mike should now be the owner of the first NFT', async () => {
@@ -190,7 +198,7 @@ describe('Early Adopters', () => {
     })
 
     it('Bob should no longer be a member of the community', async () => {
-      expect(await ea.balanceOf(bob.address)).to.equal(0)
+      expect(await ea.isMember(bob.address)).to.be.false
     })
 
     it('Non-member should not be able to burn', async () => {
