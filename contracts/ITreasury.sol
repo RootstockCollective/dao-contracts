@@ -46,7 +46,7 @@ interface ITreasury {
    * 
    * Emits an {WithdrawnERC20} event.
    */
-  function withdrawAllERC20(address token, address to) external;
+  function emergencyWithdrawERC20(address token, address to) external;
 
 
   /**
@@ -65,6 +65,6 @@ interface ITreasury {
    * 
    * Emits an {Withdrawn} event.
    */
-  function withdrawAll(address to) external;
+  function emergencyWithdraw(address payable to) external;
 
 }
