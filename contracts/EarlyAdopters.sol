@@ -9,6 +9,8 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 /**
  * @title Early Adopters Community NFT
@@ -36,9 +38,15 @@ contract EarlyAdopters is
   uint256 private _maxSupply;
   // IPFS CID of the tokens metadata directory
   string private _folderIpfsCid;
+  // Staked RIF token address
+  IERC20 private _stRif;
+  // Minimum Staked RIF token balance to claim an NFT
+  uint256 public stRifThreshold;
 
   error InvalidMaxSupply(uint256 invalidMaxSupply, uint256 maxSupply);
   error OutOfTokens(uint256 maxSupply);
+  error BelowStRifThreshold(uint256 balance, uint256 requiredBalance);
+  error DistributionActive(uint256 tokensLeft);
   event IpfsFolderChanged(uint256 newNumFiles, string newIpfs);
 
   /// @custom:oz-upgrades-unsafe-allow constructor
@@ -50,12 +58,16 @@ contract EarlyAdopters is
    * @dev Called during deployment instead of a constructor to initialize the contract.
    * @param defaultAdmin EOA with admin privileges
    * @param upgrader EOA able to upgrade the contract and set new max supply
+   * @param stRif StRIF (Staked RIF) token address
+   * @param minStRifBalance minimum StRIF balance to claim an NFT
    * @param numFiles the number of NFT meta JSON files, stored in the IPFS folder
    * @param ipfsCid IPFS CID of NFT metadata folder
    */
   function initialize(
     address defaultAdmin,
     address upgrader,
+    IERC20 stRif,
+    uint256 minStRifBalance,
     uint256 numFiles,
     string calldata ipfsCid
   ) public initializer {
@@ -70,6 +82,8 @@ contract EarlyAdopters is
     _grantRole(UPGRADER_ROLE, upgrader);
 
     _setIpfsFolder(numFiles, ipfsCid);
+    _setStRifThreshold(minStRifBalance);
+    _stRif = stRif;
   }
 
   /**
@@ -78,8 +92,13 @@ contract EarlyAdopters is
    * The collection starts from token ID #1
    */
   function mint() external virtual {
+    // make sure the minter's stRIF balance is above the minimum threshold
+    uint256 stRifBalance = _stRif.balanceOf(_msgSender());
+    if (stRifBalance < stRifThreshold) revert BelowStRifThreshold(stRifBalance, stRifThreshold);
+    // make sure we still have some CIDs for minting new tokens
+    if (tokensAvailable() == 0) revert OutOfTokens(_maxSupply);
+    // minting
     uint256 tokenId = ++_totalMinted;
-    if (tokenId > _maxSupply) revert OutOfTokens(_maxSupply);
     string memory fileName = string.concat(tokenId.toString(), ".json"); // 1.json, 2.json ...
     _safeMint(_msgSender(), tokenId);
     _setTokenURI(tokenId, fileName);
@@ -109,6 +128,14 @@ contract EarlyAdopters is
   }
 
   /**
+   * @dev Sets a new minimum StRIF balance to claim the EarlyAdopters NFT. Can be only called
+   * by the admin
+   */
+  function setStRifThreshold(uint256 newThreshold) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
+    _setStRifThreshold(newThreshold);
+  }
+
+  /**
    * @dev Returns the number of tokens available for minting
    */
   function tokensAvailable() public view virtual returns (uint256) {
@@ -134,7 +161,28 @@ contract EarlyAdopters is
   }
 
   /**
-   * @dev Prevents the transfer of tokens to addresses that already own one.
+   * Tells if `owner` is a member of the Early Adopters community
+   * @param owner - address to test for membership
+   */
+  function isMember(address owner) public view virtual returns (bool) {
+    return balanceOf(owner) > 0;
+  }
+
+  /**
+   * @dev Override the `transferFrom` function to disallow transfers before all tokens are minted
+   */
+  function transferFrom(
+    address from,
+    address to,
+    uint256 tokenId
+  ) public virtual override(IERC721, ERC721Upgradeable) {
+    uint256 tokensLeft = tokensAvailable();
+    if (tokensLeft > 0) revert DistributionActive(tokensLeft);
+    super.transferFrom(from, to, tokenId);
+  }
+
+  /**
+   * @dev Prevents the transfer and mint of tokens to addresses that already own one.
    * Ensures that one address cannot own more than one token.
    */
   function _update(
@@ -145,7 +193,7 @@ contract EarlyAdopters is
     // Disallow transfers by smart contracts, as only EOAs can be community members
     // slither-disable-next-line tx-origin
     if (_msgSender() != tx.origin) revert ERC721InvalidOwner(_msgSender());
-    // allow multiple transfers to zero address to enable burning
+    // disallow transfers to members (excluding zero-address for enabling burning)
     if (to != address(0) && balanceOf(to) > 0) revert ERC721InvalidOwner(to);
     return super._update(to, tokenId, auth);
   }
@@ -168,6 +216,13 @@ contract EarlyAdopters is
     _maxSupply = newMaxSupply;
     _folderIpfsCid = ipfs;
     emit IpfsFolderChanged(newMaxSupply, ipfs);
+  }
+
+  /**
+   * @dev Sets new Staked RIF token balance threshold
+   */
+  function _setStRifThreshold(uint256 newStRifThreshold) internal virtual {
+    stRifThreshold = newStRifThreshold;
   }
 
   function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {
