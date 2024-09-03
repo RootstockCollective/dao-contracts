@@ -29,6 +29,7 @@
     "@typechain/hardhat": "^9.0.0",
     "@types/chai": "^4.2.0",
     "@types/eslint__js": "^8.42.3",
+    "@types/fs-extra": "^11.0.4",
     "@types/mocha": ">=9.1.0",
     "@types/node": ">=18.0.0",
     "@typescript-eslint/eslint-plugin": "^7.11.0",
@@ -53,6 +54,7 @@
   },
   "dependencies": {
     "dotenv": "^16.4.5",
+    "fs-extra": "^11.2.0",
     "rif-token-contracts": "https://github.com/Freshenext/RIF-Token"
   },
   "packageManager": "yarn@1.22.19+sha1.4ba7fc5c6e704fce2066ecbfb0b0d8976fe62447"

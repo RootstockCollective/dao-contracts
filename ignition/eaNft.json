@@ -3,8 +3,8 @@
     "defaultAdmin": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4",
     "upgrader": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4",
     "numFiles": 100,
-    "ipfs": "QmQjqoXjWwLA2iukbmJyM88xvcP28Fi9Mp8CrNaCDha9Dg",
+    "ipfs": "QmeGKBvXymzPMx7a8BWMeZ3WnrpmAp7w6AVWLrG29cVJUf",
     "stRif": "0xd6Eb12591559C42e28d672197265b331B1ad867d",
-    "stRifThreshold": "100000000000000000000"
+    "stRifThreshold": "50000000000000000000"
   }
 }

@@ -35,5 +35,8 @@
 2. Run the ignition module to deploy the NFT smart contract.
 
     ```shell
-    npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --parameters ignition/eaNft.json --network rootstockTestnet
+    npx hardhat ignition deploy \
+    ignition/modules/EarlyAdoptersModule.ts \
+    --parameters ignition/eaNft.json \
+    --network rootstockTestnet
     ```
