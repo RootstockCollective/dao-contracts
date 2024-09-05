@@ -3,13 +3,13 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 const stRifTokenUpgradeModule = buildModule('stRIFTokenUpgrade', m => {
   const deployer = m.getAccount(0)
 
-  // Load the governor proxy address
+  // Load the stRIFToken proxy address
   const stRIFTokenProxyAddress = m.getParameter('StRIFTokenProxyAddress')
 
   // Use the module to fetch the existing proxy
   const stRIFTokenProxyAddr = m.contractAt('StRIFToken', stRIFTokenProxyAddress)
 
-  //`GovernorV2` is the new version
+  //`StRIFToken` is the new version
   const newStRIFTokenImplementation = m.contract('StRIFTokenV2')
 
   // The new version number
@@ -21,7 +21,7 @@ const stRifTokenUpgradeModule = buildModule('stRIFTokenUpgrade', m => {
   // Perform the upgrade
   const upgradeTx = m.call(stRIFTokenProxyAddr, 'upgradeToAndCall', [newStRIFTokenImplementation, upgradeData], {
     from: deployer,
-    id: 'upgrade_governor',
+    id: 'upgrade_striftoken',
   })
 
   return { stRIFTokenProxyAddr: stRIFTokenProxyAddr, newstRifTokenImplementation: newStRIFTokenImplementation }
