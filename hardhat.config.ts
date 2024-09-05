@@ -2,6 +2,7 @@ import type { HardhatUserConfig, HttpNetworkHDAccountsConfig } from 'hardhat/typ
 import '@nomicfoundation/hardhat-toolbox'
 import dotent from 'dotenv'
 import './tasks/updateIpfsFolder'
+import './tasks/cancelProposal'
 
 dotent.config()
 
@@ -16,7 +17,7 @@ const config: HardhatUserConfig = {
       {
         version: '0.8.20',
         settings: {
-          optimizer: { enabled: true, runs: 200 },
+          optimizer: { enabled: true, runs: 1 },
         },
       },
       { version: '0.4.24' },
