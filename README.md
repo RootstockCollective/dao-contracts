@@ -164,4 +164,4 @@ To cancel a proposal using the provided Hardhat task, follow the steps below:
 | Timelock              | 0x2c4B5481C935Eb96AD9c8693DAf77131Dce607d9   |
 | stRif                 | 0xC4b091d97AD25ceA5922f09fe80711B7ACBbb16f   |
 | Governor              | 0xB1A39B8f57A55d1429324EEb1564122806eb297F   |
-| Early Adopters NFT    | 0x861b279757D0e23b8B3A96cB589CF835cb7df721   |
+| Early Adopters NFT    | 0x0Ee4e11f2F2B551cA31Ea7873c7bA675cb51A59d   |
