@@ -127,8 +127,8 @@ To cancel a proposal using the provided Hardhat task, follow the steps below:
     }
     ```
 
-    - Replace <Governor Contract Address> with the actual address of the deployed Governor contract.
-    - Replace <Proposal ID> with the ID of the proposal you want to cancel.
+    - Replace `<Governor Contract Address>` with the actual address of the deployed Governor contract.
+    - Replace `<Proposal ID>` with the ID of the proposal you want to cancel.
 
 2. Run the Hardhat Task to Cancel the Proposal:
 
@@ -136,8 +136,8 @@ To cancel a proposal using the provided Hardhat task, follow the steps below:
     npx hardhat cancel-proposal --governor <Governor Contract Address> --id <Proposal ID> --network rootstockTestnet
     ```
 
-    - Replace <Governor Contract Address> with the address of the deployed Governor contract.
-    - Replace <Proposal ID> with the ID of the proposal you wish to cancel.
+    - Replace `<Governor Contract Address>` with the address of the deployed Governor contract.
+    - Replace `<Proposal ID>` with the ID of the proposal you wish to cancel.
 
     Alternatively, if you have provided the parameters in the cancelProposal.json file, simply run:
 
