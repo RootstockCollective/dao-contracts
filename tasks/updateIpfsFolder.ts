@@ -8,10 +8,11 @@ async function updateIpfsFolder(
   numFiles: number,
 ) {
   const ea = await hre.ethers.getContractAt('EarlyAdopters', nftAddress)
-  await (await ea.setIpfsFolder(numFiles, cid)).wait()
-  const maxSupply = await ea.maxSupply()
+  const tokensAvailable = await ea.tokensAvailable()
+  await(await ea.setIpfsFolder(numFiles, cid)).wait()
+  const newTokensAvailable = await ea.tokensAvailable()
   console.log(
-    `Early Adopters NFT metadata IPFS folder was updated. The new max tokens supply is ${maxSupply}`,
+    `Early Adopters NFT metadata IPFS folder was updated. The new max tokens supply is ${newTokensAvailable - tokensAvailable}`,
   )
 }
 

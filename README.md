@@ -112,9 +112,60 @@ See the NFT images/metadata creation details [here](./nft/README.md)
 npx hardhat ignition deploy ignition/modules/GovernorUpgradeModule.ts --parameters ignition/deployedGovernorProxy.json --network rootstockTestnet
 ```
 
+## Canceling a Governor Proposal with Hardhat task
+
+To cancel a proposal using the provided Hardhat task, follow the steps below:
+
+1. Prepare the `cancel-proposal.json` File (Optional):
+
+   If you prefer to use a JSON file for the parameters, create a file named `cancel-proposal.json` in the root directory of your project. The file should contain the following fields:
+
+    ```json
+    {
+      "governorAddress": "<Governor Contract Address>",
+      "proposalId": "<Proposal ID>"
+    }
+    ```
+
+    - Replace `<Governor Contract Address>` with the actual address of the deployed Governor contract.
+    - Replace `<Proposal ID>` with the ID of the proposal you want to cancel.
+
+2. Run the Hardhat Task to Cancel the Proposal:
+
+    ```shell
+    npx hardhat cancel-proposal --governor <Governor Contract Address> --id <Proposal ID> --network rootstockTestnet
+    ```
+
+    - Replace `<Governor Contract Address>` with the address of the deployed Governor contract.
+    - Replace `<Proposal ID>` with the ID of the proposal you wish to cancel.
+
+    Alternatively, if you have provided the parameters in the cancelProposal.json file, simply run:
+
+    ```shell
+    npx hardhat cancel-proposal --network rootstockTestnet
+    ```
+
+3. Check for Success:
+
+    After running the command, the script will verify your permissions and the state of the proposal. If you are authorized and the proposal is in a cancelable state, the proposal will be canceled, and you will see a confirmation message in the terminal.
+
+    Example output:
+
+    ```shell
+    You have successfully cancelled proposal №12345... Now the proposal is in the "Canceled" state.
+    ```
+
+4. Troubleshooting:
+
+   - Ensure that the Governor Contract Address and Proposal ID are correct and match the proposal you intend to cancel
+   - Verify that you are the designated Guardian for the Governor contract, as only the Guardian can cancel proposals
+   - If the proposal is not in a cancelable state (e.g., it has already been executed or defeated), the script will not proceed with the cancellation
+
 ## Deployed contracts (on Rootstock Testnet)
 
-Timelock - 0x67D299406cCc0eB02Fa6dc9e6d2f93d7fE5Ef19c
-stRif- 0xd6Eb12591559C42e28d672197265b331B1ad867d
-Governor- 0xEc6bd0C8117b74904849af2CED73f30090DB6cd1
-Early Adopters NFT - 0x687E04Bb759B3A010eb797301E5D1D05e135E90f
+| Contract              | Address                                      |
+|-----------------------|----------------------------------------------|
+| Timelock              | 0x2c4B5481C935Eb96AD9c8693DAf77131Dce607d9   |
+| stRif                 | 0xC4b091d97AD25ceA5922f09fe80711B7ACBbb16f   |
+| Governor              | 0xB1A39B8f57A55d1429324EEb1564122806eb297F   |
+| Early Adopters NFT    | 0x0Ee4e11f2F2B551cA31Ea7873c7bA675cb51A59d   |
