@@ -93,7 +93,11 @@ See the NFT images/metadata creation details [here](./nft/README.md)
    for example:
 
    ```shell
-   npx hardhat update-ipfs-folder --nft 0xa3Dcdac1883f29aA9FafbdeDDCA0c745B2F05b53 --cid QmU1Bu9v1k9ecQ89cDE4uHrRkMKHE8NQ3mxhqFqNJfsKPd --files 50 --network rootstockTestnet
+   npx hardhat update-ipfs-folder \
+   --nft 0xa3Dcdac1883f29aA9FafbdeDDCA0c745B2F05b53 \
+   --cid QmU1Bu9v1k9ecQ89cDE4uHrRkMKHE8NQ3mxhqFqNJfsKPd \
+   --files 50 \
+   --network rootstockTestnet
    ```
 
 ## Upgrading Governor contracts with Ignition
