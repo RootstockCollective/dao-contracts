@@ -6,7 +6,7 @@ import { ProposalState } from '../types'
 import { isAddress } from 'ethers'
 import { Governor } from '../typechain-types'
 
-const paramsFilename = 'cancelProposal.json'
+const paramsFilename = 'cancel-proposal.json'
 
 interface JsonParams {
   proposalId?: string
@@ -122,17 +122,17 @@ async function cancelProposal(governor: Governor, proposalId: bigint) {
  * Validates inputs, reads parameters from a file if necessary, and performs the cancellation.
  */
 task('cancel-proposal', 'Guardian can cancel a proposal by ID')
-  .addParam('governor', 'Deployed Governor address')
-  .addParam('id', 'Proposal ID to cancel')
+  .addOptionalParam('governor', 'Deployed Governor address')
+  .addOptionalParam('id', 'Proposal ID to cancel')
   .setAction(async ({ governor, id }: { governor: string; id: string }, hre) => {
     try {
-      const jsonFile = resolve('.', paramsFilename)
+      const jsonFile = resolve('.', 'tasks', paramsFilename)
       let jsonParams: JsonParams = {}
 
       try {
         jsonParams = await readJSON(jsonFile)
       } catch (error) {
-        // Do nothing, it's fine if the file doesn't exist
+        console.error(error instanceof Error ? error.message : error)
       }
 
       const governorAddress = governor || jsonParams.governorAddress
