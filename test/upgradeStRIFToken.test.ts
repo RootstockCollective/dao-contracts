@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { ethers, ignition } from 'hardhat'
+import { ignition } from 'hardhat'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import { StRIFToken, StRIFTokenV2 } from '../typechain-types'
 import { deployContracts } from './deployContracts'
