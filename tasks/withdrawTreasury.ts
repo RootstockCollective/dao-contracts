@@ -1,7 +1,7 @@
 import { task } from 'hardhat/config'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { IERC20, TreasuryDao } from '../typechain-types'
-import { ethers, isAddress } from 'ethers'
+import { isAddress } from 'ethers'
 
 const defaultTreasury = '0xaCeaa438AfA008f43c50dB760b112ddc8fE3751B'
 const defaultRecipient = '0xC0C9280C10E4D968394371d5b60aC5fCD1ae62e1'
@@ -64,7 +64,7 @@ async function validateParams(
 }
 
 /**
- * Withdraw all RBCT to the recipient.
+ * Withdraw all RBTC to the recipient.
  * Waits for the transaction to be confirmed and logs the new Treasury balance.
  */
 async function withdraw(hre: HardhatRuntimeEnvironment, treasury: TreasuryDao, recipient: string) {
@@ -73,7 +73,7 @@ async function withdraw(hre: HardhatRuntimeEnvironment, treasury: TreasuryDao, r
   await sentTx.wait()
   const newBalance = await hre.ethers.provider.getBalance(treasury)
   console.info(
-    `You have successfully withdraw  ${balance} RBTC from Treasury. Now the balance is ${newBalance}`,
+    `You have successfully withdrawn ${balance} RBTC from Treasury. Now the balance is ${newBalance}`,
   )
 }
 
@@ -88,7 +88,7 @@ async function withdrawERC20(treasury: TreasuryDao, recipient: string, token: IE
   const newBalance = await token.balanceOf(treasury)
 
   console.info(
-    `You have successfully withdraw ${balance} tokens from Treasury. Now the balance is ${newBalance}`,
+    `You have successfully withdrawn ${balance} tokens from Treasury. Now the balance is ${newBalance}`,
   )
 }
 

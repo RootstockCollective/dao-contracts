@@ -24,6 +24,14 @@ export const deployContracts = async () => {
       stRifProxy: {
         rifAddress: await rif.getAddress(),
       },
+      GovernorProxy: {
+        owner: sender.address,
+        guardian: sender.address,
+        votingDelay: 1,
+        votingPeriod: 240,
+        proposalThreshold: 10n * 10n ** 18n,
+        quorumFraction: 4,
+      },
     },
   })
   return {

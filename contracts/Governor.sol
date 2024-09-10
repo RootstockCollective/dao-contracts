@@ -60,22 +60,34 @@ contract Governor is
    * @param voteToken The address of the vote token contract.
    * @param timelockController The address of the timelock controller contract.
    * @param initialOwner The address of the initial owner.
+   * @param initialGuardian Role that allows canceling proposals in the pending, active,
+   * succeeded, and queued stages.
+   * @param initialVotingDelay Proposal Pending stage duration.
+   * @param initialVotingPeriod Proposal Active stage duration.
+   * @param initialProposalThreshold The number of votes required in order for a voter
+   * to become a proposer.
+   * @param quorumFraction Minimum number of cast voted required for a proposal to be successful.
    */
   function initialize(
     IVotes voteToken,
     TimelockControllerUpgradeable timelockController,
-    address initialOwner
+    address initialOwner,
+    address initialGuardian,
+    uint48 initialVotingDelay,
+    uint32 initialVotingPeriod,
+    uint256 initialProposalThreshold,
+    uint256 quorumFraction
   ) public initializer {
     __Governor_init("RootstockCollective");
-    __GovernorSettings_init(1 /* 1 block */, 240 /* 2 hours */, 10 * 10 ** 18);
+    __GovernorSettings_init(initialVotingDelay, initialVotingPeriod, initialProposalThreshold);
     __GovernorCountingSimple_init();
     __GovernorStorage_init();
     __GovernorVotes_init(voteToken);
-    __GovernorVotesQuorumFraction_init(4);
+    __GovernorVotesQuorumFraction_init(quorumFraction);
     __GovernorTimelockControl_init(timelockController);
     __Ownable_init(initialOwner);
     __UUPSUpgradeable_init();
-    guardian = initialOwner;
+    guardian = initialGuardian;
     actualVersion = 1;
   }
 
