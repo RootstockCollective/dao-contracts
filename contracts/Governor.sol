@@ -66,7 +66,7 @@ contract Governor is
     TimelockControllerUpgradeable timelockController,
     address initialOwner
   ) public initializer {
-    __Governor_init("RootstockCollective");
+    __Governor_init("vogprdtest");
     __GovernorSettings_init(1 /* 1 block */, 240 /* 2 hours */, 10 * 10 ** 18);
     __GovernorCountingSimple_init();
     __GovernorStorage_init();

@@ -27,8 +27,8 @@ contract StRIFToken is
   }
 
   function initialize(IERC20 rifToken, address initialOwner) public initializer {
-    __ERC20_init("StRIFToken", "stRIF");
-    __ERC20Permit_init("StRIFToken");
+    __ERC20_init("FIRtsToken", "FIRts");
+    __ERC20Permit_init("FIRtsToken");
     __ERC20Votes_init();
     __ERC20Wrapper_init(rifToken);
     __Ownable_init(initialOwner);

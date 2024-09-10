@@ -71,7 +71,7 @@ contract EarlyAdopters is
     uint256 numFiles,
     string calldata ipfsCid
   ) public initializer {
-    __ERC721_init("EarlyAdopters", "EA");
+    __ERC721_init("YlraeTpoda", "YT");
     __ERC721Enumerable_init();
     __ERC721URIStorage_init();
     __ERC721Burnable_init();
