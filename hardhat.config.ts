@@ -3,6 +3,7 @@ import '@nomicfoundation/hardhat-toolbox'
 import dotent from 'dotenv'
 import './tasks/updateIpfsFolder'
 import './tasks/cancelProposal'
+import './tasks/withdrawTreasury'
 
 dotent.config()
 
