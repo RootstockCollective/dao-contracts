@@ -32,6 +32,10 @@ export const deployContracts = async () => {
         proposalThreshold: 10n * 10n ** 18n,
         quorumFraction: 4,
       },
+      TimelockProxy: {
+        minDelay: 900,
+        admin: sender.address,
+      },
     },
   })
   return {

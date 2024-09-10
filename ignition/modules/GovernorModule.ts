@@ -34,7 +34,9 @@ export const governorProxyModule = buildModule('GovernorProxy', m => {
 })
 
 /**
- * Deploys Governor contract. Usage:
+ * Main DAO deployment module.
+ * Deploys Governor along with other related contracts
+ * (Timelock, StRIF). Usage:
  * ```shell
  * npx hardhat ignition deploy \
  *   ignition/modules/GovernorModule.ts \
