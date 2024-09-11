@@ -13,13 +13,13 @@ const governorUpgradeModule = buildModule('GovernorUpgrade', m => {
   const newGovernorImplementation = m.contract('GovernorV2')
 
   // The new version number
-  const newVersion = 2;
+  const newVersion = 2
 
   // Prepare upgrade data
   const upgradeData = m.encodeFunctionCall(newGovernorImplementation, 'reInitialize', [newVersion])
 
   // Perform the upgrade
-  const upgradeTx = m.call(governorProxyAddr, 'upgradeToAndCall', [newGovernorImplementation, upgradeData], {
+  m.call(governorProxyAddr, 'upgradeToAndCall', [newGovernorImplementation, upgradeData], {
     from: deployer,
     id: 'upgrade_governor',
   })

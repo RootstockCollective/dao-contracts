@@ -2,8 +2,16 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import TimelockModule from './TimelockModule'
 import StRifModule from './StRifModule'
 
+/**
+ * Deploys proxy contract before deploying the Governor
+ */
 export const governorProxyModule = buildModule('GovernorProxy', m => {
-  const deployer = m.getAccount(0)
+  const owner = m.getParameter('owner')
+  const guardian = m.getParameter('guardian')
+  const votingDelay = m.getParameter('votingDelay')
+  const votingPeriod = m.getParameter('votingPeriod')
+  const proposalThreshold = m.getParameter('proposalThreshold')
+  const quorumFraction = m.getParameter('quorumFraction')
   // deploy implementation
   const governor = m.contract('Governor')
   // deploy ERC1967 proxy in order to use UUPS upgradable smart contracts
@@ -11,33 +19,46 @@ export const governorProxyModule = buildModule('GovernorProxy', m => {
   const { stRif } = m.useModule(StRifModule)
   const governorProxy = m.contract('ERC1967Proxy', [
     governor,
-    m.encodeFunctionCall(governor, 'initialize', [stRif, timelock, deployer]),
+    m.encodeFunctionCall(governor, 'initialize', [
+      stRif,
+      timelock,
+      owner,
+      guardian,
+      votingDelay,
+      votingPeriod,
+      proposalThreshold,
+      quorumFraction,
+    ]),
   ])
   return { governorProxy, timelock, stRif }
 })
 
+/**
+ * Main DAO deployment module.
+ * Deploys Governor along with other related contracts
+ * (Timelock, StRIF). Usage:
+ * ```shell
+ * npx hardhat ignition deploy \
+ *   ignition/modules/GovernorModule.ts \
+ *   --parameters params/testnet.json \
+ *   --network rootstockTestnet
+ * ```
+ */
 const governorModule = buildModule('Governor', m => {
-  const deployer = m.getAccount(0)
   const { governorProxy, timelock, stRif } = m.useModule(governorProxyModule)
   // Use proxy address to interact with the deployed contract
   const governor = m.contractAt('Governor', governorProxy)
 
-  // grant Proposer role to the Governor
+  // grant Timelock Proposer role to the Governor
   const proposerRole = m.staticCall(timelock, 'PROPOSER_ROLE')
-  const grantProposerRole = m.call(timelock, 'grantRole', [proposerRole, governor], {
+  m.call(timelock, 'grantRole', [proposerRole, governor], {
     id: 'grant_proposer_role',
   })
 
-  // grant Executor role to the Governor
+  // grant Timelock Executor role to the Governor
   const executorRole = m.staticCall(timelock, 'EXECUTOR_ROLE')
-  const grantExecutorRole = m.call(timelock, 'grantRole', [executorRole, governor], {
+  m.call(timelock, 'grantRole', [executorRole, governor], {
     id: 'grant_executor_role',
-  })
-
-  // renounce Admin role - this operation should be finally done by the DAO deployer
-  const adminRole = m.staticCall(timelock, 'DEFAULT_ADMIN_ROLE')
-  m.call(timelock, 'renounceRole', [adminRole, deployer], {
-    after: [grantExecutorRole, grantProposerRole],
   })
 
   return { governor, timelock, stRif }

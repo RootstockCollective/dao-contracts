@@ -1,5 +1,14 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
+/**
+ * Deploys Early Adopters NFT. Usage:
+ * ```shell
+ * npx hardhat ignition deploy \
+ *   ignition/modules/EarlyAdoptersModule.ts \
+ *   --parameters params/testnet.json \
+ *   --network rootstockTestnet
+ * ```
+ */
 export const earlyAdoptersProxyModule = buildModule('EarlyAdoptersProxy', m => {
   const deployer = m.getAccount(0)
   // deploy implementation
