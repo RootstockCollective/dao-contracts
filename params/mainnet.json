@@ -1,1 +1,30 @@
-{}
+{
+  "stRifProxy": {
+    "rifAddress": "0x2aCc95758f8b5F583470bA265Eb685a8f45fC9D5",
+    "owner": "0x479E6e9c409A56393D4b0c5749a3f09212529f90"
+  },
+  "GovernorProxy": {
+    "owner": "0x479E6e9c409A56393D4b0c5749a3f09212529f90",
+    "guardian": "0x7870A235a34129189799073fa2aB144C77a1cE2b",
+    "votingDelay": 1,
+    "votingPeriod": 60,
+    "proposalThreshold": "10000000000000000000",
+    "quorumFraction": 4
+  },
+  "TimelockProxy": {
+    "minDelay": 300,
+    "admin": "0x479E6e9c409A56393D4b0c5749a3f09212529f90"
+  },
+  "EarlyAdoptersProxy": {
+    "defaultAdmin": "0x479E6e9c409A56393D4b0c5749a3f09212529f90",
+    "upgrader": "0x479E6e9c409A56393D4b0c5749a3f09212529f90",
+    "numFiles": 100,
+    "ipfs": "QmeGKBvXymzPMx7a8BWMeZ3WnrpmAp7w6AVWLrG29cVJUf",
+    "stRif": "st-rif-address-will-be-known-after-deployment",
+    "stRifThreshold": "50000000000000000000"
+  },
+  "Treasury": {
+    "owner": "0x479E6e9c409A56393D4b0c5749a3f09212529f90",
+    "guardian": "0x7870A235a34129189799073fa2aB144C77a1cE2b"
+  }
+}

@@ -41,7 +41,7 @@ const config: HardhatUserConfig = {
     rootstockMainnet: {
       chainId: 30,
       url: 'https://public-node.rsk.co/',
-      accounts,
+      accounts: [process.env.MAINNET_DEPLOYER_PRIVATE_KEY],
     },
   },
 }
