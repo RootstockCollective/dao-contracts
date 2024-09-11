@@ -13,25 +13,28 @@ const stRifTokenUpgradeModule = buildModule('stRIFTokenUpgrade', m => {
   const newStRIFTokenImplementation = m.contract('StRIFTokenV2')
 
   // The new version number
-  const newVersion = 2;
+  const newVersion = 2
 
   // Prepare upgrade data
   const upgradeData = m.encodeFunctionCall(newStRIFTokenImplementation, 'reInitialize', [newVersion])
 
   // Perform the upgrade
-  const upgradeTx = m.call(stRIFTokenProxyAddr, 'upgradeToAndCall', [newStRIFTokenImplementation, upgradeData], {
+  m.call(stRIFTokenProxyAddr, 'upgradeToAndCall', [newStRIFTokenImplementation, upgradeData], {
     from: deployer,
     id: 'upgrade_striftoken',
   })
 
-  return { stRIFTokenProxyAddr: stRIFTokenProxyAddr, newstRifTokenImplementation: newStRIFTokenImplementation }
+  return {
+    stRIFTokenProxyAddr: stRIFTokenProxyAddr,
+    newstRifTokenImplementation: newStRIFTokenImplementation,
+  }
 })
 
 const stRifTokenV2Module = buildModule('StRIFTokenV2', m => {
   const { stRIFTokenProxyAddr } = m.useModule(stRifTokenUpgradeModule)
   const strifV2 = m.contractAt('StRIFTokenV2', stRIFTokenProxyAddr)
 
-  return { strifV2: strifV2 }
+  return { strifV2 }
 })
 
 export default stRifTokenV2Module
