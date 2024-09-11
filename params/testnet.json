@@ -1,6 +1,7 @@
 {
   "stRifProxy": {
-    "rifAddress": "0x19F64674D8A5B4E652319F5e239eFd3bc969A1fE"
+    "rifAddress": "0x19F64674D8A5B4E652319F5e239eFd3bc969A1fE",
+    "owner": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4"
   },
   "GovernorProxy": {
     "owner": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4",

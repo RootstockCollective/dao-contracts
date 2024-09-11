@@ -30,6 +30,7 @@ export const deployContracts = async () => {
     parameters: {
       stRifProxy: {
         rifAddress: await rif.getAddress(),
+        owner: sender.address,
       },
       GovernorProxy: {
         owner: sender.address,
