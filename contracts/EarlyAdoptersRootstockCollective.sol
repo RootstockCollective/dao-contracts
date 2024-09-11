@@ -21,7 +21,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
  * place the old and new files there, then call the `setIpfsFolder` function and pass the new
  * CID and the new number of files in the parameters.
  */
-contract EarlyAdopters is
+contract EarlyAdoptersRootstockCollective is
   Initializable,
   ERC721Upgradeable,
   ERC721EnumerableUpgradeable,
@@ -71,7 +71,7 @@ contract EarlyAdopters is
     uint256 numFiles,
     string calldata ipfsCid
   ) public initializer {
-    __ERC721_init("EarlyAdopters", "EA");
+    __ERC721_init("EarlyAdoptersDaoTimelockUpgradableRootstockCollective", "EA");
     __ERC721Enumerable_init();
     __ERC721URIStorage_init();
     __ERC721Burnable_init();

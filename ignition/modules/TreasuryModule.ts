@@ -12,7 +12,7 @@ import { buildModule } from '@nomicfoundation/ignition-core'
 const treasuryModule = buildModule('Treasury', m => {
   const owner = m.getParameter('owner')
   const guardian = m.getParameter('guardian')
-  const treasury = m.contract('TreasuryDao', [owner, guardian])
+  const treasury = m.contract('TreasuryRootstockCollective', [owner, guardian])
 
   return { treasury }
 })

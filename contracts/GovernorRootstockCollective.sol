@@ -13,7 +13,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract Governor is
+contract GovernorRootstockCollective is
   Initializable,
   GovernorUpgradeable,
   GovernorSettingsUpgradeable,
@@ -78,7 +78,7 @@ contract Governor is
     uint256 initialProposalThreshold,
     uint256 quorumFraction
   ) public initializer {
-    __Governor_init("RootstockCollective");
+    __Governor_init("GovernorRootstockCollective");
     __GovernorSettings_init(initialVotingDelay, initialVotingPeriod, initialProposalThreshold);
     __GovernorCountingSimple_init();
     __GovernorStorage_init();
