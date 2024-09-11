@@ -49,32 +49,50 @@ slither . --filter-paths openzeppelin,rif-token-contracts,exploit
 
 ## Deploying contracts with Ignition
 
-- Deploy all the DAO contracts to the Rootstock Testnet:
+Before deploying the smart contracts, set all the parameters in the `params/testnet.json` or `params/mainnet.json` files, depending on the network you’re going to deploy to.
 
-```shell
-npx hardhat ignition deploy ignition/modules/GovernorModule.ts --parameters ignition/deployedRif.json --network rootstockTestnet
-```
+- Deploy Governor, Timelock, StRIF and their proxies to the Rootstock Testnet:
 
-where the --parameters parameter specifies the location of the parameters file with the RIF token address.
+  - to the testnet
 
-### Deploy Early Adopters NFT to Rootstock Testnet
+    ```shell
+    npx hardhat ignition deploy ignition/modules/GovernorModule.ts --parameters params/testnet.json --network rootstockTestnet
+    ```
+
+    where the --parameters parameter specifies the location of the parameters file with the RIF token address.
+
+  - to the mainnet
+
+    ```shell
+    npx hardhat ignition deploy ignition/modules/GovernorModule.ts --parameters params/mainnet.json --network rootstockMainnet
+    ```
+
+### Deploy Early Adopters NFT
 
 See the NFT images/metadata creation details [here](./nft/README.md)
 
 1. Create an IPFS directory on Pinata and place the JSON files with NFT metadata there. It's important that the file names start from 1 and are sequential without any gaps.
 
-2. Edit the `ignition/eaNft.json` file to provide the following parameters:
+2. Edit the `EarlyAdoptersProxy` property in the `params/testnet.json` / `params/mainnet.json` file to provide the following parameters:
 
    - Default Admin address
    - Upgrader address
    - IPFS ID of the directory containing the prepared JSON metadata files for the NFTs
    - The amount of files in the directory
 
-   Then run the command:
+    Then run the command:
 
-   ```shell
-   npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --parameters ignition/eaNft.json --network rootstockTestnet
-   ```
+   - for the testnet
+  
+      ```shell
+      npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --parameters params/testnet.json --network rootstockTestnet
+      ```
+
+   - for the mainnet
+  
+      ```shell
+      npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --parameters params/mainnet.json --network rootstockMainnet
+      ```
 
 3. To upload additional JSON files with metadata for new NFT tokens, you need to:
 
@@ -109,7 +127,7 @@ See the NFT images/metadata creation details [here](./nft/README.md)
 3. Run the command bellow
 
 ```shell
-npx hardhat ignition deploy ignition/modules/GovernorUpgradeModule.ts --parameters ignition/deployedGovernorProxy.json --network rootstockTestnet
+npx hardhat ignition deploy ignition/modules/GovernorUpgradeModule.ts --parameters params/testnet.json --network rootstockTestnet
 ```
 
 ## Canceling a Governor Proposal with Hardhat task
