@@ -17,7 +17,14 @@ export const deployContracts = async () => {
   // deploy RIF before the rest DAO contracts
   const { rif } = await ignition.deploy(RifModule, { defaultSender: sender?.address })
   // deploy Treasury
-  const { treasury } = await ignition.deploy(TreasuryModule)
+  const { treasury } = await ignition.deploy(TreasuryModule, {
+    parameters: {
+      Treasury: {
+        owner: sender.address,
+        guardian: sender.address,
+      },
+    },
+  })
   // insert RIF address as a parameter to stRIF deployment module
   const dao = await ignition.deploy(GovernorModule, {
     parameters: {

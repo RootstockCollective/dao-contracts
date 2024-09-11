@@ -41,7 +41,7 @@ export const governorProxyModule = buildModule('GovernorProxy', m => {
  * npx hardhat ignition deploy \
  *   ignition/modules/GovernorModule.ts \
  *   --parameters params/testnet.json \
- *   --network hardhat
+ *   --network rootstockTestnet
  * ```
  */
 const governorModule = buildModule('Governor', m => {
