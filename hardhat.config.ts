@@ -7,10 +7,10 @@ import './tasks/withdrawTreasury'
 
 dotent.config()
 
-const accounts: Partial<HttpNetworkHDAccountsConfig> = {
+const accounts = {
   mnemonic: process.env.MNEMONIC ?? '',
   path: "m/44'/60'/0'/0",
-}
+} as const satisfies Partial<HttpNetworkHDAccountsConfig>
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -41,7 +41,13 @@ const config: HardhatUserConfig = {
     rootstockMainnet: {
       chainId: 30,
       url: 'https://public-node.rsk.co/',
-      accounts: [process.env.MAINNET_DEPLOYER_PRIVATE_KEY],
+      ...(typeof process.env.MAINNET_DEPLOYER_PRIVATE_KEY !== 'undefined'
+        ? {
+            accounts: [process.env.MAINNET_DEPLOYER_PRIVATE_KEY],
+          }
+        : {
+            accounts,
+          }),
     },
   },
 }
