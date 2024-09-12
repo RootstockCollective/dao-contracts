@@ -179,6 +179,22 @@ To cancel a proposal using the provided Hardhat task, follow the steps below:
    - Verify that you are the designated Guardian for the Governor contract, as only the Guardian can cancel proposals
    - If the proposal is not in a cancelable state (e.g., it has already been executed or defeated), the script will not proceed with the cancellation
 
+## Verifying smart contract
+
+  In order to verify contracts after deployment run Hardhat Ignition task:
+
+  ```shell
+  npx hardhat ignition verify <Deployment ID>
+  ```
+
+  Example output:
+
+  ```shell
+  Verifying contract "contracts/EarlyAdopters.sol:EarlyAdopters" for network rootstockMainnet...
+  Successfully verified contract "contracts/EarlyAdopters.sol:EarlyAdopters" for network rootstockMainnet:
+  - https://rootstock.blockscout.com//address/0x...#code
+  ```
+
 ## Deployed contracts (on Rootstock Testnet)
 
 | Contract              | Address                                      |
