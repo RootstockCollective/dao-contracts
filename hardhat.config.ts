@@ -50,6 +50,31 @@ const config: HardhatUserConfig = {
           }),
     },
   },
+  etherscan: {
+    apiKey: {
+      // Is not required by blockscout. Can be any non-empty string
+      rootstockTestnet: 'RSK_TESTNET_RPC_URL',
+      rootstockMainnet: 'RSK_MAINNET_RPC_URL',
+    },
+    customChains: [
+      {
+        network: 'rootstockTestnet',
+        chainId: 31,
+        urls: {
+          apiURL: 'https://rootstock-testnet.blockscout.com/api/',
+          browserURL: 'https://rootstock-testnet.blockscout.com/',
+        },
+      },
+      {
+        network: 'rootstockMainnet',
+        chainId: 30,
+        urls: {
+          apiURL: 'https://rootstock.blockscout.com/api/',
+          browserURL: 'https://rootstock.blockscout.com/',
+        },
+      },
+    ],
+  },
 }
 
 export default config
