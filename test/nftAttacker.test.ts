@@ -1,13 +1,13 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { EarlyAdopters } from '../typechain-types'
+import { EarlyAdoptersRootstockCollective } from '../typechain-types'
 import { deployNFT, deployContracts } from './deployContracts'
 
 const maxSupply = 50
 const cidExample = `QmQR9mfvZ9fDFJuBne1xnRoeRCeKZdqajYGJJ9MEDchgqX`
 
 describe('NFT attacker', () => {
-  let ea: EarlyAdopters
+  let ea: EarlyAdoptersRootstockCollective
   let eaAddress: string
 
   before(async () => {

@@ -2,7 +2,7 @@ import { ethers } from 'hardhat'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import { deployContracts } from './deployContracts'
-import { RIFToken, StRIFToken, TreasuryDao } from '../typechain-types'
+import { RIFToken, StRIFToken, TreasuryRootstockCollective } from '../typechain-types'
 import { AddressLike, parseEther } from 'ethers'
 import { expect } from 'chai'
 
@@ -16,7 +16,7 @@ describe('Treasury Contract', () => {
     token2: AddressLike,
     token3: AddressLike
   let rif: RIFToken
-  let treasury: TreasuryDao
+  let treasury: TreasuryRootstockCollective
   let stRIF: StRIFToken
   let GuardianRole: string, AdminRole: string
 

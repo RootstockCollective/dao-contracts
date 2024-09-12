@@ -12,7 +12,7 @@ import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 export const earlyAdoptersProxyModule = buildModule('EarlyAdoptersProxy', m => {
   const deployer = m.getAccount(0)
   // deploy implementation
-  const ea = m.contract('EarlyAdoptersDaoTimelockUpgradableRootstockCollective')
+  const ea = m.contract('EarlyAdoptersRootstockCollective')
   // deploy ERC1967 proxy in order to use UUPS upgradable smart contracts
   const defaultAdmin = m.getParameter('defaultAdmin', deployer)
   const upgrader = m.getParameter('upgrader', deployer)

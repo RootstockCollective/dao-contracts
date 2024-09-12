@@ -71,7 +71,7 @@ contract EarlyAdoptersRootstockCollective is
     uint256 numFiles,
     string calldata ipfsCid
   ) public initializer {
-    __ERC721_init("EarlyAdoptersDaoTimelockUpgradableRootstockCollective", "EA");
+    __ERC721_init("EarlyAdoptersRootstockCollective", "EA");
     __ERC721Enumerable_init();
     __ERC721URIStorage_init();
     __ERC721Burnable_init();
