@@ -44,7 +44,7 @@ export const governorProxyModule = buildModule('GovernorProxy', m => {
  *   --network rootstockTestnet
  * ```
  */
-const governorModule = buildModule('GovernorGovernorRootstockCollective', m => {
+const governorModule = buildModule('Governor', m => {
   const { governorProxy, timelock, stRif } = m.useModule(governorProxyModule)
   // Use proxy address to interact with the deployed contract
   const governor = m.contractAt('GovernorRootstockCollective', governorProxy)
