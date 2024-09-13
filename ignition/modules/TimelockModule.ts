@@ -17,7 +17,7 @@ export const timelockProxyModule = buildModule('TimelockProxy', m => {
   const executors: string[] = []
   const admin = m.getParameter('admin')
   // deploy implementation
-  const timelock = m.contract('DaoTimelockUpgradable')
+  const timelock = m.contract('DaoTimelockUpgradableRootstockCollective')
   // deploy ERC1967 proxy
   const timelockProxy = m.contract('ERC1967Proxy', [
     timelock,
@@ -32,7 +32,7 @@ export const timelockProxyModule = buildModule('TimelockProxy', m => {
  */
 const timelockModule = buildModule('Timelock', m => {
   const { timelockProxy } = m.useModule(timelockProxyModule)
-  const timelock = m.contractAt('DaoTimelockUpgradable', timelockProxy)
+  const timelock = m.contractAt('DaoTimelockUpgradableRootstockCollective', timelockProxy)
   return { timelock }
 })
 

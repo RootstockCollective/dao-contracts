@@ -1,6 +1,6 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { EarlyAdopters, StRIFToken, RIFToken } from '../typechain-types'
+import { EarlyAdoptersRootstockCollective, StRIFToken, RIFToken } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { deployContracts, deployNFT } from './deployContracts'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
@@ -11,7 +11,7 @@ const stRifThreshold = 100n * 10n ** 18n
 const nftUri = (id: number, _ipfs = ipfsCid) => `ipfs://${_ipfs}/${id}.json`
 
 describe('Early Adopters', () => {
-  let ea: EarlyAdopters
+  let ea: EarlyAdoptersRootstockCollective
   let rif: RIFToken
   let stRIF: StRIFToken
   let eaAddress: string

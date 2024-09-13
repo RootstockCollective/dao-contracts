@@ -2,10 +2,10 @@ import { ethers, ignition } from 'hardhat'
 import {
   RIFToken,
   StRIFToken,
-  DaoTimelockUpgradable,
-  Governor,
-  TreasuryDao,
-  EarlyAdopters,
+  DaoTimelockUpgradableRootstockCollective,
+  GovernorRootstockCollective,
+  TreasuryRootstockCollective,
+  EarlyAdoptersRootstockCollective,
 } from '../typechain-types'
 import RifModule from '../ignition/modules/RifModule'
 import GovernorModule from '../ignition/modules/GovernorModule'
@@ -49,9 +49,9 @@ export const deployContracts = async () => {
   return {
     rif: rif as unknown as RIFToken,
     stRIF: dao.stRif as unknown as StRIFToken,
-    timelock: dao.timelock as unknown as DaoTimelockUpgradable,
-    governor: dao.governor as unknown as Governor,
-    treasury: treasury as unknown as TreasuryDao,
+    timelock: dao.timelock as unknown as DaoTimelockUpgradableRootstockCollective,
+    governor: dao.governor as unknown as GovernorRootstockCollective,
+    treasury: treasury as unknown as TreasuryRootstockCollective,
   }
 }
 
@@ -74,5 +74,5 @@ export async function deployNFT(
       },
     },
   })
-  return ea as unknown as EarlyAdopters
+  return ea as unknown as EarlyAdoptersRootstockCollective
 }

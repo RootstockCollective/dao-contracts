@@ -13,7 +13,7 @@ export const governorProxyModule = buildModule('GovernorProxy', m => {
   const proposalThreshold = m.getParameter('proposalThreshold')
   const quorumFraction = m.getParameter('quorumFraction')
   // deploy implementation
-  const governor = m.contract('Governor')
+  const governor = m.contract('GovernorRootstockCollective')
   // deploy ERC1967 proxy in order to use UUPS upgradable smart contracts
   const { timelock } = m.useModule(TimelockModule)
   const { stRif } = m.useModule(StRifModule)
@@ -47,7 +47,7 @@ export const governorProxyModule = buildModule('GovernorProxy', m => {
 const governorModule = buildModule('Governor', m => {
   const { governorProxy, timelock, stRif } = m.useModule(governorProxyModule)
   // Use proxy address to interact with the deployed contract
-  const governor = m.contractAt('Governor', governorProxy)
+  const governor = m.contractAt('GovernorRootstockCollective', governorProxy)
 
   // grant Timelock Proposer role to the Governor
   const proposerRole = m.staticCall(timelock, 'PROPOSER_ROLE')

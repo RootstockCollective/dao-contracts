@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-interface ITreasury {
+interface ITreasuryRootstockCollective {
 
   /**
    * @dev Emitted when `amount` tokens are moved from one account (`sender`) to

@@ -1,7 +1,13 @@
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { loadFixture, mine, time } from '@nomicfoundation/hardhat-toolbox/network-helpers'
-import { RIFToken, Governor, StRIFToken, DaoTimelockUpgradable, ProposalTarget } from '../typechain-types'
+import {
+  RIFToken,
+  GovernorRootstockCollective,
+  StRIFToken,
+  DaoTimelockUpgradableRootstockCollective,
+  ProposalTarget,
+} from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { ContractTransactionResponse, parseEther, solidityPackedKeccak256 } from 'ethers'
 import { Proposal, ProposalState, OperationState } from '../types'
@@ -16,9 +22,9 @@ describe('Governor Contact', () => {
   let rif: RIFToken
   let rifAddress: string
   let stRIF: StRIFToken
-  let timelock: DaoTimelockUpgradable
+  let timelock: DaoTimelockUpgradableRootstockCollective
   let deployer: SignerWithAddress
-  let governor: Governor
+  let governor: GovernorRootstockCollective
   let proposalTarget: ProposalTarget
   let holders: SignerWithAddress[]
 
@@ -29,7 +35,7 @@ describe('Governor Contact', () => {
   before(async () => {
     // prettier-ignore
     ;[deployer, ...holders] = await ethers.getSigners();
-    ; ({ rif, stRIF, timelock, governor } = await loadFixture(deployContracts))
+    ;({ rif, stRIF, timelock, governor } = await loadFixture(deployContracts))
     rifAddress = await rif.getAddress()
     proposalTarget = await ethers.deployContract('ProposalTarget')
     await proposalTarget.waitForDeployment()
@@ -318,7 +324,7 @@ describe('Governor Contact', () => {
       })
 
       it('when proposal reaches quorum and votingPeriod is reached proposal state should become ProposalState.Succeeded', async () => {
-        // proposalDescription = 
+        // proposalDescription =
         await createProposal('Proposal 2')
         await mine((await governor.votingDelay()) + 1n)
 

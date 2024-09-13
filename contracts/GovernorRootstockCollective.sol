@@ -13,7 +13,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract GovernorV2 is
+contract GovernorRootstockCollective is
   Initializable,
   GovernorUpgradeable,
   GovernorSettingsUpgradeable,
@@ -32,22 +32,11 @@ contract GovernorV2 is
   bytes32 private constant GovernorStorageLocation =
     0x7c712897014dbe49c045ef1299aa2d5f9e67e48eea4403efa21f1e0f3ac0cb00;
 
-  // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.GovernorStorage")) - 1)) & ~bytes32(uint256(0xff))
-  bytes32 private constant GovernorStorageStorageLocation =
-    0x7fd223d3380145bd26132714391e777c488a0df7ac2dd4b66419d8549fb3a600;
-
   /// @notice The actual version of the contract
   uint64 public actualVersion;
 
   /// @notice The address of the Governor Guardian
   address public guardian;
-
-  /// @notice returns the storage slot for GovernorStorageStorage
-  function getGovernorStorageStorage() private pure returns (GovernorStorageStorage storage $) {
-    assembly {
-      $.slot := GovernorStorageStorageLocation
-    }
-  }
 
   /// @notice returns the storage slot for GovernorStorage
   function getGovernorStorage() private pure returns (GovernorStorage storage $) {
@@ -71,34 +60,35 @@ contract GovernorV2 is
    * @param voteToken The address of the vote token contract.
    * @param timelockController The address of the timelock controller contract.
    * @param initialOwner The address of the initial owner.
+   * @param initialGuardian Role that allows canceling proposals in the pending, active,
+   * succeeded, and queued stages.
+   * @param initialVotingDelay Proposal Pending stage duration.
+   * @param initialVotingPeriod Proposal Active stage duration.
+   * @param initialProposalThreshold The number of votes required in order for a voter
+   * to become a proposer.
+   * @param quorumFraction Minimum number of cast voted required for a proposal to be successful.
    */
   function initialize(
     IVotes voteToken,
     TimelockControllerUpgradeable timelockController,
-    address initialOwner
+    address initialOwner,
+    address initialGuardian,
+    uint48 initialVotingDelay,
+    uint32 initialVotingPeriod,
+    uint256 initialProposalThreshold,
+    uint256 quorumFraction
   ) public initializer {
-    __Governor_init("RootstockCollective");
-    __GovernorSettings_init(1 /* 1 block */, 240 /* 2 hours */, 10 * 10 ** 18);
+    __Governor_init("GovernorRootstockCollective");
+    __GovernorSettings_init(initialVotingDelay, initialVotingPeriod, initialProposalThreshold);
     __GovernorCountingSimple_init();
     __GovernorStorage_init();
     __GovernorVotes_init(voteToken);
-    __GovernorVotesQuorumFraction_init(4);
+    __GovernorVotesQuorumFraction_init(quorumFraction);
     __GovernorTimelockControl_init(timelockController);
     __Ownable_init(initialOwner);
     __UUPSUpgradeable_init();
-    guardian = initialOwner;
+    guardian = initialGuardian;
     actualVersion = 1;
-  }
-
-  /**
-   * @dev Initializes the contract.
-   */
-  function reInitialize(uint64 versionAfterUpgrade) public reinitializer(versionAfterUpgrade) onlyProxy {
-    require(
-      versionAfterUpgrade > actualVersion,
-      "RootstockCollective: given version must be greater than actual version"
-    );
-    actualVersion = versionAfterUpgrade;
   }
 
   /// @notice Returns the version of the contract
@@ -211,15 +201,6 @@ contract GovernorV2 is
     ProposalState _state = super.state(proposalId);
 
     return (minus, plus, neutral, _state);
-  }
-
-  /**
-   * @dev ProposalId version of {IGovernor-cancel}.
-   */
-  function cancel(uint256 proposalId) public override(GovernorStorageUpgradeable) {
-    GovernorStorageStorage storage $ = getGovernorStorageStorage();
-    ProposalDetails storage details = $._proposalDetails[proposalId];
-    cancel(details.targets, details.values, details.calldatas, details.descriptionHash);
   }
 
   /// @notice this is a custom implementation of the GovernorUpgradeable cancel function
