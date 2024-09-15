@@ -2,7 +2,12 @@ import { ethers } from 'hardhat'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import { deployContracts } from './deployContracts'
-import { RIFToken, StRIFToken, TreasuryRootstockCollective } from '../typechain-types'
+import {
+  RIFToken,
+  StRIFToken,
+  TreasuryRootstockCollective,
+  DaoTimelockUpgradableRootstockCollective,
+} from '../typechain-types'
 import { AddressLike, parseEther } from 'ethers'
 import { expect } from 'chai'
 
@@ -17,12 +22,13 @@ describe('Treasury Contract', () => {
     token3: AddressLike
   let rif: RIFToken
   let treasury: TreasuryRootstockCollective
+  let timelock: DaoTimelockUpgradableRootstockCollective
   let stRIF: StRIFToken
   let GuardianRole: string, ExecutorRole: string
 
   before(async () => {
-    ;[deployer, owner, beneficiary, guardian, collector, token1, token2, token3] = await ethers.getSigners()
-    ;({ stRIF, rif, treasury } = await loadFixture(deployContracts))
+    ;;[deployer, owner, beneficiary, guardian, collector, token1, token2, token3] = await ethers.getSigners()
+    ;({ stRIF, rif, treasury, timelock } = await loadFixture(deployContracts))
     await treasury.addToWhitelist(rif)
     GuardianRole = await treasury.GUARDIAN_ROLE()
     ExecutorRole = await treasury.EXECUTOR_ROLE()
@@ -31,6 +37,9 @@ describe('Treasury Contract', () => {
   })
 
   describe('Withdraw token and RBTC to any account', () => {
+    it('Timelock should be granted the Executor role after deployment', async () => {
+      expect(await treasury.hasRole(ExecutorRole, await timelock.getAddress())).to.be.true
+    })
     it('Receive RBTC', async () => {
       const amount = parseEther('50')
       let balance = await ethers.provider.getBalance(treasury)
