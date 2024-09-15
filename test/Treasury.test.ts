@@ -18,14 +18,16 @@ describe('Treasury Contract', () => {
   let rif: RIFToken
   let treasury: TreasuryRootstockCollective
   let stRIF: StRIFToken
-  let GuardianRole: string, AdminRole: string
+  let GuardianRole: string, ExecutorRole: string
 
   before(async () => {
     ;[deployer, owner, beneficiary, guardian, collector, token1, token2, token3] = await ethers.getSigners()
     ;({ stRIF, rif, treasury } = await loadFixture(deployContracts))
     await treasury.addToWhitelist(rif)
     GuardianRole = await treasury.GUARDIAN_ROLE()
-    AdminRole = await treasury.DEFAULT_ADMIN_ROLE()
+    ExecutorRole = await treasury.EXECUTOR_ROLE()
+    const grantRoleTx = await treasury.grantRole(ExecutorRole, deployer)
+    await grantRoleTx.wait()
   })
 
   describe('Withdraw token and RBTC to any account', () => {
@@ -56,7 +58,7 @@ describe('Treasury Contract', () => {
       const sentTx = treasury.connect(owner).withdraw(beneficiary, amount)
       await expect(sentTx)
         .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
-        .withArgs(owner.address, AdminRole)
+        .withArgs(owner.address, ExecutorRole)
     })
 
     it('Can not withdraw RBTC to a beneficiary if balance is insufficient', async () => {
@@ -96,7 +98,7 @@ describe('Treasury Contract', () => {
       const sentTx = treasury.connect(owner).withdrawERC20(rif, beneficiary, amount)
       await expect(sentTx)
         .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
-        .withArgs(owner.address, AdminRole)
+        .withArgs(owner.address, ExecutorRole)
     })
 
     it('Withdraw with a non ERC20 token address should revert', async () => {
@@ -164,21 +166,21 @@ describe('Treasury Contract', () => {
       expect(flag).to.equal(true)
     })
 
-    it('Only account with Admin Role can add new token to whitelist', async () => {
+    it('Only account with Guardian Role can add new token to whitelist', async () => {
       await treasury.connect(deployer).removeFromWhitelist(stRIF)
       expect(await treasury.whitelist(stRIF)).to.equal(false)
 
       const sentTx = treasury.connect(beneficiary).addToWhitelist(stRIF)
       await expect(sentTx)
         .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
-        .withArgs(beneficiary.address, AdminRole)
+        .withArgs(beneficiary.address, GuardianRole)
     })
 
-    it('Only account with Admin Role can remove a token to whitelist', async () => {
+    it('Only account with Guardian Role can remove a token to whitelist', async () => {
       const sentTx = treasury.connect(beneficiary).removeFromWhitelist(rif)
       await expect(sentTx)
         .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
-        .withArgs(beneficiary.address, AdminRole)
+        .withArgs(beneficiary.address, GuardianRole)
       expect(await treasury.whitelist(rif)).to.equal(true)
     })
 

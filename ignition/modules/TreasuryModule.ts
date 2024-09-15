@@ -1,13 +1,9 @@
 import { buildModule } from '@nomicfoundation/ignition-core'
 
 /**
- * Usage:
- * ```shell
- * npx hardhat ignition deploy \
- *   ignition/modules/TreasuryModule.ts \
- *   --parameters params/testnet.json \
- *   --network rootstockTestnet
- * ```
+ * Deploys Treasury contract.
+ * The Treasury is deployed along with
+ * other DAO contracts using the Governor module.
  */
 const treasuryModule = buildModule('Treasury', m => {
   const owner = m.getParameter('owner')
