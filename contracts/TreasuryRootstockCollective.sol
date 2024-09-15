@@ -123,10 +123,10 @@ contract TreasuryRootstockCollective is AccessControl, ReentrancyGuard, ITreasur
 
   /**
    * @dev Add to whitelist a new ERC20 token
-   * requires guardian role
+   * requires executor role
    * @param token ERC20 token
    */
-  function addToWhitelist(address token) external onlyRole(GUARDIAN_ROLE) {
+  function addToWhitelist(address token) external onlyRole(EXECUTOR_ROLE) {
     _addToWhitelist(token);
   }
 
@@ -141,10 +141,10 @@ contract TreasuryRootstockCollective is AccessControl, ReentrancyGuard, ITreasur
 
   /**
    * @dev Remove from whitelist an ERC20 token
-   * requires guardian role
+   * requires executor role
    * @param token ERC20 token
    */
-  function removeFromWhitelist(address token) external onlyRole(GUARDIAN_ROLE) {
+  function removeFromWhitelist(address token) external onlyRole(EXECUTOR_ROLE) {
     _removeFromWhitelist(token);
   }
 
