@@ -37,6 +37,7 @@ export const deployContracts = async () => {
       Treasury: {
         owner: sender.address,
         guardian: sender.address,
+        whitelist: [await rif.getAddress()],
       },
     },
   })

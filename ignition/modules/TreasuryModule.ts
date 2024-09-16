@@ -10,6 +10,9 @@ const treasuryModule = buildModule('Treasury', m => {
   const guardian = m.getParameter('guardian')
   const treasury = m.contract('TreasuryRootstockCollective', [owner, guardian])
 
+  // whitelisting
+  const whitelist = m.getParameter('whitelist')
+  m.call(treasury, 'batchAddWhitelist', [whitelist])
   return { treasury }
 })
 export default treasuryModule

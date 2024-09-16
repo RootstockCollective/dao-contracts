@@ -25,7 +25,10 @@
   },
   "Treasury": {
     "owner": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4",
-    "guardian": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4"
+    "guardian": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4",
+    "whitelist": [
+      "0x19F64674D8A5B4E652319F5e239eFd3bc969A1fE"
+    ]
   },
   "stRIFTokenUpgrade": {
     "StRIFTokenProxyAddress": "0xE7039717C51C44652FB47be1794884A82634f08F"

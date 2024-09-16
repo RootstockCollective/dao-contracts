@@ -27,13 +27,12 @@ describe('Treasury Contract', () => {
   let GuardianRole: string, ExecutorRole: string
 
   before(async () => {
-    ;;[deployer, owner, beneficiary, guardian, collector, token1, token2, token3] = await ethers.getSigners()
+    ;[deployer, owner, beneficiary, guardian, collector, token1, token2, token3] = await ethers.getSigners()
     ;({ stRIF, rif, treasury, timelock } = await loadFixture(deployContracts))
     GuardianRole = await treasury.GUARDIAN_ROLE()
     ExecutorRole = await treasury.EXECUTOR_ROLE()
     const grantRoleTx = await treasury.grantRole(ExecutorRole, deployer)
     await grantRoleTx.wait()
-    await treasury.addToWhitelist(rif)
   })
 
   describe('Withdraw token and RBTC to any account', () => {
