@@ -1,30 +1,30 @@
 {
   "stRifProxy": {
     "rifAddress": "0x2AcC95758f8b5F583470ba265EB685a8F45fC9D5",
-    "owner": "0x479E6e9c409A56393D4b0c5749a3f09212529f90"
+    "owner": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a"
   },
   "GovernorProxy": {
-    "owner": "0x479E6e9c409A56393D4b0c5749a3f09212529f90",
-    "guardian": "0x7870A235a34129189799073fa2aB144C77a1cE2b",
+    "owner": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a",
+    "guardian": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a",
     "votingDelay": 1,
-    "votingPeriod": 60,
-    "proposalThreshold": "10000000000000000000",
+    "votingPeriod": 20160,
+    "proposalThreshold": "1000000000000000000000",
     "quorumFraction": 4
   },
   "TimelockProxy": {
-    "minDelay": 300,
-    "admin": "0x479E6e9c409A56393D4b0c5749a3f09212529f90"
+    "minDelay": 259200,
+    "admin": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a"
   },
   "EarlyAdoptersProxy": {
-    "defaultAdmin": "0x479E6e9c409A56393D4b0c5749a3f09212529f90",
-    "upgrader": "0x479E6e9c409A56393D4b0c5749a3f09212529f90",
+    "defaultAdmin": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a",
+    "upgrader": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a",
     "numFiles": 100,
     "ipfs": "QmeGKBvXymzPMx7a8BWMeZ3WnrpmAp7w6AVWLrG29cVJUf",
     "stRif": "st-rif-address-will-be-known-after-deployment",
     "stRifThreshold": "50000000000000000000"
   },
   "Treasury": {
-    "owner": "0x479E6e9c409A56393D4b0c5749a3f09212529f90",
-    "guardian": "0x7870A235a34129189799073fa2aB144C77a1cE2b"
+    "owner": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a",
+    "guardian": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a"
   }
 }
