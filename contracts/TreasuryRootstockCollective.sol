@@ -20,6 +20,7 @@ contract TreasuryRootstockCollective is AccessControl, ReentrancyGuard, ITreasur
 
   mapping(address => bool) public whitelist;
   bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
+  bytes32 public constant EXECUTOR_ROLE = keccak256("EXECUTOR_ROLE");
 
   /**
    * @dev Sets the values for {initialOwner} and {guardian}
@@ -40,7 +41,8 @@ contract TreasuryRootstockCollective is AccessControl, ReentrancyGuard, ITreasur
   }
 
   /**
-   * @dev Withdraw an ERC20 token to a third-party address.
+   * @dev Withdraw an ERC20 token to a third-party address. This function is
+   * a target for the DAO proposals executor
    * @param token The ERC20 token
    * @param to The third-party address
    * @param amount The value to send
@@ -49,11 +51,11 @@ contract TreasuryRootstockCollective is AccessControl, ReentrancyGuard, ITreasur
     address token,
     address to,
     uint256 amount
-  ) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+  ) external onlyRole(EXECUTOR_ROLE) nonReentrant {
     require(whitelist[token], "Token forbidden");
     require(IERC20(token).balanceOf(address(this)) >= amount, "Insufficient ERC20 balance");
-    IERC20(token).safeTransfer(to, amount);
     emit WithdrawnERC20(token, to, amount);
+    IERC20(token).safeTransfer(to, amount);
   }
 
   /**
@@ -65,8 +67,8 @@ contract TreasuryRootstockCollective is AccessControl, ReentrancyGuard, ITreasur
     require(whitelist[token], "Token forbidden");
     require(to != address(0), "Zero Address is not allowed");
     uint256 amount = IERC20(token).balanceOf(address(this));
-    IERC20(token).safeTransfer(to, amount);
     emit WithdrawnERC20(token, to, amount);
+    IERC20(token).safeTransfer(to, amount);
   }
 
   /**
@@ -78,16 +80,17 @@ contract TreasuryRootstockCollective is AccessControl, ReentrancyGuard, ITreasur
    * such as `onlyRole`, which ensures that only authorized users
    * can execute the function, and `nonReentrant`.
    * which protects against reentrant attacks.
+   * This function is a target for the DAO proposals executor.
    * @param to The third-party address
    * @param amount The value to send
    */
   // slither-disable-next-line arbitrary-send-eth
-  function withdraw(address payable to, uint256 amount) external onlyRole(DEFAULT_ADMIN_ROLE) nonReentrant {
+  function withdraw(address payable to, uint256 amount) external onlyRole(EXECUTOR_ROLE) nonReentrant {
     require(address(this).balance >= amount, "Insufficient Balance");
     require(to != address(0), "Zero Address is not allowed");
+    emit Withdrawn(to, amount);
     bool success = to.send(amount);
     require(success, "Failed to sent");
-    emit Withdrawn(to, amount);
   }
 
   /**
@@ -104,9 +107,9 @@ contract TreasuryRootstockCollective is AccessControl, ReentrancyGuard, ITreasur
   function emergencyWithdraw(address payable to) external nonReentrant onlyRole(GUARDIAN_ROLE) {
     require(to != address(0), "Zero Address is not allowed");
     uint256 amount = address(this).balance;
+    emit Withdrawn(to, amount);
     bool success = to.send(amount);
     require(success, "Failed to sent");
-    emit Withdrawn(to, amount);
   }
 
   /**
@@ -120,10 +123,10 @@ contract TreasuryRootstockCollective is AccessControl, ReentrancyGuard, ITreasur
 
   /**
    * @dev Add to whitelist a new ERC20 token
-   * requires admin role
+   * requires executor role
    * @param token ERC20 token
    */
-  function addToWhitelist(address token) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function addToWhitelist(address token) external onlyRole(EXECUTOR_ROLE) {
     _addToWhitelist(token);
   }
 
@@ -138,10 +141,10 @@ contract TreasuryRootstockCollective is AccessControl, ReentrancyGuard, ITreasur
 
   /**
    * @dev Remove from whitelist an ERC20 token
-   * requires admin role
+   * requires executor role
    * @param token ERC20 token
    */
-  function removeFromWhitelist(address token) external onlyRole(DEFAULT_ADMIN_ROLE) {
+  function removeFromWhitelist(address token) external onlyRole(EXECUTOR_ROLE) {
     _removeFromWhitelist(token);
   }
 

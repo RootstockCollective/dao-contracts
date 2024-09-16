@@ -5,7 +5,7 @@
   },
   "GovernorProxy": {
     "owner": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a",
-    "guardian": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a",
+    "guardian": "0x98fCaB30810804C3Aa945d5BF2D97283a59E1Ac6",
     "votingDelay": 1,
     "votingPeriod": 20160,
     "proposalThreshold": "1000000000000000000000",
@@ -25,6 +25,10 @@
   },
   "Treasury": {
     "owner": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a",
-    "guardian": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a"
+    "guardian": "0x98fCaB30810804C3Aa945d5BF2D97283a59E1Ac6",
+    "whitelist": [
+      "0x2AcC95758f8b5F583470ba265EB685a8F45fC9D5",
+      "0x3A15461d8aE0F0Fb5Fa2629e9DA7D66A794a6e37"
+    ]
   }
 }

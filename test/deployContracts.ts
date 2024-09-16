@@ -9,22 +9,12 @@ import {
 } from '../typechain-types'
 import RifModule from '../ignition/modules/RifModule'
 import GovernorModule from '../ignition/modules/GovernorModule'
-import TreasuryModule from '../ignition/modules/TreasuryModule'
 import EarlyAdoptersModule from '../ignition/modules/EarlyAdoptersModule'
 
 export const deployContracts = async () => {
   const [sender] = await ethers.getSigners()
   // deploy RIF before the rest DAO contracts
   const { rif } = await ignition.deploy(RifModule, { defaultSender: sender?.address })
-  // deploy Treasury
-  const { treasury } = await ignition.deploy(TreasuryModule, {
-    parameters: {
-      Treasury: {
-        owner: sender.address,
-        guardian: sender.address,
-      },
-    },
-  })
   // insert RIF address as a parameter to stRIF deployment module
   const dao = await ignition.deploy(GovernorModule, {
     parameters: {
@@ -44,6 +34,11 @@ export const deployContracts = async () => {
         minDelay: 900,
         admin: sender.address,
       },
+      Treasury: {
+        owner: sender.address,
+        guardian: sender.address,
+        whitelist: [await rif.getAddress()],
+      },
     },
   })
   return {
@@ -51,7 +46,7 @@ export const deployContracts = async () => {
     stRIF: dao.stRif as unknown as StRIFToken,
     timelock: dao.timelock as unknown as DaoTimelockUpgradableRootstockCollective,
     governor: dao.governor as unknown as GovernorRootstockCollective,
-    treasury: treasury as unknown as TreasuryRootstockCollective,
+    treasury: dao.treasury as unknown as TreasuryRootstockCollective,
   }
 }
 

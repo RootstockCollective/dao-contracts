@@ -2,7 +2,12 @@ import { ethers } from 'hardhat'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import { deployContracts } from './deployContracts'
-import { RIFToken, StRIFToken, TreasuryRootstockCollective } from '../typechain-types'
+import {
+  RIFToken,
+  StRIFToken,
+  TreasuryRootstockCollective,
+  DaoTimelockUpgradableRootstockCollective,
+} from '../typechain-types'
 import { AddressLike, parseEther } from 'ethers'
 import { expect } from 'chai'
 
@@ -17,18 +22,23 @@ describe('Treasury Contract', () => {
     token3: AddressLike
   let rif: RIFToken
   let treasury: TreasuryRootstockCollective
+  let timelock: DaoTimelockUpgradableRootstockCollective
   let stRIF: StRIFToken
-  let GuardianRole: string, AdminRole: string
+  let GuardianRole: string, ExecutorRole: string
 
   before(async () => {
     ;[deployer, owner, beneficiary, guardian, collector, token1, token2, token3] = await ethers.getSigners()
-    ;({ stRIF, rif, treasury } = await loadFixture(deployContracts))
-    await treasury.addToWhitelist(rif)
+    ;({ stRIF, rif, treasury, timelock } = await loadFixture(deployContracts))
     GuardianRole = await treasury.GUARDIAN_ROLE()
-    AdminRole = await treasury.DEFAULT_ADMIN_ROLE()
+    ExecutorRole = await treasury.EXECUTOR_ROLE()
+    const grantRoleTx = await treasury.grantRole(ExecutorRole, deployer)
+    await grantRoleTx.wait()
   })
 
   describe('Withdraw token and RBTC to any account', () => {
+    it('Timelock should be granted the Executor role after deployment', async () => {
+      expect(await treasury.hasRole(ExecutorRole, await timelock.getAddress())).to.be.true
+    })
     it('Receive RBTC', async () => {
       const amount = parseEther('50')
       let balance = await ethers.provider.getBalance(treasury)
@@ -56,7 +66,7 @@ describe('Treasury Contract', () => {
       const sentTx = treasury.connect(owner).withdraw(beneficiary, amount)
       await expect(sentTx)
         .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
-        .withArgs(owner.address, AdminRole)
+        .withArgs(owner.address, ExecutorRole)
     })
 
     it('Can not withdraw RBTC to a beneficiary if balance is insufficient', async () => {
@@ -96,7 +106,7 @@ describe('Treasury Contract', () => {
       const sentTx = treasury.connect(owner).withdrawERC20(rif, beneficiary, amount)
       await expect(sentTx)
         .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
-        .withArgs(owner.address, AdminRole)
+        .withArgs(owner.address, ExecutorRole)
     })
 
     it('Withdraw with a non ERC20 token address should revert', async () => {
@@ -164,21 +174,21 @@ describe('Treasury Contract', () => {
       expect(flag).to.equal(true)
     })
 
-    it('Only account with Admin Role can add new token to whitelist', async () => {
+    it('Only account with Executor Role can add new token to whitelist', async () => {
       await treasury.connect(deployer).removeFromWhitelist(stRIF)
       expect(await treasury.whitelist(stRIF)).to.equal(false)
 
       const sentTx = treasury.connect(beneficiary).addToWhitelist(stRIF)
       await expect(sentTx)
         .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
-        .withArgs(beneficiary.address, AdminRole)
+        .withArgs(beneficiary.address, ExecutorRole)
     })
 
-    it('Only account with Admin Role can remove a token to whitelist', async () => {
+    it('Only account with Executor Role can remove a token to whitelist', async () => {
       const sentTx = treasury.connect(beneficiary).removeFromWhitelist(rif)
       await expect(sentTx)
         .to.be.revertedWithCustomError(treasury, 'AccessControlUnauthorizedAccount')
-        .withArgs(beneficiary.address, AdminRole)
+        .withArgs(beneficiary.address, ExecutorRole)
       expect(await treasury.whitelist(rif)).to.equal(true)
     })
 

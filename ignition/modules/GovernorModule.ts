@@ -1,6 +1,7 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 import TimelockModule from './TimelockModule'
 import StRifModule from './StRifModule'
+import TreasuryModule from './TreasuryModule'
 
 /**
  * Deploys proxy contract before deploying the Governor
@@ -36,7 +37,7 @@ export const governorProxyModule = buildModule('GovernorProxy', m => {
 /**
  * Main DAO deployment module.
  * Deploys Governor along with other related contracts
- * (Timelock, StRIF). Usage:
+ * (Timelock, StRIF, Treasury). Usage:
  * ```shell
  * npx hardhat ignition deploy \
  *   ignition/modules/GovernorModule.ts \
@@ -46,7 +47,13 @@ export const governorProxyModule = buildModule('GovernorProxy', m => {
  */
 const governorModule = buildModule('Governor', m => {
   const { governorProxy, timelock, stRif } = m.useModule(governorProxyModule)
-  // Use proxy address to interact with the deployed contract
+
+  // set Timelock as the Executor on the Treasury
+  const { treasury } = m.useModule(TreasuryModule)
+  const treasuryExecutorRole = m.staticCall(treasury, 'EXECUTOR_ROLE')
+  m.call(treasury, 'grantRole', [treasuryExecutorRole, timelock])
+
+  // Use proxy address to interact with the deployed Governor contract
   const governor = m.contractAt('GovernorRootstockCollective', governorProxy)
 
   // grant Timelock Proposer role to the Governor
@@ -56,12 +63,12 @@ const governorModule = buildModule('Governor', m => {
   })
 
   // grant Timelock Executor role to the Governor
-  const executorRole = m.staticCall(timelock, 'EXECUTOR_ROLE')
-  m.call(timelock, 'grantRole', [executorRole, governor], {
+  const timelockExecutorRole = m.staticCall(timelock, 'EXECUTOR_ROLE')
+  m.call(timelock, 'grantRole', [timelockExecutorRole, governor], {
     id: 'grant_executor_role',
   })
 
-  return { governor, timelock, stRif }
+  return { governor, timelock, stRif, treasury }
 })
 
 export default governorModule
