@@ -20,7 +20,7 @@
     "upgrader": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a",
     "numFiles": 100,
     "ipfs": "QmeGKBvXymzPMx7a8BWMeZ3WnrpmAp7w6AVWLrG29cVJUf",
-    "stRif": "st-rif-address-will-be-known-after-deployment",
+    "stRif": "0x5Db91E24BD32059584bbdB831a901F1199f3D459",
     "stRifThreshold": "50000000000000000000"
   },
   "Treasury": {
