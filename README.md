@@ -134,7 +134,15 @@ npx hardhat ignition deploy ignition/modules/GovernorUpgradeModule.ts --paramete
 
 To cancel a proposal using the provided Hardhat task, follow the steps below:
 
-1. Prepare the `cancel-proposal.json` File (Optional):
+1. Download the repo
+2. Install the project: see [Installation](#installation)
+3. Compile the smart contracts
+
+   ```shell
+    npx hardhat compile
+   ```
+
+4. Prepare the `cancel-proposal.json` File (Optional):
 
    If you prefer to use a JSON file for the parameters, create a file named `cancel-proposal.json` in the root directory of your project. The file should contain the following fields:
 
@@ -148,7 +156,7 @@ To cancel a proposal using the provided Hardhat task, follow the steps below:
     - Replace `<Governor Contract Address>` with the actual address of the deployed Governor contract.
     - Replace `<Proposal ID>` with the ID of the proposal you want to cancel.
 
-2. Run the Hardhat Task to Cancel the Proposal:
+5. Run the Hardhat Task to Cancel the Proposal:
 
     ```shell
     npx hardhat cancel-proposal --governor <Governor Contract Address> --id <Proposal ID> --network rootstockTestnet
@@ -163,7 +171,7 @@ To cancel a proposal using the provided Hardhat task, follow the steps below:
     npx hardhat cancel-proposal --network rootstockTestnet
     ```
 
-3. Check for Success:
+6. Check for Success:
 
     After running the command, the script will verify your permissions and the state of the proposal. If you are authorized and the proposal is in a cancelable state, the proposal will be canceled, and you will see a confirmation message in the terminal.
 
@@ -173,7 +181,7 @@ To cancel a proposal using the provided Hardhat task, follow the steps below:
     You have successfully cancelled proposal №12345... Now the proposal is in the "Canceled" state.
     ```
 
-4. Troubleshooting:
+7. Troubleshooting:
 
    - Ensure that the Governor Contract Address and Proposal ID are correct and match the proposal you intend to cancel
    - Verify that you are the designated Guardian for the Governor contract, as only the Guardian can cancel proposals
@@ -195,7 +203,9 @@ To cancel a proposal using the provided Hardhat task, follow the steps below:
   - https://rootstock.blockscout.com//address/0x...#code
   ```
 
-## Deployed contracts (on Rootstock Testnet)
+## Deployed Rootstock Collective contracts
+
+### Rootstock Testnet
 
 | Contract              | Address                                      |
 |-----------------------|----------------------------------------------|
@@ -203,3 +213,17 @@ To cancel a proposal using the provided Hardhat task, follow the steps below:
 | stRif                 | 0xC4b091d97AD25ceA5922f09fe80711B7ACBbb16f   |
 | Governor              | 0xB1A39B8f57A55d1429324EEb1564122806eb297F   |
 | Early Adopters NFT    | 0x0Ee4e11f2F2B551cA31Ea7873c7bA675cb51A59d   |
+
+### Rootstock Mainnet
+
+| Contract Name                                 | Mainnet Address                              |
+|-----------------------------------------------|----------------------------------------------|
+| GovernorRootstockCollective impl              | 0x086CE91eBAF4002544121295491A1DC80F3ef7a5   |
+| GovernorRootstockCollective proxy             | 0x71ac6fF904A17F50f2C07B693376cCc1c92627F0   |
+| StRIFToken impl                               | 0xcC13a0320f18eB7C370a339b94084012337f3a60   |
+| StRIFToken proxy                              | 0x5Db91E24BD32059584bbdB831a901F1199f3D459   |
+| DaoTimelockUpgradableRootstockCollective impl | 0x9bD89cC339aE4bC1e8F41C648f42854EbFcFCd98   |
+| DaoTimelockUpgradableRootstockCollective proxy| 0x432f5EF20118CbB1111a06bB4491C6D759643B83   |
+| TreasuryRootstockCollective                   | 0xf016fA6B237bb56E3AeE7022C6947A6a103E3c47   |
+| EarlyAdoptersRootstockCollective impl         | 0x979deF73ec80B8AE24Ae46765b81D9aF7b1C9327   |
+| EarlyAdoptersRootstockCollective proxy        | 0x339F209B3eb8381c4fBE997232e95a21A731524c   |
