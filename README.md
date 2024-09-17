@@ -195,7 +195,19 @@ To cancel a proposal using the provided Hardhat task, follow the steps below:
   - https://rootstock.blockscout.com//address/0x...#code
   ```
 
-## Deployed contracts (on Rootstock Testnet)
+## Deployed contracts
+
+### On Rootstock Mainnet
+
+| Contract              | Address                                      |
+|-----------------------|----------------------------------------------|
+| stRif                 | 0x5db91e24bd32059584bbdb831a901f1199f3d459   |
+| Governor              | 0x71ac6ff904a17f50f2c07b693376ccc1c92627f0   |
+| Timelock              | 0x432f5EF20118CbB1111a06bB4491C6D759643B83   |
+| Early Adopters NFT    | 0x339f209b3eb8381c4fbe997232e95a21a731524c   |
+
+
+### On Rootstock Testnet
 
 | Contract              | Address                                      |
 |-----------------------|----------------------------------------------|
