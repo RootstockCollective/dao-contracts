@@ -3,9 +3,9 @@ import path from 'path'
 import metadata from './metadata.json'
 
 // change the NFT collection URL depending on whether you are on the testnet or mainnet
-const communitiesUrl = 'https://frontend.testnet.dao.rif.technology/communities'
+const communitiesUrl = 'https://app.rootstockcollective.xyz/communities'
 // paste the CID of Pinata images folder
-const imagesFolderCID = 'QmfDwhwpU21G9x2kzbhw1LjQGDUFLucAjcJsn8ivqTgXrm'
+const imagesFolderCID = 'QmUSCZPeHVUtdScnnBfFbxUA5ndC3xw3oNBZ83BnfEKMyK'
 
 /**
  * Generates separate JSON metadata files from the metadata collection stored in the `metadata.json` file
