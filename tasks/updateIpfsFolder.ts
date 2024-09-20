@@ -7,7 +7,7 @@ async function updateIpfsFolder(
   cid: string,
   numFiles: number,
 ) {
-  const ea = await hre.ethers.getContractAt('EarlyAdopters', nftAddress)
+  const ea = await hre.ethers.getContractAt('EarlyAdoptersRootstockCollective', nftAddress)
   const tokensAvailable = await ea.tokensAvailable()
   await(await ea.setIpfsFolder(numFiles, cid)).wait()
   const newTokensAvailable = await ea.tokensAvailable()
