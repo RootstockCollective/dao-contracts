@@ -49,23 +49,29 @@ slither . --filter-paths openzeppelin,rif-token-contracts,exploit
 
 ## Deploying contracts with Ignition
 
-Before deploying the smart contracts, set all the parameters in the `params/testnet.json` or `params/mainnet.json` files, depending on the network you’re going to deploy to.
+Before deploying the smart contracts, set all the parameters in the `params/testnet.json`, `params/mainnet.json` or `params/dev.json` files, depending on the network and environment you’re going to deploy to.
 
 - Deploy Governor, Timelock, StRIF and their proxies to the Rootstock Testnet:
 
-  - to the testnet
+- to the dev
 
-    ```shell
-    npx hardhat ignition deploy ignition/modules/GovernorModule.ts --parameters params/testnet.json --network rootstockTestnet
-    ```
+  ```shell
+  npx hardhat ignition deploy ignition/modules/GovernorModule.ts --parameters params/dev.json --network rootstockTestnet
+  ```
 
-    where the --parameters parameter specifies the location of the parameters file with the RIF token address.
+- to the testnet
 
-  - to the mainnet
+  ```shell
+  npx hardhat ignition deploy ignition/modules/GovernorModule.ts --parameters params/testnet.json --network rootstockTestnet
+  ```
 
-    ```shell
-    npx hardhat ignition deploy ignition/modules/GovernorModule.ts --parameters params/mainnet.json --network rootstockMainnet
-    ```
+  where the --parameters parameter specifies the location of the parameters file with the RIF token address.
+
+- to the mainnet
+
+  ```shell
+  npx hardhat ignition deploy ignition/modules/GovernorModule.ts --parameters params/mainnet.json --network rootstockMainnet
+  ```
 
 ### Deploy Early Adopters NFT
 
@@ -80,19 +86,25 @@ See the NFT images/metadata creation details [here](./nft/README.md)
    - IPFS ID of the directory containing the prepared JSON metadata files for the NFTs
    - The amount of files in the directory
 
-    Then run the command:
+   Then run the command:
+
+   - for the dev
+
+   ```shell
+   npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --parameters params/dev.json --network rootstockTestnet
+   ```
 
    - for the testnet
-  
-      ```shell
-      npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --parameters params/testnet.json --network rootstockTestnet
-      ```
+
+     ```shell
+     npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --parameters params/testnet.json --network rootstockTestnet
+     ```
 
    - for the mainnet
-  
-      ```shell
-      npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --parameters params/mainnet.json --network rootstockMainnet
-      ```
+
+     ```shell
+     npx hardhat ignition deploy ignition/modules/EarlyAdoptersModule.ts --parameters params/mainnet.json --network rootstockMainnet
+     ```
 
 3. To upload additional JSON files with metadata for new NFT tokens, you need to:
 
@@ -146,40 +158,40 @@ To cancel a proposal using the provided Hardhat task, follow the steps below:
 
    If you prefer to use a JSON file for the parameters, create a file named `cancel-proposal.json` in the root directory of your project. The file should contain the following fields:
 
-    ```json
-    {
-      "governorAddress": "<Governor Contract Address>",
-      "proposalId": "<Proposal ID>"
-    }
-    ```
+   ```json
+   {
+     "governorAddress": "<Governor Contract Address>",
+     "proposalId": "<Proposal ID>"
+   }
+   ```
 
-    - Replace `<Governor Contract Address>` with the actual address of the deployed Governor contract.
-    - Replace `<Proposal ID>` with the ID of the proposal you want to cancel.
+   - Replace `<Governor Contract Address>` with the actual address of the deployed Governor contract.
+   - Replace `<Proposal ID>` with the ID of the proposal you want to cancel.
 
 5. Run the Hardhat Task to Cancel the Proposal:
 
-    ```shell
-    npx hardhat cancel-proposal --governor <Governor Contract Address> --id <Proposal ID> --network rootstockTestnet
-    ```
+   ```shell
+   npx hardhat cancel-proposal --governor <Governor Contract Address> --id <Proposal ID> --network rootstockTestnet
+   ```
 
-    - Replace `<Governor Contract Address>` with the address of the deployed Governor contract.
-    - Replace `<Proposal ID>` with the ID of the proposal you wish to cancel.
+   - Replace `<Governor Contract Address>` with the address of the deployed Governor contract.
+   - Replace `<Proposal ID>` with the ID of the proposal you wish to cancel.
 
-    Alternatively, if you have provided the parameters in the cancelProposal.json file, simply run:
+   Alternatively, if you have provided the parameters in the cancelProposal.json file, simply run:
 
-    ```shell
-    npx hardhat cancel-proposal --network rootstockTestnet
-    ```
+   ```shell
+   npx hardhat cancel-proposal --network rootstockTestnet
+   ```
 
 6. Check for Success:
 
-    After running the command, the script will verify your permissions and the state of the proposal. If you are authorized and the proposal is in a cancelable state, the proposal will be canceled, and you will see a confirmation message in the terminal.
+   After running the command, the script will verify your permissions and the state of the proposal. If you are authorized and the proposal is in a cancelable state, the proposal will be canceled, and you will see a confirmation message in the terminal.
 
-    Example output:
+   Example output:
 
-    ```shell
-    You have successfully cancelled proposal №12345... Now the proposal is in the "Canceled" state.
-    ```
+   ```shell
+   You have successfully cancelled proposal №12345... Now the proposal is in the "Canceled" state.
+   ```
 
 7. Troubleshooting:
 
@@ -189,41 +201,55 @@ To cancel a proposal using the provided Hardhat task, follow the steps below:
 
 ## Verifying smart contract
 
-  In order to verify contracts after deployment run Hardhat Ignition task:
+In order to verify contracts after deployment run Hardhat Ignition task:
 
-  ```shell
-  npx hardhat ignition verify <Deployment ID>
-  ```
+```shell
+npx hardhat ignition verify <Deployment ID>
+```
 
-  Example output:
+Example output:
 
-  ```shell
-  Verifying contract "contracts/EarlyAdopters.sol:EarlyAdopters" for network rootstockMainnet...
-  Successfully verified contract "contracts/EarlyAdopters.sol:EarlyAdopters" for network rootstockMainnet:
-  - https://rootstock.blockscout.com//address/0x...#code
-  ```
+```shell
+Verifying contract "contracts/EarlyAdopters.sol:EarlyAdopters" for network rootstockMainnet...
+Successfully verified contract "contracts/EarlyAdopters.sol:EarlyAdopters" for network rootstockMainnet:
+- https://rootstock.blockscout.com//address/0x...#code
+```
 
 ## Deployed Rootstock Collective contracts
 
 ### Rootstock Testnet
 
-| Contract              | Address                                      |
-|-----------------------|----------------------------------------------|
-| Timelock              | 0x2c4B5481C935Eb96AD9c8693DAf77131Dce607d9   |
-| stRif                 | 0xC4b091d97AD25ceA5922f09fe80711B7ACBbb16f   |
-| Governor              | 0xB1A39B8f57A55d1429324EEb1564122806eb297F   |
-| Early Adopters NFT    | 0x0Ee4e11f2F2B551cA31Ea7873c7bA675cb51A59d   |
+| Contract           | Address                                    |
+| ------------------ | ------------------------------------------ |
+| Timelock           | 0x2c4B5481C935Eb96AD9c8693DAf77131Dce607d9 |
+| stRif              | 0xC4b091d97AD25ceA5922f09fe80711B7ACBbb16f |
+| Governor           | 0xB1A39B8f57A55d1429324EEb1564122806eb297F |
+| Early Adopters NFT | 0x0Ee4e11f2F2B551cA31Ea7873c7bA675cb51A59d |
 
 ### Rootstock Mainnet
 
-| Contract Name                                 | Mainnet Address                              |
-|-----------------------------------------------|----------------------------------------------|
-| GovernorRootstockCollective impl              | 0x086CE91eBAF4002544121295491A1DC80F3ef7a5   |
-| GovernorRootstockCollective proxy             | 0x71ac6fF904A17F50f2C07B693376cCc1c92627F0   |
-| StRIFToken impl                               | 0xcC13a0320f18eB7C370a339b94084012337f3a60   |
-| StRIFToken proxy                              | 0x5Db91E24BD32059584bbdB831a901F1199f3D459   |
-| DaoTimelockUpgradableRootstockCollective impl | 0x9bD89cC339aE4bC1e8F41C648f42854EbFcFCd98   |
-| DaoTimelockUpgradableRootstockCollective proxy| 0x432f5EF20118CbB1111a06bB4491C6D759643B83   |
-| TreasuryRootstockCollective                   | 0xf016fA6B237bb56E3AeE7022C6947A6a103E3c47   |
-| EarlyAdoptersRootstockCollective impl         | 0x979deF73ec80B8AE24Ae46765b81D9aF7b1C9327   |
-| EarlyAdoptersRootstockCollective proxy        | 0x339F209B3eb8381c4fBE997232e95a21A731524c   |
+| Contract Name                                  | Mainnet Address                            |
+| ---------------------------------------------- | ------------------------------------------ |
+| GovernorRootstockCollective impl               | 0x086CE91eBAF4002544121295491A1DC80F3ef7a5 |
+| GovernorRootstockCollective proxy              | 0x71ac6fF904A17F50f2C07B693376cCc1c92627F0 |
+| StRIFToken impl                                | 0xcC13a0320f18eB7C370a339b94084012337f3a60 |
+| StRIFToken proxy                               | 0x5Db91E24BD32059584bbdB831a901F1199f3D459 |
+| DaoTimelockUpgradableRootstockCollective impl  | 0x9bD89cC339aE4bC1e8F41C648f42854EbFcFCd98 |
+| DaoTimelockUpgradableRootstockCollective proxy | 0x432f5EF20118CbB1111a06bB4491C6D759643B83 |
+| TreasuryRootstockCollective                    | 0xf016fA6B237bb56E3AeE7022C6947A6a103E3c47 |
+| EarlyAdoptersRootstockCollective impl          | 0x979deF73ec80B8AE24Ae46765b81D9aF7b1C9327 |
+| EarlyAdoptersRootstockCollective proxy         | 0x339F209B3eb8381c4fBE997232e95a21A731524c |
+
+### Rootstock Dev
+
+| Contract Name                                  | Dev Address                                |
+| ---------------------------------------------- | ------------------------------------------ |
+| GovernorRootstockCollective impl               | 0x0DB02C99619bB0E6d2cBeF5545Cc968DAb724E10 |
+| GovernorRootstockCollective proxy              | 0xdE4822aBf85dCeec6a3A68B1F692b26ec37694BA |
+| StRIFToken impl                                | 0x7C19923bac1b41e9bBD1c33815A61854beeD9b54 |
+| StRIFToken proxy                               | 0x956864F3Bb7B86cbCbC3a320277b0d0f5f24F998 |
+| DaoTimelockUpgradableRootstockCollective impl  | 0x014Ee7696B193E8BC9EFA5a68cfDb74C76415043 |
+| DaoTimelockUpgradableRootstockCollective proxy | 0x7D78e76b9Cc66D977aaf699679A44A721a98022E |
+| TreasuryRootstockCollective                    | 0xD2F300D6AecC7db7FDb98d15568ffeFb13BAd7c8 |
+| EarlyAdoptersRootstockCollective impl          | 0xa060A65967cb9b9511E3A4ec091Aa81c6dCe6662 |
+| EarlyAdoptersRootstockCollective proxy         | 0xe4E91A8EeCdF48Ef13f8E98Dfd2f0b7147e89816 |
