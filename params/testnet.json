@@ -1,34 +1,32 @@
 {
   "stRifProxy": {
     "rifAddress": "0x19F64674D8A5B4E652319F5e239eFd3bc969A1fE",
-    "owner": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4"
+    "owner": "0x0C48e53E5852780Cb0a5Bf168eb92DE3B88Ebe89"
   },
   "GovernorProxy": {
-    "owner": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4",
-    "guardian": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4",
+    "owner": "0x0C48e53E5852780Cb0a5Bf168eb92DE3B88Ebe89",
+    "guardian": "0x0C48e53E5852780Cb0a5Bf168eb92DE3B88Ebe89",
     "votingDelay": 1,
-    "votingPeriod": 60,
+    "votingPeriod": 20160,
     "proposalThreshold": "10000000000000000000",
     "quorumFraction": 4
   },
   "TimelockProxy": {
-    "minDelay": 300,
-    "admin": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4"
+    "minDelay": 259200,
+    "admin": "0x0C48e53E5852780Cb0a5Bf168eb92DE3B88Ebe89"
   },
   "EarlyAdoptersProxy": {
-    "defaultAdmin": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4",
-    "upgrader": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4",
+    "defaultAdmin": "0x0C48e53E5852780Cb0a5Bf168eb92DE3B88Ebe89",
+    "upgrader": "0x0C48e53E5852780Cb0a5Bf168eb92DE3B88Ebe89",
     "numFiles": 100,
     "ipfs": "QmeGKBvXymzPMx7a8BWMeZ3WnrpmAp7w6AVWLrG29cVJUf",
     "stRif": "0xC4b091d97AD25ceA5922f09fe80711B7ACBbb16f",
     "stRifThreshold": "50000000000000000000"
   },
   "Treasury": {
-    "owner": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4",
-    "guardian": "0xb42c26BB804987EE7FEFb897eB18ED775da19Fe4",
-    "whitelist": [
-      "0x19F64674D8A5B4E652319F5e239eFd3bc969A1fE"
-    ]
+    "owner": "0x0C48e53E5852780Cb0a5Bf168eb92DE3B88Ebe89",
+    "guardian": "0x0C48e53E5852780Cb0a5Bf168eb92DE3B88Ebe89",
+    "whitelist": ["0x19F64674D8A5B4E652319F5e239eFd3bc969A1fE"]
   },
   "stRIFTokenUpgrade": {
     "StRIFTokenProxyAddress": "0xE7039717C51C44652FB47be1794884A82634f08F"

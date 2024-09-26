@@ -219,12 +219,16 @@ Successfully verified contract "contracts/EarlyAdopters.sol:EarlyAdopters" for n
 
 ### Rootstock Testnet
 
-| Contract           | Address                                    |
-| ------------------ | ------------------------------------------ |
-| Timelock           | 0x2c4B5481C935Eb96AD9c8693DAf77131Dce607d9 |
-| stRif              | 0xC4b091d97AD25ceA5922f09fe80711B7ACBbb16f |
-| Governor           | 0xB1A39B8f57A55d1429324EEb1564122806eb297F |
-| Early Adopters NFT | 0x0Ee4e11f2F2B551cA31Ea7873c7bA675cb51A59d |
+| Contract Name                                  | Mainnet Address                            |
+| ---------------------------------------------- | ------------------------------------------ |
+| GovernorRootstockCollective impl               | 0x2109FF4a9D5548a21F877cA937Ac5847Fde49694 |
+| GovernorRootstockCollective proxy              | 0x91a8E4A070B4BA4bf2e2a51Cb42BdeDf8FFB9b5a |
+| StRIFToken impl                                | 0x4861198e9A6814EBfb152552D1b1a37426C54D23 |
+| StRIFToken proxy                               | 0xFff256c3451D5cF59653Cfe71950AE9ba2F5f0Ef |
+| DaoTimelockUpgradableRootstockCollective impl  | 0x2AEdf0B35651934cF3BEC855cbCE207bBA0C4aB5 |
+| DaoTimelockUpgradableRootstockCollective proxy | 0x5eDA6fA73350291F7D7cFC7ad93F48189f1333ef |
+| TreasuryRootstockCollective                    | 0x47C969d7ae7A377BeaD553c2899D9B83A90e0772 |
+| Early Adopters NFT                             | 0x0Ee4e11f2F2B551cA31Ea7873c7bA675cb51A59d |
 
 ### Rootstock Mainnet
 
