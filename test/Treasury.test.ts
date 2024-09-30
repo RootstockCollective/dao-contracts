@@ -61,7 +61,7 @@ describe('Treasury Contract', () => {
       await expect(sentTx).to.emit(treasury, 'Withdrawn').withArgs(beneficiary, amount)
     })
 
-    it('Only owner can withdraw RBTC to a beneficiary', async () => {
+    it('Only account with Executor Role can withdraw RBTC to a beneficiary', async () => {
       const amount = parseEther('10')
       const sentTx = treasury.connect(owner).withdraw(beneficiary, amount)
       await expect(sentTx)
@@ -101,7 +101,7 @@ describe('Treasury Contract', () => {
       await expect(sentTx).to.be.revertedWith('Insufficient ERC20 balance')
     })
 
-    it('Only owner can withdraw ERC20 token to a beneficiary', async () => {
+    it('Only account with Executor Role can withdraw ERC20 token to a beneficiary', async () => {
       const amount = parseEther('1')
       const sentTx = treasury.connect(owner).withdrawERC20(rif, beneficiary, amount)
       await expect(sentTx)
