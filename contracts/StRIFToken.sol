@@ -11,6 +11,10 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+
+import {IBIMCheck} from "./interfaces/IBIMCheck.sol";
 
 contract StRIFToken is
   Initializable,
@@ -21,6 +25,17 @@ contract StRIFToken is
   OwnableUpgradeable,
   UUPSUpgradeable
 {
+  using Address for address;
+  using ERC165Checker for address;
+
+  /// @notice The address of the BIM Contract
+  address public bimCheck;
+
+  error STRIFStakedInBIMCanWithdraw(bool canWithdraw);
+  error STRIFSupportsERC165(bool _supports);
+  error STRIFSupportsIBIMCheck(bool _supports);
+  error STRIFUnexpectedCanWithdraw(address _checkAddress);
+
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
     _disableInitializers();
@@ -87,6 +102,34 @@ contract StRIFToken is
     _delegate(to, to);
   }
 
+  //checks BIM for stake
+  modifier _checkBIMForStake(address staker) {
+    if (bimCheck != address(0)) {
+      bool canWithdraw = !IBIMCheck(bimCheck).canWithdraw(staker);
+      if (canWithdraw) {
+        revert STRIFStakedInBIMCanWithdraw(false);
+      }
+    }
+    _;
+  }
+
+  // checks that received address has method which can successfully be called
+  // before setting it to state
+  function setBIMAddress(address bimAddress) public onlyOwner {
+    if (!bimAddress.supportsERC165()) {
+      revert STRIFSupportsERC165(false);
+    }
+    if (!bimAddress.supportsInterface(type(IBIMCheck).interfaceId)) {
+      revert STRIFSupportsIBIMCheck(false);
+    }
+
+    try IBIMCheck(bimAddress).canWithdraw(address(0)) returns (bool) {
+      bimCheck = bimAddress;
+    } catch {
+      revert STRIFUnexpectedCanWithdraw(bimAddress);
+    }
+  }
+
   // The following functions are overrides required by Solidity.
 
   //solhint-disable-next-line no-empty-blocks
@@ -100,8 +143,15 @@ contract StRIFToken is
     address from,
     address to,
     uint256 value
-  ) internal override(ERC20Upgradeable, ERC20VotesUpgradeable) {
+  ) internal override(ERC20Upgradeable, ERC20VotesUpgradeable) _checkBIMForStake(from) {
     super._update(from, to, value);
+  }
+
+  function withdrawTo(
+    address account,
+    uint256 value
+  ) public virtual override _checkBIMForStake(account) returns (bool) {
+    return super.withdrawTo(account, value);
   }
 
   function nonces(
