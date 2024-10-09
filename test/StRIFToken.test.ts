@@ -2,19 +2,35 @@ import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import { expect } from 'chai'
 import { ethers } from 'hardhat'
-import { RIFToken, StRIFToken } from '../typechain-types'
+import {
+  ContractDoesNotSupportERC165andIBIMcheck,
+  ContractDoesNotSupportIBIMCheck,
+  ContractSupportsButWrongReturn,
+  ContractSupportsERC165andIBIMcheck,
+  RIFToken,
+  StRIFToken,
+} from '../typechain-types'
 import { deployContracts } from './deployContracts'
 
 describe('stRIFToken', () => {
   let owner: SignerWithAddress, holder: SignerWithAddress, voter: SignerWithAddress
   let rif: RIFToken
   let stRIF: StRIFToken
+  let ContractSupportsERC165andIBIMcheck: ContractSupportsERC165andIBIMcheck
+  let ContractSupportsButWrongReturn: ContractSupportsButWrongReturn
+  let ContractDoesNotSupportERC165andIBIMcheck: ContractDoesNotSupportERC165andIBIMcheck
+  let ContractDoesNotSupportIBIMCheck: ContractDoesNotSupportIBIMCheck
   const votingPower = 10n * 10n ** 18n
 
   // prettier-ignore
   before(async () => {
     ;[owner, holder, voter] = await ethers.getSigners()
     ;({ rif, stRIF } = await loadFixture(deployContracts))
+    ContractDoesNotSupportERC165andIBIMcheck = await ethers.deployContract('ContractDoesNotSupportERC165andIBIMcheck')
+    ContractDoesNotSupportIBIMCheck = await ethers.deployContract('ContractDoesNotSupportIBIMCheck')
+    ContractSupportsERC165andIBIMcheck = await ethers.deployContract('ContractSupportsERC165andIBIMcheck', [
+      holder,
+    ])
   })
 
   it('Should assign the initial balance to the contract itself', async () => {
@@ -176,6 +192,67 @@ describe('stRIFToken', () => {
 
     it("voter should now have holder's voting power", async () => {
       expect(await stRIF.getVotes(voter.address)).to.equal(votingPower)
+    })
+  })
+
+  describe('BIM Check to allow withrawal ', () => {
+    it('blockedAddress should be set', async () => {
+      expect(await ContractSupportsERC165andIBIMcheck.blockedAddress()).to.be.properAddress
+      expect(await ContractSupportsERC165andIBIMcheck.blockedAddress()).to.equal(holder.address)
+    })
+    it('only owner should be able to set BIMAddress', async () => {
+      const tx = stRIF.connect(holder).setBIMAddress(ContractSupportsERC165andIBIMcheck)
+      expect(tx).to.be.revertedWith('OwnableUnauthorizedAccount')
+    })
+
+    it('setting BIM address should fail if contract does not support ERC165 with STRIFSupportsERC165', async () => {
+      const tx = stRIF.setBIMAddress(await ContractDoesNotSupportERC165andIBIMcheck.getAddress())
+      expect(tx).to.be.revertedWithCustomError({ interface: stRIF.interface }, 'STRIFSupportsERC165')
+    })
+
+    it('setting BIM address should fail if contract does not support IBIMCheck with STRIFSupportsIBIMCheck', async () => {
+      expect(await ContractDoesNotSupportIBIMCheck.supportsInterface('0x01ffc9a7')).to.be.true
+
+      const tx = stRIF.setBIMAddress(await ContractDoesNotSupportERC165andIBIMcheck.getAddress())
+      expect(tx).to.be.revertedWithCustomError({ interface: stRIF.interface }, 'STRIFSupportsIBIMCheck')
+    })
+
+    it('should throw STRIFUnexpectedCanWithdraw if canWithdraw returns NOT boolean and not set to state', async () => {
+      ContractSupportsButWrongReturn = await ethers.deployContract('ContractSupportsButWrongReturn', [holder])
+      const address = await ContractSupportsButWrongReturn.getAddress()
+      const tx = stRIF.setBIMAddress(address)
+      expect(tx).to.revertedWithCustomError({ interface: stRIF.interface }, 'STRIFUnexpectedCanWithdraw')
+    })
+
+    it('should set BIM address if canWithdraw returns boolean', async () => {
+      const address = await ContractSupportsERC165andIBIMcheck.getAddress()
+      await stRIF.setBIMAddress(address)
+
+      expect(await stRIF.bimCheck()).to.equal(address)
+    })
+
+    it('should revert withdrawTo, _update with STRIFStakedInBIMCanWithdraw if bimCheck returns false', async () => {
+      expect(await stRIF.balanceOf(holder)).to.equal(votingPower)
+
+      const tx = stRIF.connect(holder).withdrawTo(holder.address, votingPower)
+      expect(tx).to.be.revertedWithCustomError({ interface: stRIF.interface }, 'STRIFStakedInBIMCanWithdraw')
+
+      //runs _updateTo under the hood
+      const transferTx = stRIF.connect(holder).transfer(voter, votingPower)
+      expect(transferTx).to.be.revertedWithCustomError(
+        { interface: stRIF.interface },
+        'STRIFStakedInBIMCanWithdraw',
+      )
+      expect(await stRIF.balanceOf(holder)).to.equal(votingPower)
+    })
+
+    it('should allow withdrawTo if bimCheck returns true', async () => {
+      await ContractSupportsERC165andIBIMcheck.setBlockedAddress(voter)
+      expect(await stRIF.balanceOf(holder)).to.equal(votingPower)
+
+      const value = votingPower / 2n
+      const tx = stRIF.connect(holder).withdrawTo(holder.address, value)
+      await expect(tx).to.emit(stRIF, 'Transfer').withArgs(holder.address, ethers.ZeroAddress, value)
     })
   })
 })
