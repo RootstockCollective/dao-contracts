@@ -4,8 +4,6 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/interfaces/IERC165.sol";
 
-import {IBIMCheck} from "../interfaces/IBIMCheck.sol";
-
 contract ContractDoesNotSupportIBIMCheck is IERC165 {
   constructor() {}
 

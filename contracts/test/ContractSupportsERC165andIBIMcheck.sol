@@ -3,7 +3,6 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/interfaces/IERC165.sol";
-import "hardhat/console.sol";
 
 import {IBIMCheck} from "../interfaces/IBIMCheck.sol";
 
@@ -20,7 +19,6 @@ contract ContractSupportsERC165andIBIMcheck is IERC165, IBIMCheck {
 
   function canWithdraw(address target) external view returns (bool) {
     if (target == blockedAddress) {
-      console.log("THIS ADDRESS IS BLOCKED", target);
       return false;
     } else {
       return true;
