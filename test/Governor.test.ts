@@ -448,6 +448,16 @@ describe('Governor Contact', () => {
         expect(deployer.address).to.equal(guardianAddress)
       })
 
+      it('proposalProposer should be able to cancel proposal in Pending state', async () => {
+        let state: bigint
+        await createProposal('cancel pending proposal')
+        state = await governor.state(proposalId)
+        expect(state).to.equal(ProposalState.Pending)
+        await governor.connect(holders[0])['cancel(uint256)'](proposalId)
+        state = await governor.state(proposalId)
+        expect(state).to.equal(ProposalState.Canceled)
+      })
+
       it('should not be possible to cancel the proposal by proposalProposer if not in Pending state', async () => {
         await createProposal('should it be possible to cancel when not in pending?')
         await mine((await governor.votingDelay()) + 1n)
@@ -455,12 +465,12 @@ describe('Governor Contact', () => {
         const state = await governor.state(proposalId)
 
         expect(state).to.equal(ProposalState.Active)
-        const tx = governor['cancel(uint256)'](proposalId)
+        const tx = governor.connect(holders[0])['cancel(uint256)'](proposalId)
 
         expect(tx).to.be.revertedWithCustomError({ interface: governor.interface }, unexpectedProposalState)
       })
 
-      describe('guardian should be able to cancel proposals even if it is not proposalProposer', async () => {
+      describe('Guardian should be able to cancel proposals even if it is not proposalProposer', async () => {
         before(async () => {
           const dispenseTx = await rif.transfer(holders[1].address, dispenseValue)
           await dispenseTx.wait()
