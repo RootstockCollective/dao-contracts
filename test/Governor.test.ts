@@ -501,6 +501,50 @@ describe('Governor Contact', () => {
           expect(tx).to.be.revertedWithCustomError({ interface: governor.interface }, unexpectedProposalState)
         })
 
+        it('should NOT be possible to cancel Proposal.Defeated', async () => {
+          await createProposal('guardian cancelling defeated', holders[1])
+          await mine((await governor.votingDelay()) + 1n)
+
+          await mine(initialVotingDelay + initialVotingPeriod + 1n)
+
+          expect(await getState()).to.be.equal(ProposalState.Defeated)
+
+          const tx = governor.connect(deployer)['cancel(uint256)'](proposalId)
+          expect(tx).to.be.revertedWithCustomError({ interface: governor.interface }, unexpectedProposalState)
+        })
+
+        it('should NOT be possible to cancel Proposal.Executed', async () => {
+          const description = 'guardian cancelling Executed'
+          //create proposal
+          await createProposal(description, holders[1])
+          await mine((await governor.votingDelay()) + 1n)
+
+          await voteToSucceed()
+          expect(await getState()).to.be.equal(ProposalState.Succeeded)
+
+          const needsQueuing = await governor.proposalNeedsQueuing(proposalId)
+          expect(needsQueuing).to.be.true
+
+          await queueProposal()
+          const queuedState = await governor.state(proposalId)
+          expect(queuedState).to.be.equal(ProposalState.Queued)
+
+          await time.increaseTo(eta)
+          const block = await ethers.provider.getBlock('latest')
+          expect(block?.timestamp).to.equal(eta)
+
+          const executeTx = await governor['execute(address[],uint256[],bytes[],bytes32)'](
+            ...proposal,
+            generateDescriptionHash(description),
+          )
+          await expect(executeTx).to.emit(governor, 'ProposalExecuted').withArgs(proposalId)
+          const state = await getState()
+          expect(state).to.equal(ProposalState.Executed)
+
+          const tx = governor.connect(deployer)['cancel(uint256)'](proposalId)
+          expect(tx).to.be.revertedWithCustomError({ interface: governor.interface }, unexpectedProposalState)
+        })
+
         it('should be able to cancel ProposalState.Succceded', async () => {
           //cancelling ProposalState.Succceded as guardian
           await createProposal('guardian cancelling succeeded', holders[1])
