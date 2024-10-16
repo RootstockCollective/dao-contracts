@@ -45,7 +45,7 @@ describe('OgFoundersEcosystemPartner NFT', () => {
     })
   })
 
-  describe('Transfer functionality', () => {
+  describe('Transfer functionality is disabled', () => {
     it('transfers should be forbidden after airdrop', async () => {
       await Promise.all(
         oldGangsters.map(async (sender, i) => {
@@ -75,35 +75,10 @@ describe('OgFoundersEcosystemPartner NFT', () => {
         }),
       )
     })
-
-    it('should allow transfer when transfers are enabled', async () => {
-      await (await ogFoundersEp.connect(deployer).setTransfersAllowed(true)).wait()
-
-      for (let i = 0; i < oldGangsters.length; i++) {
-        const sender = oldGangsters[i]
-        await expect(ogFoundersEp.connect(sender).transferFrom(sender.address, alice.address, i + 1))
-          .to.emit(ogFoundersEp, 'Transfer')
-          .withArgs(sender.address, alice.address, i + 1)
-      }
-      expect(await ogFoundersEp.balanceOf(alice.address)).to.equal(oldGangsters.length)
-    })
-
-    it('should not allow transfer when transfers are again disabled', async () => {
-      await ogFoundersEp.connect(deployer).setTransfersAllowed(false)
-
-      await Promise.all(
-        oldGangsters.map(async (sender, i) => {
-          await expect(
-            ogFoundersEp.connect(sender).transferFrom(sender.address, alice.address, i + 1),
-          ).to.be.revertedWithCustomError(ogFoundersEp, 'TransfersDisabled')
-        }),
-      )
-    })
   })
 
   describe('Minting functionality', () => {
     it('should mint a new token with correct URI after the airdrop', async () => {
-      await ogFoundersEp.connect(deployer).setTransfersAllowed(true)
       const ipfsCid = 'QmPAFVDhdLJm61eKDZMV4ZiAz77U7rR869nWhrdRQQgnrA'
       await ogFoundersEp.connect(deployer).safeMint(bob.address, ipfsCid)
       const tokenId = oldGangsters.length + 1
