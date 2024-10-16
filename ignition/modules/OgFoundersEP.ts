@@ -16,15 +16,10 @@ export const ogFoundersEpProxyModule = buildModule('OgFoundersEP', m => {
     id: 'OgFoundersEPProxy',
   })
 
-  // Temporarily allow transfers to conduct the airdrop
-  const allowTransfers = m.call(ogFoundersEp, 'setTransfersAllowed', [true])
-
   // Airdrop
   const ipfsCids = m.getParameter('ipfsCids')
   const airdropAddresses = m.getParameter('airdropAddresses')
-  const airdrop = m.call(ogFoundersEp, 'airdrop', [ipfsCids, airdropAddresses], { after: [allowTransfers] })
+  m.call(ogFoundersEp, 'airdrop', [ipfsCids, airdropAddresses])
 
-  // Disable tokens transfer
-  m.call(ogFoundersEp, 'setTransfersAllowed', [false], { id: 'DisallowTransfers', after: [airdrop] })
   return { ogFoundersEp }
 })

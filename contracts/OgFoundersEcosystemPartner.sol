@@ -19,13 +19,11 @@ contract OgFoundersEcosystemPartner is
 {
   uint8 private constant MAX_NFT_SUPPLY = 50;
   uint256 private _nextTokenId;
-  bool private _transfersAllowed;
 
   error TransfersDisabled();
 
-  modifier ifTransferrable() {
-    if (!_transfersAllowed) revert TransfersDisabled();
-    _;
+  function disableTransfers() internal virtual {
+    revert TransfersDisabled();
   }
 
   /// @custom:oz-upgrades-unsafe-allow constructor
@@ -81,36 +79,39 @@ contract OgFoundersEcosystemPartner is
   }
 
   /**
-   * @dev Enables or disables token transfers.
-   * Ideally, this function is intended to allow opening transfers for minting,
-   * and transferring tokens to recipients during the airdrop, and then closing
-   * transfers, not to be opened again.
+   * @dev Overridden to disable transfers.
    */
-  function setTransfersAllowed(bool allowed) public virtual onlyOwner {
-    _transfersAllowed = allowed;
+  function transferFrom(address, address, uint256) public virtual override(ERC721Upgradeable, IERC721) {
+    disableTransfers();
   }
 
   /**
-   * @dev This function is overridden to prohibit transfers.
+   * @dev Overridden to disable safe transfers.
    */
-  function approve(
-    address to,
-    uint256 tokenId
-  ) public virtual override(ERC721Upgradeable, IERC721) ifTransferrable {
-    super.approve(to, tokenId);
+  function safeTransferFrom(
+    address,
+    address,
+    uint256,
+    bytes memory
+  ) public virtual override(ERC721Upgradeable, IERC721) {
+    disableTransfers();
   }
 
   /**
-   * @dev This function is overridden to prohibit transfers.
+   * @dev This function is overridden to disable transfers.
    */
-  function setApprovalForAll(
-    address operator,
-    bool approved
-  ) public override(ERC721Upgradeable, IERC721) ifTransferrable {
-    super.setApprovalForAll(operator, approved);
+  function approve(address, uint256) public virtual override(ERC721Upgradeable, IERC721) {
+    disableTransfers();
   }
 
-  function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+  /**
+   * @dev This function is overridden to disable transfers.
+   */
+  function setApprovalForAll(address, bool) public virtual override(ERC721Upgradeable, IERC721) {
+    disableTransfers();
+  }
+
+  function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
 
   // The following functions are overrides required by Solidity.
 
@@ -121,7 +122,7 @@ contract OgFoundersEcosystemPartner is
     address to,
     uint256 tokenId,
     address auth
-  ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) ifTransferrable returns (address) {
+  ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (address) {
     return super._update(to, tokenId, auth);
   }
 
