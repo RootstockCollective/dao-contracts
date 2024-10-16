@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/interfaces/IERC165.sol";
 
-contract ContractDoesNotSupportIBIMCheck is IERC165 {
+contract ContractDoesNotSupportICollectiveRewardsCheck is IERC165 {
   constructor() {}
 
   function foo() internal pure returns (string memory) {

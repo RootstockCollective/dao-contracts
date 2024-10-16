@@ -4,9 +4,9 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/interfaces/IERC165.sol";
 
-import {IBIMCheck} from "../interfaces/IBIMCheck.sol";
+import {ICollectiveRewardsCheck} from "../interfaces/ICollectiveRewardsCheck.sol";
 
-contract ContractSupportsERC165andIBIMcheck is IERC165, IBIMCheck {
+contract ContractSupportsERC165andICollectiveRewardscheck is IERC165, ICollectiveRewardsCheck {
   address public blockedAddress;
 
   constructor(address _blockedAddress) {
@@ -26,6 +26,7 @@ contract ContractSupportsERC165andIBIMcheck is IERC165, IBIMCheck {
   }
 
   function supportsInterface(bytes4 interfaceId) external pure override returns (bool) {
-    return interfaceId == type(IERC165).interfaceId || interfaceId == type(IBIMCheck).interfaceId;
+    return
+      interfaceId == type(IERC165).interfaceId || interfaceId == type(ICollectiveRewardsCheck).interfaceId;
   }
 }

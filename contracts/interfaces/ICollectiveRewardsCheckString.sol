@@ -2,6 +2,6 @@
 
 pragma solidity ^0.8.20;
 
-interface IBIMCheckString {
+interface ICollectiveRewardsCheckString {
   function canWithdraw(address targetAddress, uint256 value) external view returns (string memory);
 }

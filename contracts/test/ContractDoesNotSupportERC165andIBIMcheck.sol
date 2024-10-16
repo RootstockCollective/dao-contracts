@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.20;
 
-contract ContractDoesNotSupportERC165andIBIMcheck {
+contract ContractDoesNotSupportERC165andICollectiveRewardscheck {
   constructor() {}
 
   function foo() internal pure returns (string memory) {

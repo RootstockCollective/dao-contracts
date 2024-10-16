@@ -14,7 +14,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
-import {IBIMCheck} from "./interfaces/IBIMCheck.sol";
+import {ICollectiveRewardsCheck} from "./interfaces/ICollectiveRewardsCheck.sol";
 
 contract StRIFToken is
   Initializable,
@@ -28,12 +28,12 @@ contract StRIFToken is
   using Address for address;
   using ERC165Checker for address;
 
-  /// @notice The address of the BIM Contract
+  /// @notice The address of the CollectiveRewards Contract
   address public bimCheck;
 
-  error STRIFStakedInBIMCanWithdraw(bool canWithdraw);
+  error STRIFStakedInCollectiveRewardsCanWithdraw(bool canWithdraw);
   error STRIFSupportsERC165(bool _supports);
-  error STRIFSupportsIBIMCheck(bool _supports);
+  error STRIFSupportsICollectiveRewardsCheck(bool _supports);
   error STRIFUnexpectedCanWithdraw(address _checkAddress);
 
   /// @custom:oz-upgrades-unsafe-allow constructor
@@ -102,12 +102,12 @@ contract StRIFToken is
     _delegate(to, to);
   }
 
-  //checks BIM for stake
-  modifier _checkBIMForStake(address staker, uint256 value) {
+  //checks CollectiveRewards for stake
+  modifier _checkCollectiveRewardsForStake(address staker, uint256 value) {
     if (bimCheck != address(0)) {
-      try IBIMCheck(bimCheck).canWithdraw(staker, value) returns (bool canWithdraw) {
+      try ICollectiveRewardsCheck(bimCheck).canWithdraw(staker, value) returns (bool canWithdraw) {
         if (!canWithdraw) {
-          revert STRIFStakedInBIMCanWithdraw(false);
+          revert STRIFStakedInCollectiveRewardsCanWithdraw(false);
         }
       } catch {}
     }
@@ -116,15 +116,15 @@ contract StRIFToken is
 
   // checks that received address has method which can successfully be called
   // before setting it to state
-  function setBIMAddress(address bimAddress) public onlyOwner {
+  function setCollectiveRewardsAddress(address bimAddress) public onlyOwner {
     if (!bimAddress.supportsERC165()) {
       revert STRIFSupportsERC165(false);
     }
-    if (!bimAddress.supportsInterface(type(IBIMCheck).interfaceId)) {
-      revert STRIFSupportsIBIMCheck(false);
+    if (!bimAddress.supportsInterface(type(ICollectiveRewardsCheck).interfaceId)) {
+      revert STRIFSupportsICollectiveRewardsCheck(false);
     }
 
-    try IBIMCheck(bimAddress).canWithdraw(address(0), 1) returns (bool) {
+    try ICollectiveRewardsCheck(bimAddress).canWithdraw(address(0), 1) returns (bool) {
       bimCheck = bimAddress;
     } catch {
       revert STRIFUnexpectedCanWithdraw(bimAddress);
@@ -144,14 +144,14 @@ contract StRIFToken is
     address from,
     address to,
     uint256 value
-  ) internal override(ERC20Upgradeable, ERC20VotesUpgradeable) _checkBIMForStake(from, value) {
+  ) internal override(ERC20Upgradeable, ERC20VotesUpgradeable) _checkCollectiveRewardsForStake(from, value) {
     super._update(from, to, value);
   }
 
   function withdrawTo(
     address account,
     uint256 value
-  ) public virtual override _checkBIMForStake(account, value) returns (bool) {
+  ) public virtual override _checkCollectiveRewardsForStake(account, value) returns (bool) {
     return super.withdrawTo(account, value);
   }
 
