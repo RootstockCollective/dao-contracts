@@ -86,18 +86,6 @@ contract OgFoundersEcosystemPartner is
   }
 
   /**
-   * @dev Overridden to disable safe transfers.
-   */
-  function safeTransferFrom(
-    address,
-    address,
-    uint256,
-    bytes memory
-  ) public virtual override(ERC721Upgradeable, IERC721) {
-    disableTransfers();
-  }
-
-  /**
    * @dev This function is overridden to disable transfers.
    */
   function approve(address, uint256) public virtual override(ERC721Upgradeable, IERC721) {
