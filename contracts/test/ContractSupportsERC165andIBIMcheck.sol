@@ -17,8 +17,8 @@ contract ContractSupportsERC165andIBIMcheck is IERC165, IBIMCheck {
     blockedAddress = _blockedAddress;
   }
 
-  function canWithdraw(address target) external view returns (bool) {
-    if (target == blockedAddress) {
+  function canWithdraw(address target, uint256 value) external view returns (bool) {
+    if (target == blockedAddress || value < 0) {
       return false;
     } else {
       return true;

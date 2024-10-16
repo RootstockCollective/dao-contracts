@@ -103,12 +103,13 @@ contract StRIFToken is
   }
 
   //checks BIM for stake
-  modifier _checkBIMForStake(address staker) {
+  modifier _checkBIMForStake(address staker, uint256 value) {
     if (bimCheck != address(0)) {
-      bool canWithdraw = !IBIMCheck(bimCheck).canWithdraw(staker);
-      if (canWithdraw) {
-        revert STRIFStakedInBIMCanWithdraw(false);
-      }
+      try IBIMCheck(bimCheck).canWithdraw(staker, value) returns (bool canWithdraw) {
+        if (!canWithdraw) {
+          revert STRIFStakedInBIMCanWithdraw(false);
+        }
+      } catch {}
     }
     _;
   }
@@ -123,7 +124,7 @@ contract StRIFToken is
       revert STRIFSupportsIBIMCheck(false);
     }
 
-    try IBIMCheck(bimAddress).canWithdraw(address(0)) returns (bool) {
+    try IBIMCheck(bimAddress).canWithdraw(address(0), 1) returns (bool) {
       bimCheck = bimAddress;
     } catch {
       revert STRIFUnexpectedCanWithdraw(bimAddress);
@@ -143,14 +144,14 @@ contract StRIFToken is
     address from,
     address to,
     uint256 value
-  ) internal override(ERC20Upgradeable, ERC20VotesUpgradeable) _checkBIMForStake(from) {
+  ) internal override(ERC20Upgradeable, ERC20VotesUpgradeable) _checkBIMForStake(from, value) {
     super._update(from, to, value);
   }
 
   function withdrawTo(
     address account,
     uint256 value
-  ) public virtual override _checkBIMForStake(account) returns (bool) {
+  ) public virtual override _checkBIMForStake(account, value) returns (bool) {
     return super.withdrawTo(account, value);
   }
 

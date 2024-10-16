@@ -17,8 +17,8 @@ contract ContractSupportsButWrongReturn is IERC165, IBIMCheckString {
     blockedAddress = _blockedAddress;
   }
 
-  function canWithdraw(address target) external view returns (string memory) {
-    if (target == blockedAddress) {
+  function canWithdraw(address target, uint256 value) external view returns (string memory) {
+    if (target == blockedAddress || value < 0) {
       return "not allowed";
     } else {
       return "allowed";

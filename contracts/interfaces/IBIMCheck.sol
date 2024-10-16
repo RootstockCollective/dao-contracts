@@ -3,5 +3,5 @@
 pragma solidity ^0.8.20;
 
 interface IBIMCheck {
-  function canWithdraw(address targetAddress) external view returns (bool);
+  function canWithdraw(address targetAddress, uint256 value) external view returns (bool);
 }

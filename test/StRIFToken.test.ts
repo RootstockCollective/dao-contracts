@@ -237,7 +237,7 @@ describe('stRIFToken', () => {
       const tx = stRIF.connect(holder).withdrawTo(holder.address, votingPower)
       expect(tx).to.be.revertedWithCustomError({ interface: stRIF.interface }, 'STRIFStakedInBIMCanWithdraw')
 
-      //runs _updateTo under the hood
+      //runs _update under the hood
       const transferTx = stRIF.connect(holder).transfer(voter, votingPower)
       expect(transferTx).to.be.revertedWithCustomError(
         { interface: stRIF.interface },
