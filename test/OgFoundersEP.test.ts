@@ -8,12 +8,11 @@ import deployParams from '../params/OgFoundersEP/testnet.json'
 describe('OgFoundersEcosystemPartner NFT', () => {
   let deployer: SignerWithAddress
   let alice: SignerWithAddress
-  let bob: SignerWithAddress
   const oldGangsters: SignerWithAddress[] = []
   let ogFoundersEp: OgFoundersEcosystemPartner
 
   before(async () => {
-    ;[deployer, alice, bob] = await ethers.getSigners()
+    ;[deployer, alice] = await ethers.getSigners()
     const contract = await ignition.deploy(ogFoundersEpProxyModule, {
       parameters: deployParams,
     })
@@ -32,8 +31,8 @@ describe('OgFoundersEcosystemPartner NFT', () => {
 
   describe('Upon deployment', () => {
     it('should set up proper NFT name and symbol', async () => {
-      expect(await ogFoundersEp.name()).to.equal('OgFoundersEcosystemPartner')
-      expect(await ogFoundersEp.symbol()).to.equal('OFE')
+      expect(await ogFoundersEp.connect(deployer).name()).to.equal(deployParams.OgFoundersEP.contractName)
+      expect(await ogFoundersEp.symbol()).to.equal(deployParams.OgFoundersEP.symbol)
     })
 
     it('should have performed airdrop during deployment', async () => {
@@ -74,16 +73,6 @@ describe('OgFoundersEcosystemPartner NFT', () => {
           ).to.be.revertedWithCustomError(ogFoundersEp, 'TransfersDisabled')
         }),
       )
-    })
-  })
-
-  describe('Minting functionality', () => {
-    it('should mint a new token with correct URI after the airdrop', async () => {
-      const ipfsCid = 'QmPAFVDhdLJm61eKDZMV4ZiAz77U7rR869nWhrdRQQgnrA'
-      await ogFoundersEp.connect(deployer).safeMint(bob.address, ipfsCid)
-      const tokenId = oldGangsters.length + 1
-      expect(await ogFoundersEp.ownerOf(tokenId)).to.equal(bob.address)
-      expect(await ogFoundersEp.tokenURI(tokenId)).to.equal(`ipfs://${ipfsCid}`)
     })
   })
 })

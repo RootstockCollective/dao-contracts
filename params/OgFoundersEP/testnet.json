@@ -1,5 +1,8 @@
 {
   "OgFoundersEP": {
+    "contractName": "OgFoundersEcosystemPartner",
+    "symbol": "OGFEP",
+    "maxNftSupply": 5,
     "ipfsCids": [
       "QmeGNJxhSToWYvHucUMX4D2fX8Uk2aL8CujwFuGw2Moy9U",
       "QmPFcgjgqCMoEbBmkbnvwaknENTH3WckjCGYekQhXJFVzn",
