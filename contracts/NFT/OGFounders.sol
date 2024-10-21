@@ -13,8 +13,6 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {ERC721UpgradableBase} from "./ERC721UpgradableBase.sol";
 import {ERC721UpgradableNonTransferrable} from "./ERC721UpgradableNonTransferrable.sol";
 
-import "hardhat/console.sol";
-
 contract OGFounders is ERC721Upgradeable, ERC721UpgradableNonTransferrable {
   using Strings for uint8;
 
