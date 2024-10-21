@@ -14,7 +14,7 @@ import { ContractTransactionResponse, parseEther, solidityPackedKeccak256 } from
 import { Proposal, ProposalState, OperationState } from '../types'
 import { deployContracts } from './deployContracts'
 import ogFoundersProxyModule from '../ignition/modules/OGFounders'
-import deployParams from '../params/OgFounders/testnet.json'
+import deployParams from '../params/OGFounders/testnet.json'
 
 describe('Governor Contact', () => {
   const initialVotingDelay = 1n
