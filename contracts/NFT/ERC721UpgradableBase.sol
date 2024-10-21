@@ -35,7 +35,7 @@ abstract contract ERC721UpgradableBase is
   function _increaseBalance(
     address account,
     uint128 value
-  ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) {
+  ) internal virtual override(ERC721Upgradeable, ERC721EnumerableUpgradeable) {
     super._increaseBalance(account, value);
   }
 
@@ -43,7 +43,7 @@ abstract contract ERC721UpgradableBase is
     address to,
     uint256 tokenId,
     address auth
-  ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (address) {
+  ) internal virtual override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (address) {
     return super._update(to, tokenId, auth);
   }
 
@@ -52,6 +52,7 @@ abstract contract ERC721UpgradableBase is
   )
     public
     view
+    virtual
     override(ERC721Upgradeable, ERC721EnumerableUpgradeable, ERC721URIStorageUpgradeable)
     returns (bool)
   {
@@ -60,7 +61,7 @@ abstract contract ERC721UpgradableBase is
 
   function tokenURI(
     uint256 tokenId
-  ) public view override(ERC721Upgradeable, ERC721URIStorageUpgradeable) returns (string memory) {
+  ) public view virtual override(ERC721Upgradeable, ERC721URIStorageUpgradeable) returns (string memory) {
     return super.tokenURI(tokenId);
   }
 }
