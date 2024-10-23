@@ -195,7 +195,7 @@ describe('stRIFToken', () => {
     })
   })
 
-  describe('CollectiveRewards Check to allow withrawal ', () => {
+  describe('CollectiveRewards Check to allow withdrawal', () => {
     it('blockedAddress should be set', async () => {
       expect(await ContractSupportsERC165andICollectiveRewardscheck.blockedAddress()).to.be.properAddress
       expect(await ContractSupportsERC165andICollectiveRewardscheck.blockedAddress()).to.equal(holder.address)
