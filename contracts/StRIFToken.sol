@@ -30,11 +30,19 @@ contract StRIFToken is
 
   /// @notice The address of the CollectiveRewards Contract
   address public bimCheck;
+  /// @notice The flag indicating that the CollectiveRewards error
+  /// is desired to be skipped
+  bool _shouldErrorBeSkipped;
 
   error STRIFStakedInCollectiveRewardsCanWithdraw(bool canWithdraw);
   error STRIFSupportsERC165(bool _supports);
   error STRIFSupportsICollectiveRewardsCheck(bool _supports);
   error STRIFUnexpectedCanWithdraw(address _checkAddress);
+  error CollectiveRewardsErrored(string reason);
+  error CollectiveRewardsErroredBytes(bytes reason);
+
+  event STRIFCollectiveRewardsErrorSkipChangedTo(bool shouldBeSkipped);
+  event CollectiveRewardsAddressHasBeenChanged(address collectiveRewardsAddress);
 
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
@@ -109,26 +117,37 @@ contract StRIFToken is
         if (!canWithdraw) {
           revert STRIFStakedInCollectiveRewardsCanWithdraw(false);
         }
-      } catch {}
+      } catch Error(string memory reason) {
+        if (!_shouldErrorBeSkipped) {
+          revert CollectiveRewardsErrored(reason);
+        }
+      } catch (bytes memory reason) {
+        if (!_shouldErrorBeSkipped) {
+          revert CollectiveRewardsErroredBytes(reason);
+        }
+      }
     }
     _;
   }
 
   // checks that received address has method which can successfully be called
   // before setting it to state
-  function setCollectiveRewardsAddress(address bimAddress) public onlyOwner {
-    if (!bimAddress.supportsERC165()) {
-      revert STRIFSupportsERC165(false);
-    }
-    if (!bimAddress.supportsInterface(type(ICollectiveRewardsCheck).interfaceId)) {
+  function setCollectiveRewardsAddress(address collectiveRewardsAddress) public onlyOwner {
+    if (!collectiveRewardsAddress.supportsInterface(type(ICollectiveRewardsCheck).interfaceId)) {
       revert STRIFSupportsICollectiveRewardsCheck(false);
     }
 
-    try ICollectiveRewardsCheck(bimAddress).canWithdraw(address(0), 1) returns (bool) {
-      bimCheck = bimAddress;
+    try ICollectiveRewardsCheck(collectiveRewardsAddress).canWithdraw(address(0), 1) returns (bool) {
+      bimCheck = collectiveRewardsAddress;
+      emit CollectiveRewardsAddressHasBeenChanged(collectiveRewardsAddress);
     } catch {
-      revert STRIFUnexpectedCanWithdraw(bimAddress);
+      revert STRIFUnexpectedCanWithdraw(collectiveRewardsAddress);
     }
+  }
+
+  function setCollectiveRewardsErrorSkipFlag(bool shouldBeSkipped) public onlyOwner {
+    _shouldErrorBeSkipped = shouldBeSkipped;
+    emit STRIFCollectiveRewardsErrorSkipChangedTo(shouldBeSkipped);
   }
 
   // The following functions are overrides required by Solidity.
