@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/interfaces/IERC165.sol";
 
-import {ICollectiveRewardsCheckString} from "../interfaces/ICollectiveRewardsCheckString.sol";
+import {ICollectiveRewardsCheckString} from "../test/interfaces/ICollectiveRewardsCheckString.sol";
 
 contract ContractSupportsButWrongReturn is IERC165, ICollectiveRewardsCheckString {
   address public blockedAddress;
