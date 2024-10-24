@@ -19,9 +19,11 @@ interface IAirdroppable {
   function airdrop(AirdropRecipient[] calldata receivers) external;
 }
 
-error AirdropMintingLocked(uint256 numMinted);
-
 abstract contract ERC721UpgradableAirdroppable is ERC721UpgradableBase, IAirdroppable {
+  error AirdropMintingLocked(uint256 numMinted);
+
+  event AirDropLocked(uint256 numMinted);
+
   // keccak256(abi.encode(uint256(keccak256("rootstock.storage.ERC721Airdroppable")) - 1)) & ~bytes32(uint256(0xff))
   bytes32 private constant STORAGE_LOCATION =
     0xb0b7c350b577073edef3635128030d229b37650766e59f19e264b4b50f30a500;
@@ -57,5 +59,6 @@ abstract contract ERC721UpgradableAirdroppable is ERC721UpgradableBase, IAirdrop
 
   function lockNFTMinting() external onlyOwner {
     _getStorage()._locked = true;
+    emit AirDropLocked(totalSupply());
   }
 }
