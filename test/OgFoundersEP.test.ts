@@ -3,7 +3,6 @@ import hre, { ethers, ignition } from 'hardhat'
 import { OgFoundersEcosystemPartner } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { ogFoundersEpProxyModule } from '../ignition/modules/OgFoundersEP'
-import deployParams from '../params/OgFoundersEP/params.json'
 import airdropReceivers from '../params/OgFoundersEP/airdrop-testnet.json'
 
 describe('OgFoundersEcosystemPartner NFT', () => {
@@ -14,9 +13,7 @@ describe('OgFoundersEcosystemPartner NFT', () => {
 
   before(async () => {
     ;[deployer, alice] = await ethers.getSigners()
-    const contract = await ignition.deploy(ogFoundersEpProxyModule, {
-      parameters: deployParams,
-    })
+    const contract = await ignition.deploy(ogFoundersEpProxyModule)
     ogFoundersEp = contract.ogFoundersEp as unknown as OgFoundersEcosystemPartner
     // impersonating airdrop receivers
     for (let i = 0; i < airdropReceivers.length; i++) {
@@ -32,8 +29,8 @@ describe('OgFoundersEcosystemPartner NFT', () => {
 
   describe('Upon deployment', () => {
     it('should set up proper NFT name and symbol', async () => {
-      expect(await ogFoundersEp.connect(deployer).name()).to.equal(deployParams.OgFoundersEP.contractName)
-      expect(await ogFoundersEp.symbol()).to.equal(deployParams.OgFoundersEP.symbol)
+      expect(await ogFoundersEp.connect(deployer).name()).to.equal('OgFoundersEcosystemPartner')
+      expect(await ogFoundersEp.symbol()).to.equal('OGFEP')
     })
 
     it('should have zero total supply', async () => {
@@ -76,11 +73,12 @@ describe('OgFoundersEcosystemPartner NFT', () => {
     it('the Gangsters should own 2 NFTs after the second airdrop', async () => {
       await Promise.all(
         oldGangsters.map(async (gangster, i) => {
+          const tokenId = airdropReceivers.length + i + 1
           expect(await ogFoundersEp.balanceOf(gangster.address)).to.equal(2)
           // token IDs: 6, 7, 8...
-          expect(await ogFoundersEp.tokenOfOwnerByIndex(gangster.address, 1)).to.equal(
-            airdropReceivers.length + i + 1,
-          )
+          expect(await ogFoundersEp.tokenOfOwnerByIndex(gangster.address, 1)).to.equal(tokenId)
+          const cid = airdropReceivers[i].ipfsCid
+          expect(await ogFoundersEp.tokenURI(tokenId)).to.equal(`ipfs://${cid}`)
         }),
       )
     })

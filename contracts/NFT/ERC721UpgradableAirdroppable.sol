@@ -20,12 +20,12 @@ interface IAirdroppable {
 
 abstract contract ERC721UpgradableAirdroppable is ERC721UpgradableBase, IAirdroppable {
   // keccak256(abi.encode(uint256(keccak256("rootstock.storage.ERC721Airdroppable")) - 1)) & ~bytes32(uint256(0xff))
-  bytes32 private constant storageLocation =
+  bytes32 private constant STORAGE_LOCATION =
     0xb0b7c350b577073edef3635128030d229b37650766e59f19e264b4b50f30a500;
 
   function _getStorage() private pure returns (AirdroppableStorage storage $) {
     assembly {
-      $.slot := storageLocation
+      $.slot := STORAGE_LOCATION
     }
   }
 

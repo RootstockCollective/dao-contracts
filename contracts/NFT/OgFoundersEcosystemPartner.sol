@@ -13,12 +13,8 @@ contract OgFoundersEcosystemPartner is ERC721UpgradableAirdroppable, ERC721Upgra
     _disableInitializers();
   }
 
-  function initialize(
-    string calldata contractName,
-    string calldata symbol,
-    address initialOwner
-  ) public initializer {
-    __ERC721UpgradableBase_init(contractName, symbol, initialOwner);
+  function initialize(address initialOwner) public initializer {
+    __ERC721UpgradableBase_init("OgFoundersEcosystemPartner", "OGFEP", initialOwner);
   }
 
   function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
