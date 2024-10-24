@@ -10,6 +10,7 @@ struct AirdropRecipient {
 }
 struct AirdroppableStorage {
   uint256 _nextTokenId;
+  bool _locked;
 }
 
 interface IAirdroppable {
@@ -17,6 +18,8 @@ interface IAirdroppable {
 
   function airdrop(AirdropRecipient[] calldata receivers) external;
 }
+
+error AirdropMintingLocked(uint256 numMinted);
 
 abstract contract ERC721UpgradableAirdroppable is ERC721UpgradableBase, IAirdroppable {
   // keccak256(abi.encode(uint256(keccak256("rootstock.storage.ERC721Airdroppable")) - 1)) & ~bytes32(uint256(0xff))
@@ -36,6 +39,11 @@ abstract contract ERC721UpgradableAirdroppable is ERC721UpgradableBase, IAirdrop
    */
   function airdrop(AirdropRecipient[] calldata receivers) external virtual override onlyOwner {
     AirdroppableStorage storage $ = _getStorage();
+
+    if ($._locked) {
+      revert AirdropMintingLocked(totalSupply());
+    }
+
     uint256 tokenId = $._nextTokenId;
     for (uint256 i = 0; i < receivers.length; i++) {
       tokenId++;
@@ -45,5 +53,9 @@ abstract contract ERC721UpgradableAirdroppable is ERC721UpgradableBase, IAirdrop
     }
     $._nextTokenId = tokenId;
     emit AirdropExecuted(receivers.length);
+  }
+
+  function lockNFTMinting() external onlyOwner {
+    _getStorage()._locked = true;
   }
 }
