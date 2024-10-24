@@ -1,5 +1,5 @@
 import { expect } from 'chai'
-import { ethers } from 'hardhat'
+import { ethers, ignition } from 'hardhat'
 import { loadFixture, mine, time } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import {
   RIFToken,
@@ -7,11 +7,13 @@ import {
   StRIFToken,
   DaoTimelockUpgradableRootstockCollective,
   ProposalTarget,
+  OGFounders,
 } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { ContractTransactionResponse, parseEther, solidityPackedKeccak256 } from 'ethers'
 import { Proposal, ProposalState, OperationState } from '../types'
 import { deployContracts } from './deployContracts'
+import ogFoundersProxyModule from '../ignition/modules/OGFounders'
 
 describe('Governor Contact', () => {
   const initialVotingDelay = 1n
@@ -142,7 +144,7 @@ describe('Governor Contact', () => {
     describe('Proposal Creation', () => {
       it('participants should gain voting power proportional to RIF tokens', async () => {
         await Promise.all(
-          holders.map(async (voter, i) => {
+          holders.slice(0, holders.length - 1).map(async (voter, i) => {
             const dispenseTx = await rif.transfer(voter.address, dispenseValue)
             await dispenseTx.wait()
             const rifBalance = await rif.balanceOf(voter.address)
@@ -228,6 +230,94 @@ describe('Governor Contact', () => {
         const totalVotes = forVotes + abstainVotes
         const remainingVotes = quorum - totalVotes
         expect(remainingVotes).equal(quorum)
+      })
+
+      describe('OG Founders NFT', () => {
+        let ogFoundersNFT: OGFounders
+        let tokensLeft = 150
+
+        before(async () => {
+          const contract = await ignition.deploy(ogFoundersProxyModule, {
+            parameters: {
+              OGFounders: {
+                stRIFAddress: await stRIF.getAddress(),
+                firstProposalDate: proposalSnapshot,
+              },
+            },
+          })
+          ogFoundersNFT = contract.OGFounders as unknown as OGFounders
+        })
+
+        it('the OG Founders NFT should be deployed', async () => {
+          expect(await ogFoundersNFT.getAddress()).to.be.properAddress
+        })
+
+        it('should set up proper NFT name, symbol', async () => {
+          expect(await ogFoundersNFT.connect(deployer).name()).to.equal('OGFoundersRootstockCollective')
+          expect(await ogFoundersNFT.symbol()).to.equal('OGF')
+        })
+
+        it('should have a correct stRIF address', async () => {
+          expect(await stRIF.getAddress()).to.equal(await ogFoundersNFT.stRIF())
+        })
+
+        it('should have a tokensAvailable at 150 in the beginning', async () => {
+          expect(await ogFoundersNFT.tokensAvailable()).to.equal(150)
+        })
+
+        it('holders who gained votes before 1st proposal should be able to mint the NFT', async () => {
+          await Promise.all(
+            holders.slice(0, holders.length - 1).map(async h => {
+              await ogFoundersNFT.connect(h).mint()
+              expect(await ogFoundersNFT.balanceOf(h.address)).to.equal(1)
+              const tokenId = await ogFoundersNFT.tokenIdByOwner(h.address)
+              expect(await ogFoundersNFT.ownerOf(tokenId)).to.equal(h.address)
+              tokensLeft--
+            }),
+          )
+        })
+
+        it('tokenAvailable should now return 150 - tokensLeft', async () => {
+          expect(await ogFoundersNFT.tokensAvailable()).to.equal(tokensLeft)
+        })
+
+        it('should have a holder who have not owned enough stRIF at the time of proposalSnapshot', async () => {
+          const lastHoldersBalance = await stRIF.getPastVotes(
+            await holders[holders.length - 1].getAddress(),
+            proposalSnapshot,
+          )
+
+          expect(lastHoldersBalance).to.equal(0)
+        })
+
+        it('should NOT be possible to claim NFT if you have not owned at least 1 stRIF before 1st proposal', async () => {
+          const tx = ogFoundersNFT.connect(holders[holders.length - 1]).mint()
+          expect(tx).to.be.revertedWithCustomError(
+            { interface: ogFoundersNFT.interface },
+            'WasNotEnoughStRIFToMint',
+          )
+        })
+
+        it('should NOT be possible to claim more than once', async () => {
+          await Promise.all(
+            holders.slice(0, 1).map(async h => {
+              const tx = ogFoundersNFT.connect(h).mint()
+              expect(tx).to.be.revertedWithCustomError(
+                { interface: ogFoundersNFT.interface },
+                'ERC721InvalidOwner',
+              )
+            }),
+          )
+        })
+
+        it('transferFrom should be forbidden', async () => {
+          const tokenIdOwned = await ogFoundersNFT.tokenIdByOwner(holders[0])
+          const tx = ogFoundersNFT.transferFrom(holders[0], holders[1], tokenIdOwned)
+          expect(tx).to.be.revertedWithCustomError(
+            { interface: ogFoundersNFT.interface },
+            'TransfersDisabled',
+          )
+        })
       })
     })
 
@@ -448,6 +538,16 @@ describe('Governor Contact', () => {
         expect(deployer.address).to.equal(guardianAddress)
       })
 
+      it('proposalProposer should be able to cancel proposal in Pending state', async () => {
+        let state: bigint
+        await createProposal('cancel pending proposal')
+        state = await governor.state(proposalId)
+        expect(state).to.equal(ProposalState.Pending)
+        await governor.connect(holders[0])['cancel(uint256)'](proposalId)
+        state = await governor.state(proposalId)
+        expect(state).to.equal(ProposalState.Canceled)
+      })
+
       it('should not be possible to cancel the proposal by proposalProposer if not in Pending state', async () => {
         await createProposal('should it be possible to cancel when not in pending?')
         await mine((await governor.votingDelay()) + 1n)
@@ -455,12 +555,12 @@ describe('Governor Contact', () => {
         const state = await governor.state(proposalId)
 
         expect(state).to.equal(ProposalState.Active)
-        const tx = governor['cancel(uint256)'](proposalId)
+        const tx = governor.connect(holders[0])['cancel(uint256)'](proposalId)
 
         expect(tx).to.be.revertedWithCustomError({ interface: governor.interface }, unexpectedProposalState)
       })
 
-      describe('guardian should be able to cancel proposals even if it is not proposalProposer', async () => {
+      describe('Guardian should be able to cancel proposals even if it is not proposalProposer', async () => {
         before(async () => {
           const dispenseTx = await rif.transfer(holders[1].address, dispenseValue)
           await dispenseTx.wait()
@@ -497,6 +597,50 @@ describe('Governor Contact', () => {
         it('should NOT be able to cancel ProposalState.Cancelled', async () => {
           const cancelledState = await governor.state(proposalId)
           expect(cancelledState).to.equal(ProposalState.Canceled)
+          const tx = governor.connect(deployer)['cancel(uint256)'](proposalId)
+          expect(tx).to.be.revertedWithCustomError({ interface: governor.interface }, unexpectedProposalState)
+        })
+
+        it('should NOT be possible to cancel Proposal.Defeated', async () => {
+          await createProposal('guardian cancelling defeated', holders[1])
+          await mine((await governor.votingDelay()) + 1n)
+
+          await mine(initialVotingDelay + initialVotingPeriod + 1n)
+
+          expect(await getState()).to.be.equal(ProposalState.Defeated)
+
+          const tx = governor.connect(deployer)['cancel(uint256)'](proposalId)
+          expect(tx).to.be.revertedWithCustomError({ interface: governor.interface }, unexpectedProposalState)
+        })
+
+        it('should NOT be possible to cancel Proposal.Executed', async () => {
+          const description = 'guardian cancelling Executed'
+          //create proposal
+          await createProposal(description, holders[1])
+          await mine((await governor.votingDelay()) + 1n)
+
+          await voteToSucceed()
+          expect(await getState()).to.be.equal(ProposalState.Succeeded)
+
+          const needsQueuing = await governor.proposalNeedsQueuing(proposalId)
+          expect(needsQueuing).to.be.true
+
+          await queueProposal()
+          const queuedState = await governor.state(proposalId)
+          expect(queuedState).to.be.equal(ProposalState.Queued)
+
+          await time.increaseTo(eta)
+          const block = await ethers.provider.getBlock('latest')
+          expect(block?.timestamp).to.equal(eta)
+
+          const executeTx = await governor['execute(address[],uint256[],bytes[],bytes32)'](
+            ...proposal,
+            generateDescriptionHash(description),
+          )
+          await expect(executeTx).to.emit(governor, 'ProposalExecuted').withArgs(proposalId)
+          const state = await getState()
+          expect(state).to.equal(ProposalState.Executed)
+
           const tx = governor.connect(deployer)['cancel(uint256)'](proposalId)
           expect(tx).to.be.revertedWithCustomError({ interface: governor.interface }, unexpectedProposalState)
         })
