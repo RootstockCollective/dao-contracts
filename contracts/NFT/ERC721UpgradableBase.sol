@@ -19,8 +19,8 @@ abstract contract ERC721UpgradableBase is
   UUPSUpgradeable
 {
   function __ERC721UpgradableBase_init(
-    string calldata name,
-    string calldata symbol,
+    string memory name,
+    string memory symbol,
     address initialOwner
   ) internal onlyInitializing {
     __ERC721_init(name, symbol);

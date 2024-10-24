@@ -14,7 +14,6 @@ import { ContractTransactionResponse, parseEther, solidityPackedKeccak256 } from
 import { Proposal, ProposalState, OperationState } from '../types'
 import { deployContracts } from './deployContracts'
 import ogFoundersProxyModule from '../ignition/modules/OGFounders'
-import deployParams from '../params/OGFounders/testnet.json'
 
 describe('Governor Contact', () => {
   const initialVotingDelay = 1n
@@ -241,7 +240,6 @@ describe('Governor Contact', () => {
           const contract = await ignition.deploy(ogFoundersProxyModule, {
             parameters: {
               OGFounders: {
-                ...deployParams.OGFounders,
                 stRIFAddress: await stRIF.getAddress(),
                 firstProposalDate: proposalSnapshot,
               },
@@ -255,8 +253,8 @@ describe('Governor Contact', () => {
         })
 
         it('should set up proper NFT name, symbol', async () => {
-          expect(await ogFoundersNFT.connect(deployer).name()).to.equal(deployParams.OGFounders.contractName)
-          expect(await ogFoundersNFT.symbol()).to.equal(deployParams.OGFounders.symbol)
+          expect(await ogFoundersNFT.connect(deployer).name()).to.equal('OGFoundersRootstockCollective')
+          expect(await ogFoundersNFT.symbol()).to.equal('OGF')
         })
 
         it('should have a correct stRIF address', async () => {

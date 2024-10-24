@@ -2,18 +2,12 @@
 // Compatible with OpenZeppelin Contracts ^5.0.0
 pragma solidity ^0.8.20;
 
-import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import {ERC721EnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
-import {ERC721URIStorageUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
-import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-import {ERC721UpgradableBase} from "./ERC721UpgradableBase.sol";
 import {ERC721UpgradableNonTransferrable} from "./ERC721UpgradableNonTransferrable.sol";
 
-contract OGFounders is ERC721Upgradeable, ERC721UpgradableNonTransferrable {
+contract OGFounders is ERC721UpgradableNonTransferrable {
   using Strings for uint8;
 
   error WasNotEnoughStRIFToMint(uint stRIF);
@@ -35,13 +29,11 @@ contract OGFounders is ERC721Upgradeable, ERC721UpgradableNonTransferrable {
   uint8 private _maxSupply;
 
   function initialize(
-    string calldata contractName,
-    string calldata symbol,
     address initialOwner,
     address stRIFAddress,
     uint256 _firstProposalDate
   ) public initializer {
-    __ERC721UpgradableBase_init(contractName, symbol, initialOwner);
+    __ERC721UpgradableBase_init("OGFoundersRootstockCollective", "OGF", initialOwner);
     stRIF = stRIFAddress;
     firstProposalDate = _firstProposalDate;
     _maxSupply = 150;
@@ -104,11 +96,7 @@ contract OGFounders is ERC721Upgradeable, ERC721UpgradableNonTransferrable {
    * @dev Prevents the transfer and mint of tokens to addresses that already own one.
    * Ensures that one address cannot own more than one token.
    */
-  function _update(
-    address to,
-    uint256 tokenId,
-    address auth
-  ) internal override(ERC721Upgradeable, ERC721UpgradableBase) returns (address) {
+  function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
     // Disallow transfers by smart contracts, as only EOAs can be community members
     // slither-disable-next-line tx-origin
     if (_msgSender() != tx.origin) revert ERC721InvalidOwner(_msgSender());
@@ -120,44 +108,27 @@ contract OGFounders is ERC721Upgradeable, ERC721UpgradableNonTransferrable {
 
   // overrides required
 
-  function transferFrom(
-    address from,
-    address to,
-    uint256 tokenId
-  ) public virtual override(ERC721UpgradableNonTransferrable, ERC721Upgradeable) {
+  function transferFrom(address from, address to, uint256 tokenId) public virtual override {
     super.transferFrom(from, to, tokenId);
   }
 
-  function approve(
-    address to,
-    uint256 tokenId
-  ) public virtual override(ERC721UpgradableNonTransferrable, ERC721Upgradeable) {
+  function approve(address to, uint256 tokenId) public virtual override {
     super.approve(to, tokenId);
   }
 
-  function setApprovalForAll(
-    address operator,
-    bool approved
-  ) public virtual override(ERC721UpgradableNonTransferrable, ERC721Upgradeable) {
+  function setApprovalForAll(address operator, bool approved) public virtual override {
     super.setApprovalForAll(operator, approved);
   }
 
-  function tokenURI(
-    uint256 tokenId
-  ) public view virtual override(ERC721Upgradeable, ERC721UpgradableBase) returns (string memory) {
+  function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
     return super.tokenURI(tokenId);
   }
 
-  function supportsInterface(
-    bytes4 interfaceId
-  ) public view virtual override(ERC721UpgradableBase, ERC721Upgradeable) returns (bool) {
+  function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {
     return super.supportsInterface(interfaceId);
   }
 
-  function _increaseBalance(
-    address account,
-    uint128 value
-  ) internal override(ERC721UpgradableBase, ERC721Upgradeable) {
+  function _increaseBalance(address account, uint128 value) internal override {
     super._increaseBalance(account, value);
   }
 }
