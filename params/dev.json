@@ -6,13 +6,13 @@
   "GovernorProxy": {
     "owner": "0x0C48e53E5852780Cb0a5Bf168eb92DE3B88Ebe89",
     "guardian": "0x0C48e53E5852780Cb0a5Bf168eb92DE3B88Ebe89",
-    "votingDelay": 1,
-    "votingPeriod": 2,
+    "votingDelay": 4,
+    "votingPeriod": 20,
     "proposalThreshold": "10000000000000000000",
     "quorumFraction": 4
   },
   "TimelockProxy": {
-    "minDelay": 2,
+    "minDelay": 20,
     "admin": "0x0C48e53E5852780Cb0a5Bf168eb92DE3B88Ebe89"
   },
   "EarlyAdoptersProxy": {

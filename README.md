@@ -248,12 +248,12 @@ Successfully verified contract "contracts/EarlyAdopters.sol:EarlyAdopters" for n
 
 | Contract Name                                  | Dev Address                                |
 | ---------------------------------------------- | ------------------------------------------ |
-| GovernorRootstockCollective impl               | 0x0DB02C99619bB0E6d2cBeF5545Cc968DAb724E10 |
-| GovernorRootstockCollective proxy              | 0xdE4822aBf85dCeec6a3A68B1F692b26ec37694BA |
-| StRIFToken impl                                | 0x7C19923bac1b41e9bBD1c33815A61854beeD9b54 |
-| StRIFToken proxy                               | 0x956864F3Bb7B86cbCbC3a320277b0d0f5f24F998 |
-| DaoTimelockUpgradableRootstockCollective impl  | 0x014Ee7696B193E8BC9EFA5a68cfDb74C76415043 |
-| DaoTimelockUpgradableRootstockCollective proxy | 0x7D78e76b9Cc66D977aaf699679A44A721a98022E |
-| TreasuryRootstockCollective                    | 0xD2F300D6AecC7db7FDb98d15568ffeFb13BAd7c8 |
+| GovernorRootstockCollective impl               | 0x0c18aC3C457cA695f148ac34547509a4DA013714 |
+| GovernorRootstockCollective proxy              | 0x812B24b5370d2438321f9aE8522A53a0CB10Fa16 |
+| StRIFToken impl                                | 0x8b18219Ad5C5ef038F8C7C87B61B1e370E389221 |
+| StRIFToken proxy                               | 0x7DDaBb76CdA59428Aa0787C5C5dC2E5a4375f8d1 |
+| DaoTimelockUpgradableRootstockCollective impl  | 0xF1548E0028Cb9bAb04dAE0D4558ba9207CB445A3 |
+| DaoTimelockUpgradableRootstockCollective proxy | 0x78EC70D99e09c49f1Ff3cB27B4bd6df7154abACB |
+| TreasuryRootstockCollective                    | 0x3853F13B47E4b9061832e9becf689837798910A9 |
 | EarlyAdoptersRootstockCollective impl          | 0xa060A65967cb9b9511E3A4ec091Aa81c6dCe6662 |
 | EarlyAdoptersRootstockCollective proxy         | 0xe4E91A8EeCdF48Ef13f8E98Dfd2f0b7147e89816 |
