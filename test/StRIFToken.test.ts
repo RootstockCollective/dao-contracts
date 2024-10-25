@@ -5,7 +5,6 @@ import { ethers } from 'hardhat'
 import {
   ContractDoesNotSupportERC165andICollectiveRewardscheck,
   ContractDoesNotSupportICollectiveRewardsCheck,
-  ContractSupportsButWrongReturn,
   ContractSupportsERC165andICollectiveRewardscheck,
   RIFToken,
   StRIFToken,
@@ -17,7 +16,6 @@ describe('stRIFToken', () => {
   let rif: RIFToken
   let stRIF: StRIFToken
   let ContractSupportsERC165andICollectiveRewardscheck: ContractSupportsERC165andICollectiveRewardscheck
-  let ContractSupportsButWrongReturn: ContractSupportsButWrongReturn
   let ContractDoesNotSupportERC165andICollectiveRewardscheck: ContractDoesNotSupportERC165andICollectiveRewardscheck
   let ContractDoesNotSupportICollectiveRewardsCheck: ContractDoesNotSupportICollectiveRewardsCheck
   const votingPower = 10n * 10n ** 18n
@@ -200,18 +198,25 @@ describe('stRIFToken', () => {
       expect(await ContractSupportsERC165andICollectiveRewardscheck.blockedAddress()).to.be.properAddress
       expect(await ContractSupportsERC165andICollectiveRewardscheck.blockedAddress()).to.equal(holder.address)
     })
+
     it('only owner should be able to set CollectiveRewardsAddress', async () => {
       const tx = stRIF
         .connect(holder)
         .setCollectiveRewardsAddress(ContractSupportsERC165andICollectiveRewardscheck)
-      expect(tx).to.be.revertedWith('OwnableUnauthorizedAccount')
+      await expect(tx).to.be.revertedWithCustomError(
+        { interface: stRIF.interface },
+        'OwnableUnauthorizedAccount',
+      )
     })
 
-    it('setting CollectiveRewards address should fail if contract does not support ERC165 with STRIFSupportsERC165', async () => {
+    it('setting CollectiveRewards address should fail if contract does not support ERC165 with STRIFSupportsICollectiveRewardsCheck', async () => {
       const tx = stRIF.setCollectiveRewardsAddress(
         await ContractDoesNotSupportERC165andICollectiveRewardscheck.getAddress(),
       )
-      expect(tx).to.be.revertedWithCustomError({ interface: stRIF.interface }, 'STRIFSupportsERC165')
+      await expect(tx).to.be.revertedWithCustomError(
+        { interface: stRIF.interface },
+        'STRIFSupportsICollectiveRewardsCheck',
+      )
     })
 
     it('setting CollectiveRewards address should fail if contract does not support ICollectiveRewardsCheck with STRIFSupportsICollectiveRewardsCheck', async () => {
@@ -220,38 +225,31 @@ describe('stRIFToken', () => {
       const tx = stRIF.setCollectiveRewardsAddress(
         await ContractDoesNotSupportERC165andICollectiveRewardscheck.getAddress(),
       )
-      expect(tx).to.be.revertedWithCustomError(
+      await expect(tx).to.be.revertedWithCustomError(
         { interface: stRIF.interface },
         'STRIFSupportsICollectiveRewardsCheck',
       )
-    })
-
-    it('should throw STRIFUnexpectedCanWithdraw if canWithdraw returns NOT boolean and not set to state', async () => {
-      ContractSupportsButWrongReturn = await ethers.deployContract('ContractSupportsButWrongReturn', [holder])
-      const address = await ContractSupportsButWrongReturn.getAddress()
-      const tx = stRIF.setCollectiveRewardsAddress(address)
-      expect(tx).to.revertedWithCustomError({ interface: stRIF.interface }, 'STRIFUnexpectedCanWithdraw')
     })
 
     it('should set CollectiveRewards address if canWithdraw returns boolean', async () => {
       const address = await ContractSupportsERC165andICollectiveRewardscheck.getAddress()
       await stRIF.setCollectiveRewardsAddress(address)
 
-      expect(await stRIF.bimCheck()).to.equal(address)
+      expect(await stRIF.collectiveRewardsCheck()).to.equal(address)
     })
 
     it('should revert withdrawTo, _update with STRIFStakedInCollectiveRewardsCanWithdraw if bimCheck returns false', async () => {
       expect(await stRIF.balanceOf(holder)).to.equal(votingPower)
 
       const tx = stRIF.connect(holder).withdrawTo(holder.address, votingPower)
-      expect(tx).to.be.revertedWithCustomError(
+      await expect(tx).to.be.revertedWithCustomError(
         { interface: stRIF.interface },
         'STRIFStakedInCollectiveRewardsCanWithdraw',
       )
 
       //runs _update under the hood
       const transferTx = stRIF.connect(holder).transfer(voter, votingPower)
-      expect(transferTx).to.be.revertedWithCustomError(
+      await expect(transferTx).to.be.revertedWithCustomError(
         { interface: stRIF.interface },
         'STRIFStakedInCollectiveRewardsCanWithdraw',
       )

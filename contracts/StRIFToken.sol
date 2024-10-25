@@ -29,7 +29,7 @@ contract StRIFToken is
   using ERC165Checker for address;
 
   /// @notice The address of the CollectiveRewards Contract
-  address public bimCheck;
+  address public collectiveRewardsCheck;
   /// @notice The flag indicating that the CollectiveRewards error
   /// is desired to be skipped
   bool _shouldErrorBeSkipped;
@@ -37,7 +37,6 @@ contract StRIFToken is
   error STRIFStakedInCollectiveRewardsCanWithdraw(bool canWithdraw);
   error STRIFSupportsERC165(bool _supports);
   error STRIFSupportsICollectiveRewardsCheck(bool _supports);
-  error STRIFUnexpectedCanWithdraw(address _checkAddress);
   error CollectiveRewardsErrored(string reason);
   error CollectiveRewardsErroredBytes(bytes reason);
 
@@ -112,8 +111,10 @@ contract StRIFToken is
 
   //checks CollectiveRewards for stake
   modifier _checkCollectiveRewardsForStake(address staker, uint256 value) {
-    if (bimCheck != address(0)) {
-      try ICollectiveRewardsCheck(bimCheck).canWithdraw(staker, value) returns (bool canWithdraw) {
+    if (collectiveRewardsCheck != address(0)) {
+      try ICollectiveRewardsCheck(collectiveRewardsCheck).canWithdraw(staker, value) returns (
+        bool canWithdraw
+      ) {
         if (!canWithdraw) {
           revert STRIFStakedInCollectiveRewardsCanWithdraw(false);
         }
@@ -137,12 +138,8 @@ contract StRIFToken is
       revert STRIFSupportsICollectiveRewardsCheck(false);
     }
 
-    try ICollectiveRewardsCheck(collectiveRewardsAddress).canWithdraw(address(0), 1) returns (bool) {
-      bimCheck = collectiveRewardsAddress;
-      emit CollectiveRewardsAddressHasBeenChanged(collectiveRewardsAddress);
-    } catch {
-      revert STRIFUnexpectedCanWithdraw(collectiveRewardsAddress);
-    }
+    collectiveRewardsCheck = collectiveRewardsAddress;
+    emit CollectiveRewardsAddressHasBeenChanged(collectiveRewardsAddress);
   }
 
   function setCollectiveRewardsErrorSkipFlag(bool shouldBeSkipped) public onlyOwner {
