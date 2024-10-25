@@ -32,7 +32,7 @@ contract StRIFToken is
   address public collectiveRewardsCheck;
   /// @notice The flag indicating that the CollectiveRewards error
   /// is desired to be skipped
-  bool _shouldErrorBeSkipped;
+  bool private _shouldErrorBeSkipped;
 
   error STRIFStakedInCollectiveRewardsCanWithdraw(bool canWithdraw);
   error STRIFSupportsERC165(bool _supports);

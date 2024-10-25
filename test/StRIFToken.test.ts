@@ -6,6 +6,7 @@ import {
   ContractDoesNotSupportERC165andICollectiveRewardscheck,
   ContractDoesNotSupportICollectiveRewardsCheck,
   ContractSupportsERC165andICollectiveRewardscheck,
+  ContractWithErrorInCanWithdraw,
   RIFToken,
   StRIFToken,
 } from '../typechain-types'
@@ -18,6 +19,7 @@ describe('stRIFToken', () => {
   let ContractSupportsERC165andICollectiveRewardscheck: ContractSupportsERC165andICollectiveRewardscheck
   let ContractDoesNotSupportERC165andICollectiveRewardscheck: ContractDoesNotSupportERC165andICollectiveRewardscheck
   let ContractDoesNotSupportICollectiveRewardsCheck: ContractDoesNotSupportICollectiveRewardsCheck
+  let ContractWithErrorInCanWithdraw: ContractWithErrorInCanWithdraw
   const votingPower = 10n * 10n ** 18n
 
   // prettier-ignore
@@ -29,6 +31,7 @@ describe('stRIFToken', () => {
     ContractSupportsERC165andICollectiveRewardscheck = await ethers.deployContract('ContractSupportsERC165andICollectiveRewardscheck', [
       holder,
     ])
+    ContractWithErrorInCanWithdraw = await ethers.deployContract('ContractWithErrorInCanWithdraw', [voter])
   })
 
   it('Should assign the initial balance to the contract itself', async () => {
@@ -259,6 +262,27 @@ describe('stRIFToken', () => {
     it('should allow withdrawTo if bimCheck returns true', async () => {
       await ContractSupportsERC165andICollectiveRewardscheck.setBlockedAddress(voter)
       expect(await stRIF.balanceOf(holder)).to.equal(votingPower)
+
+      const value = votingPower / 2n
+      const tx = stRIF.connect(holder).withdrawTo(holder.address, value)
+      await expect(tx).to.emit(stRIF, 'Transfer').withArgs(holder.address, ethers.ZeroAddress, value)
+    })
+
+    it('should throw an error if _shouldSkipError is false', async () => {
+      const address = await ContractWithErrorInCanWithdraw.getAddress()
+      const setTX = stRIF.setCollectiveRewardsAddress(address)
+      await expect(setTX).to.emit(stRIF, 'CollectiveRewardsAddressHasBeenChanged').withArgs(address)
+
+      const tx = stRIF.connect(holder).withdrawTo(holder.address, votingPower / 2n)
+      await expect(tx).to.be.revertedWithCustomError(
+        { interface: stRIF.interface },
+        'CollectiveRewardsErrored',
+      )
+    })
+
+    it('should ignore Collective Rewards error if _shouldSkipError is true', async () => {
+      const skipTX = stRIF.setCollectiveRewardsErrorSkipFlag(true)
+      await expect(skipTX).to.emit(stRIF, 'STRIFCollectiveRewardsErrorSkipChangedTo').withArgs(true)
 
       const value = votingPower / 2n
       const tx = stRIF.connect(holder).withdrawTo(holder.address, value)
