@@ -10,7 +10,7 @@ import {ERC721URIStorageUpgradeable} from "@openzeppelin/contracts-upgradeable/t
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-abstract contract ERC721UpgradableBase is
+abstract contract ERC721BaseUpgradable is
   Initializable,
   ERC721Upgradeable,
   ERC721EnumerableUpgradeable,

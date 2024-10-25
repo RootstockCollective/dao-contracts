@@ -1,20 +1,20 @@
 import { expect } from 'chai'
 import hre, { ethers, ignition } from 'hardhat'
-import { ExternalContributorsEcosystemPartner } from '../typechain-types'
+import { OGContributorsRootstockCollective } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { extContributersEpProxyModule } from '../ignition/modules/ExternalContributorsEcosystemPartner'
+import { ogContributorsModule } from '../ignition/modules/OGContributorsModule'
 import airdropReceivers from '../params/ExtContributorsEP/airdrop-testnet.json'
 
-describe('ExternalContributorsEcosystemPartner NFT', () => {
+describe('OGContributorsRootstockCollective NFT', () => {
   let deployer: SignerWithAddress
   let alice: SignerWithAddress
   const orgGangsters: SignerWithAddress[] = []
-  let extContEP: ExternalContributorsEcosystemPartner
+  let extContEP: OGContributorsRootstockCollective
 
   before(async () => {
     ;[deployer, alice] = await ethers.getSigners()
-    const contract = await ignition.deploy(extContributersEpProxyModule)
-    extContEP = contract.ExtContributorsEP as unknown as ExternalContributorsEcosystemPartner
+    const contract = await ignition.deploy(ogContributorsModule)
+    extContEP = contract.ExtContributorsEP as unknown as OGContributorsRootstockCollective
     // impersonating airdrop receivers
     for (let i = 0; i < airdropReceivers.length; i++) {
       const accountAddr = airdropReceivers[i].receiver
@@ -29,8 +29,8 @@ describe('ExternalContributorsEcosystemPartner NFT', () => {
 
   describe('Upon deployment', () => {
     it('should set up proper NFT name and symbol', async () => {
-      expect(await extContEP.connect(deployer).name()).to.equal("OGExternalContributorsEcosystemPartner")
-      expect(await extContEP.symbol()).to.equal("OGECEP")
+      expect(await extContEP.connect(deployer).name()).to.equal('OGContributorsRootstockCollective')
+      expect(await extContEP.symbol()).to.equal('OGC')
     })
 
     it('should have zero total supply', async () => {
@@ -98,9 +98,10 @@ describe('ExternalContributorsEcosystemPartner NFT', () => {
     it('approvals should be forbidden', async () => {
       await Promise.all(
         orgGangsters.map(async (sender, i) => {
-          await expect(
-            extContEP.connect(sender).approve(alice.address, i + 1),
-          ).to.be.revertedWithCustomError(extContEP, 'TransfersDisabled')
+          await expect(extContEP.connect(sender).approve(alice.address, i + 1)).to.be.revertedWithCustomError(
+            extContEP,
+            'TransfersDisabled',
+          )
         }),
       )
     })

@@ -1,8 +1,8 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-export const OGFoundersProxyModule = buildModule('OGFounders', m => {
+export const OGFoundersModule = buildModule('OGFounders', m => {
   // deploy implementation
-  const implementation = m.contract('OGFounders', [], { id: 'Implementation' })
+  const implementation = m.contract('OGFoundersRootstockCollective', [], { id: 'Implementation' })
 
   // initializer parameters
   const deployer = m.getAccount(0)
@@ -16,11 +16,11 @@ export const OGFoundersProxyModule = buildModule('OGFounders', m => {
       id: 'Proxy',
     }),
   ])
-  const OGFounders = m.contractAt('OGFounders', proxy, {
+  const OGFounders = m.contractAt('OGFoundersRootstockCollective', proxy, {
     id: 'Contract',
   })
 
   return { OGFounders }
 })
 
-export default OGFoundersProxyModule
+export default OGFoundersModule

@@ -1,20 +1,20 @@
 import { expect } from 'chai'
 import hre, { ethers, ignition } from 'hardhat'
-import { OgFoundersEcosystemPartner } from '../typechain-types'
+import { OGPartnersRootstockCollective } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { ogFoundersEpProxyModule } from '../ignition/modules/OgFoundersEP'
+import { ogPartnersModule } from '../ignition/modules/OGPartnersModule'
 import airdropReceivers from '../params/OgFoundersEP/airdrop-testnet.json'
 
-describe('OgFoundersEcosystemPartner NFT', () => {
+describe('OGPartnersRootstockCollective NFT', () => {
   let deployer: SignerWithAddress
   let alice: SignerWithAddress
   const oldGangsters: SignerWithAddress[] = []
-  let ogFoundersEp: OgFoundersEcosystemPartner
+  let ogFoundersEp: OGPartnersRootstockCollective
 
   before(async () => {
     ;[deployer, alice] = await ethers.getSigners()
-    const contract = await ignition.deploy(ogFoundersEpProxyModule)
-    ogFoundersEp = contract.ogFoundersEp as unknown as OgFoundersEcosystemPartner
+    const contract = await ignition.deploy(ogPartnersModule)
+    ogFoundersEp = contract.ogFoundersEp as unknown as OGPartnersRootstockCollective
     // impersonating airdrop receivers
     for (let i = 0; i < airdropReceivers.length; i++) {
       const accountAddr = airdropReceivers[i].receiver
@@ -29,8 +29,8 @@ describe('OgFoundersEcosystemPartner NFT', () => {
 
   describe('Upon deployment', () => {
     it('should set up proper NFT name and symbol', async () => {
-      expect(await ogFoundersEp.connect(deployer).name()).to.equal('OgFoundersEcosystemPartner')
-      expect(await ogFoundersEp.symbol()).to.equal('OGFEP')
+      expect(await ogFoundersEp.connect(deployer).name()).to.equal('OGPartnersRootstockCollective')
+      expect(await ogFoundersEp.symbol()).to.equal('OGP')
     })
 
     it('should have zero total supply', async () => {
