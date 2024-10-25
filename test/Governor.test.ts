@@ -7,13 +7,13 @@ import {
   StRIFToken,
   DaoTimelockUpgradableRootstockCollective,
   ProposalTarget,
-  OGFounders,
+  OGFoundersRootstockCollective,
 } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { ContractTransactionResponse, parseEther, solidityPackedKeccak256 } from 'ethers'
 import { Proposal, ProposalState, OperationState } from '../types'
 import { deployContracts } from './deployContracts'
-import ogFoundersProxyModule from '../ignition/modules/OGFounders'
+import ogFoundersModule from '../ignition/modules/OGFoundersModule'
 
 describe('Governor Contact', () => {
   const initialVotingDelay = 1n
@@ -233,11 +233,11 @@ describe('Governor Contact', () => {
       })
 
       describe('OG Founders NFT', () => {
-        let ogFoundersNFT: OGFounders
+        let ogFoundersNFT: OGFoundersRootstockCollective
         let tokensLeft = 150
 
         before(async () => {
-          const contract = await ignition.deploy(ogFoundersProxyModule, {
+          const contract = await ignition.deploy(ogFoundersModule, {
             parameters: {
               OGFounders: {
                 stRIFAddress: await stRIF.getAddress(),
@@ -245,7 +245,7 @@ describe('Governor Contact', () => {
               },
             },
           })
-          ogFoundersNFT = contract.OGFounders as unknown as OGFounders
+          ogFoundersNFT = contract.OGFounders as unknown as OGFoundersRootstockCollective
         })
 
         it('the OG Founders NFT should be deployed', async () => {

@@ -1,8 +1,8 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-export const extContributersEpProxyModule = buildModule('ExtContributorsEP', m => {
+export const ogContributorsModule = buildModule('OGContributors', m => {
   // deploy implementation
-  const implementation = m.contract('ExternalContributorsEcosystemPartner', [], { id: 'Implementation' })
+  const implementation = m.contract('OGContributorsRootstockCollective', [], { id: 'Implementation' })
 
   const deployer = m.getAccount(0)
   // deploy proxy
@@ -12,11 +12,11 @@ export const extContributersEpProxyModule = buildModule('ExtContributorsEP', m =
       id: 'Proxy',
     }),
   ])
-  const ExtContributorsEP = m.contractAt('ExternalContributorsEcosystemPartner', proxy, {
+  const ExtContributorsEP = m.contractAt('OGContributorsRootstockCollective', proxy, {
     id: 'Contract',
   })
 
   return { ExtContributorsEP }
 })
 
-export default extContributersEpProxyModule
+export default ogContributorsModule

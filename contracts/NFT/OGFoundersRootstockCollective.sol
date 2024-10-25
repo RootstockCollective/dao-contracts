@@ -5,9 +5,9 @@ pragma solidity ^0.8.20;
 import {IVotes} from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
-import {ERC721UpgradableNonTransferrable} from "./ERC721UpgradableNonTransferrable.sol";
+import {ERC721NonTransferrableUpgradable} from "./ERC721NonTransferrableUpgradable.sol";
 
-contract OGFounders is ERC721UpgradableNonTransferrable {
+contract OGFoundersRootstockCollective is ERC721NonTransferrableUpgradable {
   using Strings for uint8;
 
   error WasNotEnoughStRIFToMint(uint stRIF);

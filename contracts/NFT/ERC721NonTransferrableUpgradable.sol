@@ -4,9 +4,9 @@ pragma solidity ^0.8.20;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import {ERC721UpgradableBase} from "./ERC721UpgradableBase.sol";
+import {ERC721BaseUpgradable} from "./ERC721BaseUpgradable.sol";
 
-abstract contract ERC721UpgradableNonTransferrable is ERC721UpgradableBase {
+abstract contract ERC721NonTransferrableUpgradable is ERC721BaseUpgradable {
   error TransfersDisabled();
 
   /**

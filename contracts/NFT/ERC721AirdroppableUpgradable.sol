@@ -2,7 +2,7 @@
 // Compatible with OpenZeppelin Contracts ^5.0.0
 pragma solidity ^0.8.20;
 
-import {ERC721UpgradableBase} from "./ERC721UpgradableBase.sol";
+import {ERC721BaseUpgradable} from "./ERC721BaseUpgradable.sol";
 
 struct AirdropRecipient {
   address receiver;
@@ -19,7 +19,7 @@ interface IAirdroppable {
   function airdrop(AirdropRecipient[] calldata receivers) external;
 }
 
-abstract contract ERC721UpgradableAirdroppable is ERC721UpgradableBase, IAirdroppable {
+abstract contract ERC721AirdroppableUpgradable is ERC721BaseUpgradable, IAirdroppable {
   error AirdropMintingLocked(uint256 numMinted);
 
   event AirDropLocked(uint256 numMinted);
