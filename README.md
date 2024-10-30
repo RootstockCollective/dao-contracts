@@ -229,6 +229,10 @@ Successfully verified contract "contracts/EarlyAdopters.sol:EarlyAdopters" for n
 | DaoTimelockUpgradableRootstockCollective proxy | 0x5eDA6fA73350291F7D7cFC7ad93F48189f1333ef |
 | TreasuryRootstockCollective                    | 0x47C969d7ae7A377BeaD553c2899D9B83A90e0772 |
 | Early Adopters NFT                             | 0x0Ee4e11f2F2B551cA31Ea7873c7bA675cb51A59d |
+| OGPartnersRootstockCollective impl             | 0x5eC0A91618553be6612d81c604b065038f08eEDF |
+| OGPartnersRootstockCollective proxy            | 0x285046a90fb322E6BaCa4F38Bb884e3C0904F7EB |
+| OGContributorsRootstockCollective impl         | 0xdeED96d7dEC874855Cc9a43c5E608e8eF70f4dA6 |
+| OGContributorsRootstockCollective proxy        | 0xDC03B8fb7E47E4651f5008bD718a804726424A75 |
 | OGFoundersRootstockCollective impl             | 0xF8316455785979657Db49d1C4768376db55789C7 |
 | OGFoundersRootstockCollective proxy            | 0x7E6d9969CAC008bAe5f7b144df3c955515404538 |
 
