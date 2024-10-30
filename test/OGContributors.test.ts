@@ -3,7 +3,7 @@ import hre, { ethers, ignition } from 'hardhat'
 import { OGContributorsRootstockCollective } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { ogContributorsModule } from '../ignition/modules/OGContributorsModule'
-import airdropReceivers from '../params/ExtContributorsEP/airdrop-testnet.json'
+import airdropReceivers from '../params/OgContributors/airdrop-testnet.json'
 
 describe('OGContributorsRootstockCollective NFT', () => {
   let deployer: SignerWithAddress

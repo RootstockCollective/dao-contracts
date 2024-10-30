@@ -235,6 +235,7 @@ describe('Governor Contact', () => {
       describe('OG Founders NFT', () => {
         let ogFoundersNFT: OGFoundersRootstockCollective
         let tokensLeft = 150
+        const ipfsFolderCid = 'QmPaCP36tFjXp7xqcPi4ggatL7w4dsWKGTv1kpaSVkv9KW'
 
         before(async () => {
           const contract = await ignition.deploy(ogFoundersModule, {
@@ -242,6 +243,8 @@ describe('Governor Contact', () => {
               OGFounders: {
                 stRIFAddress: await stRIF.getAddress(),
                 firstProposalDate: proposalSnapshot,
+                maxSupply: tokensLeft,
+                ipfsFolderCid,
               },
             },
           })
@@ -262,16 +265,19 @@ describe('Governor Contact', () => {
         })
 
         it('should have a tokensAvailable at 150 in the beginning', async () => {
-          expect(await ogFoundersNFT.tokensAvailable()).to.equal(150)
+          expect(await ogFoundersNFT.tokensAvailable()).to.equal(tokensLeft)
         })
 
         it('holders who gained votes before 1st proposal should be able to mint the NFT', async () => {
           await Promise.all(
-            holders.slice(0, holders.length - 1).map(async h => {
-              await ogFoundersNFT.connect(h).mint()
-              expect(await ogFoundersNFT.balanceOf(h.address)).to.equal(1)
-              const tokenId = await ogFoundersNFT.tokenIdByOwner(h.address)
-              expect(await ogFoundersNFT.ownerOf(tokenId)).to.equal(h.address)
+            holders.slice(0, holders.length - 1).map(async holder => {
+              await ogFoundersNFT.connect(holder).mint()
+              expect(await ogFoundersNFT.balanceOf(holder.address)).to.equal(1)
+              const tokenId = await ogFoundersNFT.tokenIdByOwner(holder.address)
+              expect(await ogFoundersNFT.ownerOf(tokenId)).to.equal(holder.address)
+              const uri = `ipfs://${ipfsFolderCid}/${tokenId}.json`
+              expect(await ogFoundersNFT.tokenURI(tokenId)).to.equal(uri)
+              expect(await ogFoundersNFT.tokenUriByOwner(holder.address)).to.equal(uri)
               tokensLeft--
             }),
           )

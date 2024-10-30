@@ -8,8 +8,9 @@ import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {ERC721NonTransferrableUpgradable} from "./ERC721NonTransferrableUpgradable.sol";
 
 contract OGFoundersRootstockCollective is ERC721NonTransferrableUpgradable {
-  using Strings for uint8;
+  using Strings for uint256;
 
+  event IpfsFolderChanged(uint256 newNumFiles, string newIpfs);
   error WasNotEnoughStRIFToMint(uint stRIF);
   error CouldNotGetVotes(string);
   error CouldNotGetVotesBytes(bytes);
@@ -24,19 +25,38 @@ contract OGFoundersRootstockCollective is ERC721NonTransferrableUpgradable {
   address public stRIF;
   uint256 public firstProposalDate;
   // Counter for the total number of minted tokens
-  uint8 private _totalMinted;
+  uint256 private _totalMinted;
   // number of metadata files in the IPFS directory
-  uint8 private _maxSupply;
+  uint256 private _maxSupply;
+  // IPFS CID of the tokens metadata directory
+  string private _folderIpfsCid;
 
   function initialize(
     address initialOwner,
     address stRIFAddress,
-    uint256 _firstProposalDate
+    uint256 newFirstProposalDate,
+    uint256 maxSupply,
+    string calldata ipfsFolderCid
   ) public initializer {
+    require(stRIFAddress != address(0), "OGFoundersRootstockCollective: No StRIF address");
     __ERC721UpgradableBase_init("OGFoundersRootstockCollective", "OGF", initialOwner);
     stRIF = stRIFAddress;
-    firstProposalDate = _firstProposalDate;
-    _maxSupply = 150;
+    firstProposalDate = newFirstProposalDate;
+    setIpfsFolder(maxSupply, ipfsFolderCid);
+  }
+
+  /**
+   * @dev Sets a new IPFS folder and updates the maximum supply of tokens that can be minted.
+   * This function is meant to be called by an admin when the metadata folder on IPFS is updated.
+   * It ensures that the new maximum supply is greater than the previous one.
+   * @param newMaxSupply The new maximum number of tokens that can be minted.
+   * @param newIpfsCid The new IPFS CID for the metadata folder.
+   */
+  function setIpfsFolder(uint256 newMaxSupply, string calldata newIpfsCid) public virtual onlyOwner {
+    require(newMaxSupply >= _maxSupply, "OGFoundersRootstockCollective: Invalid max supply");
+    _maxSupply = newMaxSupply;
+    _folderIpfsCid = newIpfsCid;
+    emit IpfsFolderChanged(newMaxSupply, newIpfsCid);
   }
 
   /**
@@ -75,7 +95,7 @@ contract OGFoundersRootstockCollective is ERC721NonTransferrableUpgradable {
       if (tokensAvailable() == 0) revert OutOfTokens(_maxSupply);
 
       // minting
-      uint8 tokenId = ++_totalMinted;
+      uint256 tokenId = ++_totalMinted;
       string memory fileName = string.concat(tokenId.toString(), ".json"); // 1.json, 2.json ...
       _safeMint(caller, tokenId);
       _setTokenURI(tokenId, fileName);
@@ -88,8 +108,8 @@ contract OGFoundersRootstockCollective is ERC721NonTransferrableUpgradable {
 
   function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
 
-  function _baseURI() internal pure override returns (string memory) {
-    return "ipfs://";
+  function _baseURI() internal view virtual override returns (string memory) {
+    return string.concat("ipfs://", _folderIpfsCid, "/");
   }
 
   /**

@@ -8,13 +8,20 @@ export const OGFoundersModule = buildModule('OGFounders', m => {
   const deployer = m.getAccount(0)
   const stRIFAddress = m.getParameter('stRIFAddress')
   const firstProposalDate = m.getParameter('firstProposalDate')
+  const maxSupply = m.getParameter('maxSupply')
+  const ipfsFolderCid = m.getParameter('ipfsFolderCid')
 
   // deploy proxy
   const proxy = m.contract('ERC1967Proxy', [
     implementation,
-    m.encodeFunctionCall(implementation, 'initialize', [deployer, stRIFAddress, firstProposalDate], {
-      id: 'Proxy',
-    }),
+    m.encodeFunctionCall(
+      implementation,
+      'initialize',
+      [deployer, stRIFAddress, firstProposalDate, maxSupply, ipfsFolderCid],
+      {
+        id: 'Proxy',
+      },
+    ),
   ])
   const OGFounders = m.contractAt('OGFoundersRootstockCollective', proxy, {
     id: 'Contract',
