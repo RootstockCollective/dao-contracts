@@ -249,6 +249,12 @@ Successfully verified contract "contracts/EarlyAdopters.sol:EarlyAdopters" for n
 | TreasuryRootstockCollective                    | 0xf016fA6B237bb56E3AeE7022C6947A6a103E3c47 |
 | EarlyAdoptersRootstockCollective impl          | 0x979deF73ec80B8AE24Ae46765b81D9aF7b1C9327 |
 | EarlyAdoptersRootstockCollective proxy         | 0x339F209B3eb8381c4fBE997232e95a21A731524c |
+| OGPartnersRootstockCollective impl             | 0xc4DAcee263B0D1f2a09006dbc0170a4fDa861B68 |
+| OGPartnersRootstockCollective proxy            | 0x8158aBDAEdD7770F372031aC0AaB8FB4BC9ABe75 |
+| OGContributorsRootstockCollective impl         | 0xda31e81063ae1CFb6Ea5b8Ea259F1943B4e267E0 |
+| OGContributorsRootstockCollective proxy        | 0x5b20eDd661a2B87A9C9AE55d3e3b09281Dc71C48 |
+| OGFoundersRootstockCollective impl             | 0x357Cb4f62A74F39ca26046A9A208A393172dF1bb |
+| OGFoundersRootstockCollective proxy            | 0x0025e59f281bc06e7A54afe780673bd6A8D3a7E9 |
 
 ### Rootstock Dev
 
