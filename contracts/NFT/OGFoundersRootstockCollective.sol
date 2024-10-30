@@ -53,6 +53,7 @@ contract OGFoundersRootstockCollective is ERC721NonTransferrableUpgradable {
    * @param newIpfsCid The new IPFS CID for the metadata folder.
    */
   function setIpfsFolder(uint256 newMaxSupply, string calldata newIpfsCid) public virtual onlyOwner {
+    require(newMaxSupply >= _maxSupply, "OGFoundersRootstockCollective: Invalid max supply");
     _maxSupply = newMaxSupply;
     _folderIpfsCid = newIpfsCid;
     emit IpfsFolderChanged(newMaxSupply, newIpfsCid);
