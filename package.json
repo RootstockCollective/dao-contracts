@@ -57,7 +57,7 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "fs-extra": "^11.2.0",
-    "rif-token-contracts": "https://github.com/Freshenext/RIF-Token"
+    "rif-token-contracts": "https://github.com/RootstockCollective/RIF-Token.git"
   },
   "packageManager": "yarn@1.22.19+sha1.4ba7fc5c6e704fce2066ecbfb0b0d8976fe62447"
 }
