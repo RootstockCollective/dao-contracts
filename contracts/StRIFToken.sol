@@ -111,6 +111,7 @@ contract StRIFToken is
 
   //checks CollectiveRewards for stake
   modifier _checkCollectiveRewardsForStake(address staker, uint256 value) {
+    _;
     if (collectiveRewardsCheck != address(0)) {
       try ICollectiveRewardsCheck(collectiveRewardsCheck).canWithdraw(staker, value) returns (
         bool canWithdraw
@@ -128,7 +129,6 @@ contract StRIFToken is
         }
       }
     }
-    _;
   }
 
   // checks that received address has method which can successfully be called
