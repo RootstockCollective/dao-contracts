@@ -15,6 +15,11 @@ import { Proposal, ProposalState, OperationState } from '../types'
 import { deployContracts } from './deployContracts'
 import ogFoundersModule from '../ignition/modules/OGFoundersModule'
 
+// to search latest for functions reqiure block in the past
+const searchBlock = async () => {
+  return (await time.latestBlock()) - 1
+}
+
 describe('Governor Contact', () => {
   const initialVotingDelay = 1n
   const initialVotingPeriod = 240n // 2 hours
@@ -112,6 +117,10 @@ describe('Governor Contact', () => {
       return forVotes
     }
 
+    const getVotesAtSnapshot = async (account: SignerWithAddress) => {
+      return await governor.getVotes(account, proposalSnapshot)
+    }
+
     const voteToSucceed = async () => {
       proposalSnapshot = await governor.proposalSnapshot(proposalId)
       const quorum = await governor.quorum(proposalSnapshot)
@@ -203,7 +212,7 @@ describe('Governor Contact', () => {
         expect(await governor.proposalSnapshot(proposalId)).equal(proposalSnapshot)
       })
 
-      it('the rest of the holders should not be able to create proposal', async () => {
+      it('the rest of the holders should NOT be able to create proposal', async () => {
         await Promise.all(
           holders.slice(1).map(async holder => {
             const tx = governor.connect(holder).propose(...proposal, defaultDescription)
@@ -230,6 +239,109 @@ describe('Governor Contact', () => {
         const totalVotes = forVotes + abstainVotes
         const remainingVotes = quorum - totalVotes
         expect(remainingVotes).equal(quorum)
+      })
+
+      describe('Delegation of Votes', () => {
+        it('should be possible to delegate your votes to other address', async () => {
+          const balance1 = await stRIF.balanceOf(holders[1])
+          const balance2 = await stRIF.balanceOf(holders[2])
+
+          const delegateTx = await stRIF.connect(holders[1]).delegate(holders[2])
+          await delegateTx.wait()
+          const delegateeOfHolder1 = await stRIF.delegates(holders[1])
+          expect(delegateeOfHolder1).to.equal(holders[2].address)
+
+          await mine(2)
+
+          const votes1 = await governor.getVotes(holders[1], await searchBlock())
+          const votes2 = await governor.getVotes(holders[2], await searchBlock())
+
+          expect(votes1).to.equal(0)
+          expect(votes2).to.equal(balance1 + balance2)
+        })
+
+        it('votes at the proposalSnapshot will be the same even after delegation', async () => {
+          const gainedStRIF = dispenseValue - sendAmount
+          const votes1 = await governor.getVotes(holders[1], proposalSnapshot)
+          const votes2 = await governor.getVotes(holders[2], proposalSnapshot)
+          expect(votes1).to.equal(gainedStRIF)
+          expect(votes2).to.equal(gainedStRIF)
+        })
+
+        it('holder [1] WILL NOT gain votes if added more stRIF, instead the DELEGATEE will get more votes', async () => {
+          const balance1Before = await stRIF.balanceOf(holders[1])
+          const balance2Before = await stRIF.balanceOf(holders[2])
+
+          const votesBefore = await governor.getVotes(holders[1], await searchBlock())
+          expect(votesBefore).to.equal(0)
+
+          const votesBeforeHolder2 = await governor.getVotes(holders[2], await searchBlock())
+          expect(votesBeforeHolder2).to.equal(balance1Before + balance2Before)
+
+          // adding more stRIF to holders[1]
+          const dispenseTx = await rif.transfer(holders[1].address, dispenseValue)
+          await dispenseTx.wait()
+          const approvalTx = await rif.connect(holders[1]).approve(await stRIF.getAddress(), dispenseValue)
+          await approvalTx.wait()
+          const depositTx = await stRIF.connect(holders[1]).depositFor(holders[1].address, dispenseValue)
+          await depositTx.wait()
+          const balance1After = await stRIF.balanceOf(holders[1])
+          expect(balance1After).to.equal(balance1Before + dispenseValue)
+
+          await mine(2)
+          const votesAfter = await governor.getVotes(holders[1], await searchBlock())
+          expect(votesAfter).to.equal(0)
+
+          const votesAfterHolder2 = await governor.getVotes(holders[2], await searchBlock())
+          expect(votesAfterHolder2).to.equal(balance1Before + balance2Before + dispenseValue)
+        })
+
+        it('if holders[1] withdrawTo holders[2](delegatee) loses voting power proportional to withdraw', async () => {
+          const balance1Before = await stRIF.balanceOf(holders[1])
+          const votes2Before = await governor.getVotes(holders[2], await searchBlock())
+
+          const withdrawTX = await stRIF.connect(holders[1]).withdrawTo(holders[1], dispenseValue)
+          await withdrawTX.wait()
+
+          await mine(2)
+
+          const balance1After = await stRIF.balanceOf(holders[1])
+          expect(balance1After).to.equal(balance1Before - dispenseValue)
+
+          const votes2After = await governor.getVotes(holders[2], await searchBlock())
+          expect(votes2After).to.equal(votes2Before - dispenseValue)
+        })
+
+        it('holders[3] will delegate to holders[2] too, holders[2] will have combined power of all', async () => {
+          const balanceHolder1 = await stRIF.balanceOf(holders[1])
+          const balanceHolder2 = await stRIF.balanceOf(holders[2])
+          const balanceHolder3 = await stRIF.balanceOf(holders[3])
+
+          const delegateTx = await stRIF.connect(holders[3]).delegate(holders[2])
+          await delegateTx.wait()
+
+          const delegateAddress = await stRIF.delegates(holders[3])
+          expect(delegateAddress).to.equal(holders[2].address)
+
+          await mine(2)
+
+          const balanceHolder2After = await stRIF.getVotes(holders[2])
+          console.log('balanceHolder2After', balanceHolder2After)
+          expect(balanceHolder2After).to.equal(balanceHolder1 + balanceHolder2 + balanceHolder3)
+        })
+
+        it('should be possible to claim back votes', async () => {
+          const balance1 = await stRIF.balanceOf(holders[1])
+
+          const delegateTx = await stRIF.connect(holders[1]).delegate(holders[1])
+          await delegateTx.wait()
+          const delegateOfHolder1 = await stRIF.delegates(holders[1])
+          expect(delegateOfHolder1).to.equal(holders[1].address)
+
+          await mine(2)
+          const votes = await governor.getVotes(holders[1], await searchBlock())
+          expect(votes).to.equal(balance1)
+        })
       })
 
       describe('OG Founders NFT', () => {
@@ -366,14 +478,14 @@ describe('Governor Contact', () => {
         const hasVoted = await governor.hasVoted(proposalId, holders[1])
         expect(hasVoted).to.be.true
         const { forVotes } = await governor.proposalVotes(proposalId)
-        expect(forVotes).to.be.equal(await stRIF.getVotes(holders[1]))
+        expect(forVotes).to.be.equal(await getVotesAtSnapshot(holders[1]))
 
         const tx2 = await governor.connect(holders[2]).castVote(proposalId, 0)
         tx2.wait()
         const hasVoted2 = await governor.hasVoted(proposalId, holders[2])
         expect(hasVoted2).to.be.true
         const { againstVotes } = await governor.proposalVotes(proposalId)
-        expect(againstVotes).to.be.equal(await stRIF.getVotes(holders[2]))
+        expect(againstVotes).to.be.equal(await getVotesAtSnapshot(holders[2]))
       })
 
       it('votes before should be the same as votes after the burn of tokens if holder hasVoted for the proposal', async () => {
@@ -511,7 +623,7 @@ describe('Governor Contact', () => {
         expect(await timelock.isOperationReady(timelockPropId)).to.be.true
       })
 
-      describe('Execution', () => {
+      describe('Execution of a proposal', () => {
         let executeTx: ContractTransactionResponse
 
         before(async () => {
