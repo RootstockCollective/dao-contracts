@@ -11,10 +11,6 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-
-import {ICollectiveRewardsCheck} from "./interfaces/ICollectiveRewardsCheck.sol";
 
 contract StRIFToken is
   Initializable,
@@ -25,24 +21,6 @@ contract StRIFToken is
   OwnableUpgradeable,
   UUPSUpgradeable
 {
-  using Address for address;
-  using ERC165Checker for address;
-
-  /// @notice The address of the CollectiveRewards Contract
-  address public collectiveRewardsCheck;
-  /// @notice The flag indicating that the CollectiveRewards error
-  /// is desired to be skipped
-  bool private _shouldErrorBeSkipped;
-
-  error STRIFStakedInCollectiveRewardsCanWithdraw(bool canWithdraw);
-  error STRIFSupportsERC165(bool _supports);
-  error STRIFSupportsICollectiveRewardsCheck(bool _supports);
-  error CollectiveRewardsErrored(string reason);
-  error CollectiveRewardsErroredBytes(bytes reason);
-
-  event STRIFCollectiveRewardsErrorSkipChangedTo(bool shouldBeSkipped);
-  event CollectiveRewardsAddressHasBeenChanged(address collectiveRewardsAddress);
-
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
     _disableInitializers();
@@ -109,44 +87,6 @@ contract StRIFToken is
     _delegate(to, to);
   }
 
-  //checks CollectiveRewards for stake
-  modifier _checkCollectiveRewardsForStake(address staker, uint256 value) {
-    _;
-    if (collectiveRewardsCheck != address(0)) {
-      try ICollectiveRewardsCheck(collectiveRewardsCheck).canWithdraw(staker, value) returns (
-        bool canWithdraw
-      ) {
-        if (!canWithdraw) {
-          revert STRIFStakedInCollectiveRewardsCanWithdraw(false);
-        }
-      } catch Error(string memory reason) {
-        if (!_shouldErrorBeSkipped) {
-          revert CollectiveRewardsErrored(reason);
-        }
-      } catch (bytes memory reason) {
-        if (!_shouldErrorBeSkipped) {
-          revert CollectiveRewardsErroredBytes(reason);
-        }
-      }
-    }
-  }
-
-  // checks that received address has method which can successfully be called
-  // before setting it to state
-  function setCollectiveRewardsAddress(address collectiveRewardsAddress) public onlyOwner {
-    if (!collectiveRewardsAddress.supportsInterface(type(ICollectiveRewardsCheck).interfaceId)) {
-      revert STRIFSupportsICollectiveRewardsCheck(false);
-    }
-
-    collectiveRewardsCheck = collectiveRewardsAddress;
-    emit CollectiveRewardsAddressHasBeenChanged(collectiveRewardsAddress);
-  }
-
-  function setCollectiveRewardsErrorSkipFlag(bool shouldBeSkipped) public onlyOwner {
-    _shouldErrorBeSkipped = shouldBeSkipped;
-    emit STRIFCollectiveRewardsErrorSkipChangedTo(shouldBeSkipped);
-  }
-
   // The following functions are overrides required by Solidity.
 
   //solhint-disable-next-line no-empty-blocks
@@ -160,15 +100,8 @@ contract StRIFToken is
     address from,
     address to,
     uint256 value
-  ) internal override(ERC20Upgradeable, ERC20VotesUpgradeable) _checkCollectiveRewardsForStake(from, value) {
+  ) internal override(ERC20Upgradeable, ERC20VotesUpgradeable) {
     super._update(from, to, value);
-  }
-
-  function withdrawTo(
-    address account,
-    uint256 value
-  ) public virtual override _checkCollectiveRewardsForStake(account, value) returns (bool) {
-    return super.withdrawTo(account, value);
   }
 
   function nonces(

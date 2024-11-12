@@ -1,3 +1,6 @@
+/**
+ * This Hardhat Ignition module upgrades StRIF contract v.1 to v.2
+ */
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
 export const stRifV02Module = buildModule('StRIFTokenV02', m => {
