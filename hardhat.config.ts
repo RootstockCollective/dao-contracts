@@ -4,6 +4,7 @@ import dotent from 'dotenv'
 import './tasks/updateIpfsFolder'
 import './tasks/cancelProposal'
 import './tasks/withdrawTreasury'
+import './tasks/airdrop'
 
 dotent.config()
 

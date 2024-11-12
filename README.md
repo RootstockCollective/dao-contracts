@@ -229,6 +229,12 @@ Successfully verified contract "contracts/EarlyAdopters.sol:EarlyAdopters" for n
 | DaoTimelockUpgradableRootstockCollective proxy | 0x5eDA6fA73350291F7D7cFC7ad93F48189f1333ef |
 | TreasuryRootstockCollective                    | 0x47C969d7ae7A377BeaD553c2899D9B83A90e0772 |
 | Early Adopters NFT                             | 0x0Ee4e11f2F2B551cA31Ea7873c7bA675cb51A59d |
+| OGPartnersRootstockCollective impl             | 0x5eC0A91618553be6612d81c604b065038f08eEDF |
+| OGPartnersRootstockCollective proxy            | 0x285046a90fb322E6BaCa4F38Bb884e3C0904F7EB |
+| OGContributorsRootstockCollective impl         | 0xdeED96d7dEC874855Cc9a43c5E608e8eF70f4dA6 |
+| OGContributorsRootstockCollective proxy        | 0xDC03B8fb7E47E4651f5008bD718a804726424A75 |
+| OGFoundersRootstockCollective impl             | 0xF8316455785979657Db49d1C4768376db55789C7 |
+| OGFoundersRootstockCollective proxy            | 0x7E6d9969CAC008bAe5f7b144df3c955515404538 |
 
 ### Rootstock Mainnet
 
@@ -243,6 +249,12 @@ Successfully verified contract "contracts/EarlyAdopters.sol:EarlyAdopters" for n
 | TreasuryRootstockCollective                    | 0xf016fA6B237bb56E3AeE7022C6947A6a103E3c47 |
 | EarlyAdoptersRootstockCollective impl          | 0x979deF73ec80B8AE24Ae46765b81D9aF7b1C9327 |
 | EarlyAdoptersRootstockCollective proxy         | 0x339F209B3eb8381c4fBE997232e95a21A731524c |
+| OGPartnersRootstockCollective impl             | 0xc4DAcee263B0D1f2a09006dbc0170a4fDa861B68 |
+| OGPartnersRootstockCollective proxy            | 0x8158aBDAEdD7770F372031aC0AaB8FB4BC9ABe75 |
+| OGContributorsRootstockCollective impl         | 0xda31e81063ae1CFb6Ea5b8Ea259F1943B4e267E0 |
+| OGContributorsRootstockCollective proxy        | 0x5b20eDd661a2B87A9C9AE55d3e3b09281Dc71C48 |
+| OGFoundersRootstockCollective impl             | 0x357Cb4f62A74F39ca26046A9A208A393172dF1bb |
+| OGFoundersRootstockCollective proxy            | 0x0025e59f281bc06e7A54afe780673bd6A8D3a7E9 |
 
 ### Rootstock Dev
 
