@@ -16,7 +16,9 @@ import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165C
 
 import {ICollectiveRewardsCheck} from "./interfaces/ICollectiveRewardsCheck.sol";
 
-
+/**
+ * @dev StRIFTokenV02 adds support for CollectiveRewards
+ */
 contract StRIFTokenV02 is
   Initializable,
   ERC20Upgradeable,

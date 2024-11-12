@@ -50,6 +50,12 @@ describe('stRIFToken Version 2', () => {
     ContractWithErrorInCanWithdraw = await ethers.deployContract('ContractWithErrorInCanWithdraw', [voter])
   })
 
+  describe('Upon upgrade to V2', () => {
+    it('should have version 2', async () => {
+      expect(await stRIF.version()).to.equal(2)
+    })
+  })
+
   it('Should assign the initial balance to the contract itself', async () => {
     const contractBalance = await rif.balanceOf(owner)
     expect(contractBalance).to.equal(ethers.parseUnits('1000000000', 18))
