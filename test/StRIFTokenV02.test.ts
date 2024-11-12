@@ -1,7 +1,7 @@
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import { expect } from 'chai'
-import { ethers } from 'hardhat'
+import { ethers, ignition } from 'hardhat'
 import {
   ContractDoesNotSupportERC165andICollectiveRewardscheck,
   ContractDoesNotSupportICollectiveRewardsCheck,
@@ -11,8 +11,9 @@ import {
   StRIFTokenV02,
 } from '../typechain-types'
 import { deployContracts } from './deployContracts'
+import stRifV02Module from '../ignition/modules/StRifV02Module'
 
-describe('stRIFToken', () => {
+describe('stRIFToken Version 2', () => {
   let owner: SignerWithAddress, holder: SignerWithAddress, voter: SignerWithAddress
   let rif: RIFToken
   let stRIF: StRIFTokenV02
@@ -22,15 +23,30 @@ describe('stRIFToken', () => {
   let ContractWithErrorInCanWithdraw: ContractWithErrorInCanWithdraw
   const votingPower = 10n * 10n ** 18n
 
-  // prettier-ignore
   before(async () => {
     ;[owner, holder, voter] = await ethers.getSigners()
-    ;({ rif, stRIF } = await loadFixture(deployContracts))
-    ContractDoesNotSupportERC165andICollectiveRewardscheck = await ethers.deployContract('ContractDoesNotSupportERC165andICollectiveRewardscheck')
-    ContractDoesNotSupportICollectiveRewardsCheck = await ethers.deployContract('ContractDoesNotSupportICollectiveRewardsCheck')
-    ContractSupportsERC165andICollectiveRewardscheck = await ethers.deployContract('ContractSupportsERC165andICollectiveRewardscheck', [
-      holder,
-    ])
+    const contracts = await loadFixture(deployContracts)
+    const { stRIF: stRIFV01 } = contracts
+    ;({ rif } = contracts)
+    stRIF = (
+      await ignition.deploy(stRifV02Module, {
+        parameters: {
+          StRIFTokenV02: {
+            StRifAddress: await stRIFV01.getAddress(),
+          },
+        },
+      })
+    ).stRifV02 as unknown as StRIFTokenV02
+    ContractDoesNotSupportERC165andICollectiveRewardscheck = await ethers.deployContract(
+      'ContractDoesNotSupportERC165andICollectiveRewardscheck',
+    )
+    ContractDoesNotSupportICollectiveRewardsCheck = await ethers.deployContract(
+      'ContractDoesNotSupportICollectiveRewardsCheck',
+    )
+    ContractSupportsERC165andICollectiveRewardscheck = await ethers.deployContract(
+      'ContractSupportsERC165andICollectiveRewardscheck',
+      [holder],
+    )
     ContractWithErrorInCanWithdraw = await ethers.deployContract('ContractWithErrorInCanWithdraw', [voter])
   })
 

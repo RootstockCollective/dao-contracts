@@ -57,6 +57,12 @@ contract StRIFTokenV02 is
     __UUPSUpgradeable_init();
   }
 
+  function initializeV2() public onlyProxy reinitializer(2) {}
+
+  function version() public pure virtual returns (uint64) {
+    return 2;
+  }
+
   /**
    * @dev Allows token holder to transfer tokens to another account, after which
    * the recipient automatically delegates votes to themselves if they do
