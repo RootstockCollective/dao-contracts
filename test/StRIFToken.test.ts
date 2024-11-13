@@ -22,6 +22,10 @@ describe('stRIFToken', () => {
     expect(contractBalance).to.equal(ethers.parseUnits('1000000000', 18))
   })
 
+  it('deployer should be the owner', async () => {
+    expect(await stRIF.owner()).to.equal(owner.address)
+  })
+
   describe('Wrapping RIF tokens to stRIF', () => {
     it('holder should NOT initially own RIF tokens', async () => {
       expect(await rif.balanceOf(holder.address)).to.equal(0)
