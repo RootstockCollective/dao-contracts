@@ -1,9 +1,18 @@
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
 import { expect } from 'chai'
-import { ethers } from 'hardhat'
-import { RIFToken, StRIFToken } from '../typechain-types'
+import { ethers, ignition } from 'hardhat'
+import {
+  RIFToken,
+  StRIFToken,
+  StRIFTokenV02,
+  ContractDoesNotSupportERC165andICollectiveRewardscheck,
+  ContractDoesNotSupportICollectiveRewardsCheck,
+  ContractSupportsERC165andICollectiveRewardscheck,
+  ContractWithErrorInCanWithdraw,
+} from '../typechain-types'
 import { deployContracts } from './deployContracts'
+import stRifV02Module from '../ignition/modules/StRifV02Module'
 
 describe('stRIFToken', () => {
   let owner: SignerWithAddress, holder: SignerWithAddress, voter: SignerWithAddress
@@ -180,6 +189,138 @@ describe('stRIFToken', () => {
 
     it("voter should now have holder's voting power", async () => {
       expect(await stRIF.getVotes(voter.address)).to.equal(votingPower)
+    })
+  })
+
+  describe('Upgrade to version 2', () => {
+    let stRIFV2: StRIFTokenV02
+
+    let ContractSupportsERC165andICollectiveRewardscheck: ContractSupportsERC165andICollectiveRewardscheck
+    let ContractDoesNotSupportERC165andICollectiveRewardscheck: ContractDoesNotSupportERC165andICollectiveRewardscheck
+    let ContractDoesNotSupportICollectiveRewardsCheck: ContractDoesNotSupportICollectiveRewardsCheck
+    let ContractWithErrorInCanWithdraw: ContractWithErrorInCanWithdraw
+
+    before(async () => {
+      ContractDoesNotSupportERC165andICollectiveRewardscheck = await ethers.deployContract(
+        'ContractDoesNotSupportERC165andICollectiveRewardscheck',
+      )
+      ContractDoesNotSupportICollectiveRewardsCheck = await ethers.deployContract(
+        'ContractDoesNotSupportICollectiveRewardsCheck',
+      )
+      ContractSupportsERC165andICollectiveRewardscheck = await ethers.deployContract(
+        'ContractSupportsERC165andICollectiveRewardscheck',
+        [holder],
+      )
+      ContractWithErrorInCanWithdraw = await ethers.deployContract('ContractWithErrorInCanWithdraw', [voter])
+    })
+
+    it('should be upgraded to V2 by upgrade script', async () => {
+      stRIFV2 = (
+        await ignition.deploy(stRifV02Module, {
+          parameters: {
+            StRIFTokenV02: {
+              StRifAddress: await stRIF.getAddress(),
+            },
+          },
+        })
+      ).stRifV02 as unknown as StRIFTokenV02
+      expect(await stRIFV2.version()).to.equal(2)
+    })
+
+    describe('CollectiveRewards Check to allow withdrawal', () => {
+      it('blockedAddress should be set', async () => {
+        expect(await ContractSupportsERC165andICollectiveRewardscheck.blockedAddress()).to.be.properAddress
+        expect(await ContractSupportsERC165andICollectiveRewardscheck.blockedAddress()).to.equal(
+          holder.address,
+        )
+      })
+
+      it('only owner should be able to set CollectiveRewardsAddress', async () => {
+        const tx = stRIFV2
+          .connect(holder)
+          .setCollectiveRewardsAddress(ContractSupportsERC165andICollectiveRewardscheck)
+        await expect(tx).to.be.revertedWithCustomError(
+          { interface: stRIFV2.interface },
+          'OwnableUnauthorizedAccount',
+        )
+      })
+
+      it('setting CollectiveRewards address should fail if contract does not support ERC165 with STRIFSupportsICollectiveRewardsCheck', async () => {
+        const tx = stRIFV2.setCollectiveRewardsAddress(
+          await ContractDoesNotSupportERC165andICollectiveRewardscheck.getAddress(),
+        )
+        await expect(tx).to.be.revertedWithCustomError(
+          { interface: stRIFV2.interface },
+          'STRIFSupportsICollectiveRewardsCheck',
+        )
+      })
+
+      it('setting CollectiveRewards address should fail if contract does not support ICollectiveRewardsCheck with STRIFSupportsICollectiveRewardsCheck', async () => {
+        expect(await ContractDoesNotSupportICollectiveRewardsCheck.supportsInterface('0x01ffc9a7')).to.be.true
+
+        const tx = stRIFV2.setCollectiveRewardsAddress(
+          await ContractDoesNotSupportERC165andICollectiveRewardscheck.getAddress(),
+        )
+        await expect(tx).to.be.revertedWithCustomError(
+          { interface: stRIFV2.interface },
+          'STRIFSupportsICollectiveRewardsCheck',
+        )
+      })
+
+      it('should set CollectiveRewards address if canWithdraw returns boolean', async () => {
+        const address = await ContractSupportsERC165andICollectiveRewardscheck.getAddress()
+        await stRIFV2.setCollectiveRewardsAddress(address)
+
+        expect(await stRIFV2.collectiveRewardsCheck()).to.equal(address)
+      })
+
+      it('should revert withdrawTo, _update with STRIFStakedInCollectiveRewardsCanWithdraw if bimCheck returns false', async () => {
+        expect(await stRIFV2.balanceOf(holder)).to.equal(votingPower)
+
+        const tx = stRIFV2.connect(holder).withdrawTo(holder.address, votingPower)
+        await expect(tx).to.be.revertedWithCustomError(
+          { interface: stRIFV2.interface },
+          'STRIFStakedInCollectiveRewardsCanWithdraw',
+        )
+
+        //runs _update under the hood
+        const transferTx = stRIFV2.connect(holder).transfer(voter, votingPower)
+        await expect(transferTx).to.be.revertedWithCustomError(
+          { interface: stRIFV2.interface },
+          'STRIFStakedInCollectiveRewardsCanWithdraw',
+        )
+        expect(await stRIFV2.balanceOf(holder)).to.equal(votingPower)
+      })
+
+      it('should allow withdrawTo if bimCheck returns true', async () => {
+        await ContractSupportsERC165andICollectiveRewardscheck.setBlockedAddress(voter)
+        expect(await stRIFV2.balanceOf(holder)).to.equal(votingPower)
+
+        const value = votingPower / 2n
+        const tx = stRIFV2.connect(holder).withdrawTo(holder.address, value)
+        await expect(tx).to.emit(stRIFV2, 'Transfer').withArgs(holder.address, ethers.ZeroAddress, value)
+      })
+
+      it('should throw an error if _shouldSkipError is false', async () => {
+        const address = await ContractWithErrorInCanWithdraw.getAddress()
+        const setTX = stRIFV2.setCollectiveRewardsAddress(address)
+        await expect(setTX).to.emit(stRIFV2, 'CollectiveRewardsAddressHasBeenChanged').withArgs(address)
+
+        const tx = stRIFV2.connect(holder).withdrawTo(holder.address, votingPower / 2n)
+        await expect(tx).to.be.revertedWithCustomError(
+          { interface: stRIFV2.interface },
+          'CollectiveRewardsErrored',
+        )
+      })
+
+      it('should ignore Collective Rewards error if _shouldSkipError is true', async () => {
+        const skipTX = stRIFV2.setCollectiveRewardsErrorSkipFlag(true)
+        await expect(skipTX).to.emit(stRIFV2, 'STRIFCollectiveRewardsErrorSkipChangedTo').withArgs(true)
+
+        const value = votingPower / 2n
+        const tx = stRIFV2.connect(holder).withdrawTo(holder.address, value)
+        await expect(tx).to.emit(stRIFV2, 'Transfer').withArgs(holder.address, ethers.ZeroAddress, value)
+      })
     })
   })
 })
