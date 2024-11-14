@@ -363,6 +363,42 @@ describe('Governor Contact', () => {
           expect(newVotingPowerOf2).to.equal((await balances[0]) - value)
         })
 
+        it('A delegates to C, A transfers to B', async () => {
+          const testedHolders = holders.slice(7, 10)
+
+          const tx = await stRIF.connect(testedHolders[0]).delegate(testedHolders[2])
+          await tx.wait()
+          expect(await stRIF.delegates(testedHolders[0])).to.equal(testedHolders[2])
+
+          const balancesBefore = testedHolders.map(async holder => {
+            return await stRIF.balanceOf(holder)
+          })
+
+          const transferValue = dispenseValue / 5n
+          const transfer = await stRIF.connect(testedHolders[0]).transfer(testedHolders[1], transferValue)
+          await transfer.wait()
+
+          const balanceOfBAfter = await stRIF.balanceOf(testedHolders[1])
+          expect(balanceOfBAfter).to.equal((await balancesBefore[1]) + transferValue)
+
+          const delegateOfB = await stRIF.delegates(testedHolders[1])
+          // still their own delegate, delegation stays the same
+          expect(delegateOfB).to.equal(testedHolders[1])
+
+          const votingPowersAfter = testedHolders.map(async holder => {
+            return await stRIF.getVotes(holder)
+          })
+
+          // becase delegated all to C
+          expect(await votingPowersAfter[0]).to.equal(0n)
+          // because had own power and got transferred more by A
+          expect(await votingPowersAfter[1]).to.equal((await balancesBefore[1]) + transferValue)
+          // because A transfers their voting power, C lost part of delegated power
+          expect(await votingPowersAfter[2]).to.equal(
+            (await balancesBefore[0]) + (await balancesBefore[2]) - transferValue,
+          )
+        })
+
         it('should be possible to claim back votes', async () => {
           const balance1 = await stRIF.balanceOf(holders[1])
 
