@@ -326,8 +326,41 @@ describe('Governor Contact', () => {
           await mine(2)
 
           const balanceHolder2After = await stRIF.getVotes(holders[2])
-          console.log('balanceHolder2After', balanceHolder2After)
           expect(balanceHolder2After).to.equal(balanceHolder1 + balanceHolder2 + balanceHolder3)
+        })
+
+        it('A delegates to B, B delegates to C, A withdraws', async () => {
+          const testedHolders = holders.slice(4, 7)
+
+          const tx = await stRIF.connect(testedHolders[0]).delegate(testedHolders[1])
+          await tx.wait()
+          expect(await stRIF.delegates(testedHolders[0])).to.equal(testedHolders[1])
+
+          const tx2 = await stRIF.connect(testedHolders[1]).delegate(testedHolders[2])
+          await tx2.wait()
+          expect(await stRIF.delegates(testedHolders[1])).to.equal(testedHolders[2])
+
+          const votingPowers = testedHolders.map(async holder => {
+            return await stRIF.getVotes(holder)
+          })
+
+          const balances = testedHolders.map(async holder => {
+            return await stRIF.balanceOf(holder)
+          })
+
+          // because delegated to B
+          expect(await votingPowers[0]).to.equal(0n)
+          // because received from A and delegated own votes to C
+          expect(await votingPowers[1]).to.equal(await balances[0])
+          // because received from B and has own votes
+          expect(await votingPowers[2]).to.equal((await balances[1]) + (await balances[2]))
+
+          const value = dispenseValue / 5n
+          const withdrawFrom1 = await stRIF.connect(testedHolders[0]).withdrawTo(testedHolders[0], value)
+          await withdrawFrom1.wait()
+
+          const newVotingPowerOf2 = await stRIF.getVotes(testedHolders[1])
+          expect(newVotingPowerOf2).to.equal((await balances[0]) - value)
         })
 
         it('should be possible to claim back votes', async () => {
