@@ -4,12 +4,13 @@ export const stRifProxyModule = buildModule('stRifProxy', m => {
   const owner = m.getParameter('owner')
   // deploy StRIF implementation
   const rifAddress = m.getParameter('rifAddress')
-  const stRif = m.contract('StRIFToken')
+  const stRif = m.contract('StRIFToken', [], { id: 'Implementation' })
   // deploy ERC1967 proxy in order to use UUPS upgradable smart contracts
-  const stRifProxy = m.contract('ERC1967Proxy', [
-    stRif,
-    m.encodeFunctionCall(stRif, 'initialize', [rifAddress, owner]),
-  ])
+  const stRifProxy = m.contract(
+    'ERC1967Proxy',
+    [stRif, m.encodeFunctionCall(stRif, 'initialize', [rifAddress, owner])],
+    { id: 'Proxy' },
+  )
   return { stRifProxy }
 })
 
