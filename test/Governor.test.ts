@@ -10,7 +10,7 @@ import {
   OGFoundersRootstockCollective,
 } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { ContractTransactionResponse, parseEther, solidityPackedKeccak256 } from 'ethers'
+import { ContractTransactionResponse, parseEther, solidityPackedKeccak256, ZeroAddress } from 'ethers'
 import { Proposal, ProposalState, OperationState } from '../types'
 import { deployContracts } from './deployContracts'
 import ogFoundersModule from '../ignition/modules/OGFoundersModule'
@@ -153,7 +153,7 @@ describe('Governor Contact', () => {
     describe('Proposal Creation', () => {
       it('participants should gain voting power proportional to RIF tokens', async () => {
         await Promise.all(
-          holders.slice(0, holders.length - 1).map(async (voter, i) => {
+          holders.slice(0, holders.length).map(async (voter, i) => {
             const dispenseTx = await rif.transfer(voter.address, dispenseValue)
             await dispenseTx.wait()
             const rifBalance = await rif.balanceOf(voter.address)
@@ -163,11 +163,15 @@ describe('Governor Contact', () => {
             await approvalTx.wait()
             const depositTx = await stRIF.connect(voter).depositFor(voter.address, votingPower)
             await depositTx.wait()
-            const delegateTx = await stRIF.connect(voter).delegate(voter.address)
-            await delegateTx.wait()
-            const votes = await stRIF.getVotes(voter.address)
 
-            expect(votes).to.equal(votingPower)
+            // prepare for delegation tests
+            if (i !== holders.length - 1) {
+              const delegateTx = await stRIF.connect(voter).delegate(voter.address)
+              await delegateTx.wait()
+              const votes = await stRIF.getVotes(voter.address)
+
+              expect(votes).to.equal(votingPower)
+            }
           }),
         )
       })
@@ -397,6 +401,34 @@ describe('Governor Contact', () => {
           expect(await votingPowersAfter[2]).to.equal(
             (await balancesBefore[0]) + (await balancesBefore[2]) - transferValue,
           )
+        })
+
+        it('A transfers stRIF, B has no delegatee set, voting power is still 0', async () => {
+          const testedHolders = holders.slice(holders.length - 2)
+
+          const votingPowersBefore = testedHolders.map(async holder => {
+            return await stRIF.getVotes(holder)
+          })
+
+          expect(await votingPowersBefore[0]).to.equal(dispenseValue - sendAmount)
+          expect(await stRIF.delegates(testedHolders[0])).to.equal(testedHolders[0].address)
+          expect(await votingPowersBefore[1]).to.equal(0n)
+          expect(await stRIF.delegates(testedHolders[1])).to.equal(ZeroAddress)
+
+          const balanceOfABefore = await stRIF.balanceOf(testedHolders[0])
+          const balanceOfBBefore = await stRIF.balanceOf(testedHolders[1])
+
+          const transferFromAtoB = await stRIF
+            .connect(testedHolders[0])
+            .transfer(testedHolders[1], sendAmount)
+
+          await transferFromAtoB.wait()
+
+          expect(await stRIF.balanceOf(testedHolders[0])).to.equal(balanceOfABefore - sendAmount)
+          expect(await stRIF.balanceOf(testedHolders[1])).to.equal(balanceOfBBefore + sendAmount)
+
+          expect(await stRIF.getVotes(testedHolders[0])).to.equal(balanceOfABefore - sendAmount)
+          expect(await stRIF.getVotes(testedHolders[1])).to.equal(0n)
         })
 
         it('should be possible to claim back votes', async () => {
