@@ -5,6 +5,7 @@ import './tasks/updateIpfsFolder'
 import './tasks/cancelProposal'
 import './tasks/withdrawTreasury'
 import './tasks/airdrop'
+import './tasks/getAvgNewBlockTime'
 
 dotent.config()
 
@@ -45,14 +46,14 @@ const config: HardhatUserConfig = {
       url: 'https://public-node.rsk.co/',
       ...(typeof process.env.MAINNET_DEPLOYER_MNEMONIC !== 'undefined'
         ? {
-            accounts: {
-              mnemonic: process.env.MAINNET_DEPLOYER_MNEMONIC,
-              path: derivationPath,
-            },
-          }
+          accounts: {
+            mnemonic: process.env.MAINNET_DEPLOYER_MNEMONIC,
+            path: derivationPath,
+          },
+        }
         : {
-            accounts,
-          }),
+          accounts,
+        }),
     },
   },
   etherscan: {
