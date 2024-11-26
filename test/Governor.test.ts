@@ -10,7 +10,7 @@ import {
   OGFoundersRootstockCollective,
 } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { ContractTransactionResponse, parseEther, solidityPackedKeccak256 } from 'ethers'
+import { ContractTransactionResponse, parseEther, solidityPackedKeccak256, ZeroAddress } from 'ethers'
 import { Proposal, ProposalState, OperationState } from '../types'
 import { deployContracts } from './deployContracts'
 import ogFoundersModule from '../ignition/modules/OGFoundersModule'
@@ -153,7 +153,7 @@ describe('Governor Contact', () => {
     describe('Proposal Creation', () => {
       it('participants should gain voting power proportional to RIF tokens', async () => {
         await Promise.all(
-          holders.slice(0, holders.length - 1).map(async (voter, i) => {
+          holders.slice(0, holders.length).map(async (voter, i) => {
             const dispenseTx = await rif.transfer(voter.address, dispenseValue)
             await dispenseTx.wait()
             const rifBalance = await rif.balanceOf(voter.address)
@@ -163,11 +163,15 @@ describe('Governor Contact', () => {
             await approvalTx.wait()
             const depositTx = await stRIF.connect(voter).depositFor(voter.address, votingPower)
             await depositTx.wait()
-            const delegateTx = await stRIF.connect(voter).delegate(voter.address)
-            await delegateTx.wait()
-            const votes = await stRIF.getVotes(voter.address)
 
-            expect(votes).to.equal(votingPower)
+            // prepare for delegation tests
+            if (i !== holders.length - 1) {
+              const delegateTx = await stRIF.connect(voter).delegate(voter.address)
+              await delegateTx.wait()
+              const votes = await stRIF.getVotes(voter.address)
+
+              expect(votes).to.equal(votingPower)
+            }
           }),
         )
       })
@@ -326,8 +330,105 @@ describe('Governor Contact', () => {
           await mine(2)
 
           const balanceHolder2After = await stRIF.getVotes(holders[2])
-          console.log('balanceHolder2After', balanceHolder2After)
           expect(balanceHolder2After).to.equal(balanceHolder1 + balanceHolder2 + balanceHolder3)
+        })
+
+        it('A delegates to B, B delegates to C, A withdraws', async () => {
+          const testedHolders = holders.slice(4, 7)
+
+          const tx = await stRIF.connect(testedHolders[0]).delegate(testedHolders[1])
+          await tx.wait()
+          expect(await stRIF.delegates(testedHolders[0])).to.equal(testedHolders[1])
+
+          const tx2 = await stRIF.connect(testedHolders[1]).delegate(testedHolders[2])
+          await tx2.wait()
+          expect(await stRIF.delegates(testedHolders[1])).to.equal(testedHolders[2])
+
+          const votingPowers = testedHolders.map(async holder => {
+            return await stRIF.getVotes(holder)
+          })
+
+          const balances = testedHolders.map(async holder => {
+            return await stRIF.balanceOf(holder)
+          })
+
+          // because delegated to B
+          expect(await votingPowers[0]).to.equal(0n)
+          // because received from A and delegated own votes to C
+          expect(await votingPowers[1]).to.equal(await balances[0])
+          // because received from B and has own votes
+          expect(await votingPowers[2]).to.equal((await balances[1]) + (await balances[2]))
+
+          const value = dispenseValue / 5n
+          const withdrawFrom1 = await stRIF.connect(testedHolders[0]).withdrawTo(testedHolders[0], value)
+          await withdrawFrom1.wait()
+
+          const newVotingPowerOf2 = await stRIF.getVotes(testedHolders[1])
+          expect(newVotingPowerOf2).to.equal((await balances[0]) - value)
+        })
+
+        it('A delegates to C, A transfers to B', async () => {
+          const testedHolders = holders.slice(7, 10)
+
+          const tx = await stRIF.connect(testedHolders[0]).delegate(testedHolders[2])
+          await tx.wait()
+          expect(await stRIF.delegates(testedHolders[0])).to.equal(testedHolders[2])
+
+          const balancesBefore = testedHolders.map(async holder => {
+            return await stRIF.balanceOf(holder)
+          })
+
+          const transferValue = dispenseValue / 5n
+          const transfer = await stRIF.connect(testedHolders[0]).transfer(testedHolders[1], transferValue)
+          await transfer.wait()
+
+          const balanceOfBAfter = await stRIF.balanceOf(testedHolders[1])
+          expect(balanceOfBAfter).to.equal((await balancesBefore[1]) + transferValue)
+
+          const delegateOfB = await stRIF.delegates(testedHolders[1])
+          // still their own delegate, delegation stays the same
+          expect(delegateOfB).to.equal(testedHolders[1])
+
+          const votingPowersAfter = testedHolders.map(async holder => {
+            return await stRIF.getVotes(holder)
+          })
+
+          // becase delegated all to C
+          expect(await votingPowersAfter[0]).to.equal(0n)
+          // because had own power and got transferred more by A
+          expect(await votingPowersAfter[1]).to.equal((await balancesBefore[1]) + transferValue)
+          // because A transfers their voting power, C lost part of delegated power
+          expect(await votingPowersAfter[2]).to.equal(
+            (await balancesBefore[0]) + (await balancesBefore[2]) - transferValue,
+          )
+        })
+
+        it('A transfers stRIF, B has no delegatee set, voting power is still 0', async () => {
+          const testedHolders = holders.slice(holders.length - 2)
+
+          const votingPowersBefore = testedHolders.map(async holder => {
+            return await stRIF.getVotes(holder)
+          })
+
+          expect(await votingPowersBefore[0]).to.equal(dispenseValue - sendAmount)
+          expect(await stRIF.delegates(testedHolders[0])).to.equal(testedHolders[0].address)
+          expect(await votingPowersBefore[1]).to.equal(0n)
+          expect(await stRIF.delegates(testedHolders[1])).to.equal(ZeroAddress)
+
+          const balanceOfABefore = await stRIF.balanceOf(testedHolders[0])
+          const balanceOfBBefore = await stRIF.balanceOf(testedHolders[1])
+
+          const transferFromAtoB = await stRIF
+            .connect(testedHolders[0])
+            .transfer(testedHolders[1], sendAmount)
+
+          await transferFromAtoB.wait()
+
+          expect(await stRIF.balanceOf(testedHolders[0])).to.equal(balanceOfABefore - sendAmount)
+          expect(await stRIF.balanceOf(testedHolders[1])).to.equal(balanceOfBBefore + sendAmount)
+
+          expect(await stRIF.getVotes(testedHolders[0])).to.equal(balanceOfABefore - sendAmount)
+          expect(await stRIF.getVotes(testedHolders[1])).to.equal(0n)
         })
 
         it('should be possible to claim back votes', async () => {
