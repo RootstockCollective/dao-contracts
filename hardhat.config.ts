@@ -5,6 +5,7 @@ import './tasks/updateIpfsFolder'
 import './tasks/cancelProposal'
 import './tasks/withdrawTreasury'
 import './tasks/airdrop'
+import './tasks/stRifUpgradeV1-v2'
 
 dotent.config()
 
