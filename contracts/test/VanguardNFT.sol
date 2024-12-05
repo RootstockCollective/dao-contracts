@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 
 import {ERC721NonTransferrableUpgradable} from "../NFT/ERC721NonTransferrableUpgradable.sol";
 import {GovernorRootstockCollective} from "../GovernorRootstockCollective.sol";
-
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import "hardhat/console.sol";
 
@@ -12,8 +12,9 @@ contract VanguardNFTRootstockCollective is ERC721NonTransferrableUpgradable {
   using Strings for uint256;
 
   event IpfsFolderChanged(uint256 newNumFiles, string newIpfs);
+  event ProposalCountChanged(uint8 newCount);
 
-  error VanguardCannotMint();
+  error HasNotVoted();
   error MintError(string reason);
 
   GovernorRootstockCollective public governor;
@@ -23,6 +24,8 @@ contract VanguardNFTRootstockCollective is ERC721NonTransferrableUpgradable {
   uint256 private _maxSupply;
   // IPFS CID of the tokens metadata directory
   string private _folderIpfsCid;
+  // The number of proposals that need to be checked to determine whether the user voted for any of them
+  uint8 public proposalCount;
 
   /// @custom:oz-upgrades-unsafe-allow constructor
   constructor() {
@@ -33,11 +36,13 @@ contract VanguardNFTRootstockCollective is ERC721NonTransferrableUpgradable {
     address initialOwner,
     GovernorRootstockCollective governorAddress,
     uint256 maxSupply,
+    uint8 initialProposalCount,
     string calldata ipfsFolderCid
   ) public initializer {
     require(address(governorAddress) != address(0), "VanguardNFTRootstockCollective: No governor address");
     __ERC721UpgradableBase_init("VanguardNFTRootstockCollective", "VanNFT", initialOwner);
     governor = governorAddress;
+    proposalCount = initialProposalCount;
     setIpfsFolder(maxSupply, ipfsFolderCid);
   }
 
@@ -55,38 +60,37 @@ contract VanguardNFTRootstockCollective is ERC721NonTransferrableUpgradable {
     emit IpfsFolderChanged(newMaxSupply, newIpfsCid);
   }
 
+  // uint256 lastCachedProposalId
+  // function cacheProposals() internal virtual {}
+
+  // рассмотреть вариант записи всех proposals вовнутрь NFT во избежании вызова дорогой функции
+  function hasVoted(address caller, uint8 numProposals) public view virtual returns (bool) {
+    // Limit the number of proposals to the lesser of total proposals and the requested number.
+    uint256 count = Math.min(governor.proposalCount(), numProposals);
+    for (uint256 i = count; i > 0; ) {
+      (uint256 proposalId, , , , ) = governor.proposalDetailsAt(i - 1);
+      if (governor.hasVoted(proposalId, caller)) return true;
+      // Disable overflow check to save gas, as `i` is guaranteed to be > 0 in this loop
+      unchecked {
+        i--;
+      }
+    }
+    return false;
+  }
+
+  // это временное решение чтобы выяснить оптимальную глубину поиска
+  function setProposalCount(uint8 newCount) external virtual onlyOwner {
+    emit ProposalCountChanged(newCount);
+    proposalCount = newCount;
+  }
+
   function mint() external virtual {
     address caller = _msgSender();
-
-    try governor.proposalCount() returns (uint count) {
-      uint8 counter = 10;
-      bool hasEverVoted = false;
-
-      while (counter != 0) {
-        (uint256 proposalId, , , , ) = governor.proposalDetailsAt(count - counter);
-
-        bool hasVoted = governor.hasVoted(proposalId, caller);
-
-        if (hasVoted) {
-          hasEverVoted = hasVoted;
-          break;
-        }
-
-        counter--;
-      }
-
-      if (!hasEverVoted) {
-        revert VanguardCannotMint();
-      }
-
-      //here we mint
-      uint256 tokenId = ++_totalMinted;
-      string memory fileName = string.concat(tokenId.toString(), ".json"); // 1.json, 2.json ...
-      _safeMint(caller, tokenId);
-      _setTokenURI(tokenId, fileName);
-    } catch Error(string memory reason) {
-      revert MintError(reason);
-    }
+    if (!hasVoted(caller, proposalCount)) revert HasNotVoted();
+    uint256 tokenId = ++_totalMinted;
+    string memory fileName = string.concat(tokenId.toString(), ".json"); // 1.json, 2.json ...
+    _safeMint(caller, tokenId);
+    _setTokenURI(tokenId, fileName);
   }
 
   /**
