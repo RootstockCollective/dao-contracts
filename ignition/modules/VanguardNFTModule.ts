@@ -9,13 +9,19 @@ export const VanguardNFTModule = buildModule('VanguardNFT', m => {
   const governor = m.getParameter('governor')
   const maxSupply = m.getParameter('maxSupply')
   const ipfsFolderCid = m.getParameter('ipfsFolderCid')
+  const proposalCount = m.getParameter('proposalCount')
 
   // deploy proxy
   const proxy = m.contract('ERC1967Proxy', [
     implementation,
-    m.encodeFunctionCall(implementation, 'initialize', [deployer, governor, maxSupply, ipfsFolderCid], {
-      id: 'Proxy',
-    }),
+    m.encodeFunctionCall(
+      implementation,
+      'initialize',
+      [deployer, governor, maxSupply, proposalCount, ipfsFolderCid],
+      {
+        id: 'Proxy',
+      },
+    ),
   ])
   const VanguardNFT = m.contractAt('VanguardNFTRootstockCollective', proxy, {
     id: 'Contract',
