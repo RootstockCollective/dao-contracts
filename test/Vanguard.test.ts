@@ -1,6 +1,11 @@
 import { ethers, ignition } from 'hardhat'
-import { GovernorRootstockCollective, VanguardNFTRootstockCollective } from '../typechain-types'
-import VanguardNFTModule from '../ignition/modules/VanguardNFTModule'
+import {
+  GovernorRootstockCollective,
+  RIFToken,
+  StRIFToken,
+  VotingVanguardsRootstockCollective,
+} from '../typechain-types'
+import VotingVanguardsModule from '../ignition/modules/VotingVanguardsModule'
 import { deployContracts } from './deployContracts'
 import { expect } from 'chai'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
@@ -9,10 +14,16 @@ import { loadFixture, mine } from '@nomicfoundation/hardhat-network-helpers'
 import { VoteType } from '../types'
 
 const ZERO_BYTE = '0x00'
+const rootstockGasPriceAverage = 63228564n
 
 describe('Vanguard NFT', () => {
-  const proposalCount = 10
+  // The number of proposals that need to be checked to determine whether the user voted for any of them
+  const proposalCount = 3
   const ipfsFolderCid = 'QmZYHgFMjZ9SNvFwP9rCxtDEgF2JfJwQtaSg2fqxTX31eG'
+  const stRifThreshold = 50n * 10n ** 18n
+  const votingPower = 100n * 10n ** 18n
+  const maxSupply = 1000
+  const mintLimit = 200
 
   let deployer: SignerWithAddress
   let voter: SignerWithAddress
@@ -22,25 +33,41 @@ describe('Vanguard NFT', () => {
     ;[deployer, voter, proposalTarget] = await ethers.getSigners()
   })
 
-  // The number of proposals that need to be checked to determine whether the user voted for any of them
+  // give voting power
+  const enfranchise = async (rif: RIFToken, stRIF: StRIFToken) => {
+    // give voting power to deployer to be able to create a proposal
+    await rif.approve(await stRIF.getAddress(), votingPower).then(tx => tx.wait())
+    await stRIF.depositAndDelegate(deployer.address, votingPower).then(tx => tx.wait())
+    // give voting power to voter
+    await rif.transfer(voter.address, votingPower).then(tx => tx.wait())
+    await rif
+      .connect(voter)
+      .approve(await stRIF.getAddress(), votingPower)
+      .then(tx => tx.wait())
+    await stRIF
+      .connect(voter)
+      .depositAndDelegate(voter.address, votingPower)
+      .then(tx => tx.wait())
+  }
 
   const deploy = async () => {
     const contracts = await deployContracts()
     const vanguard = (
-      await ignition.deploy(VanguardNFTModule, {
+      await ignition.deploy(VotingVanguardsModule, {
         parameters: {
           VanguardNFT: {
+            maxSupply,
+            mintLimit,
+            stRifThreshold,
+            stRif: await contracts.stRIF.getAddress(),
             governor: await contracts.governor.getAddress(),
-            maxSupply: 10n,
             proposalCount,
             ipfsFolderCid,
           },
         },
       })
-    ).VanguardNFT as unknown as VanguardNFTRootstockCollective
-    const votingPower = 100n * 10n ** 18n
-    await contracts.rif.approve(await contracts.stRIF.getAddress(), votingPower).then(tx => tx.wait())
-    await contracts.stRIF.depositAndDelegate(deployer.address, votingPower).then(tx => tx.wait())
+    ).VanguardNFT as unknown as VotingVanguardsRootstockCollective
+    await enfranchise(contracts.rif, contracts.stRIF)
     return { ...contracts, vanguard }
   }
 
@@ -53,73 +80,133 @@ describe('Vanguard NFT', () => {
     return event.args.proposalId
   }
 
-  const testMintGas = async (numAdditionalProposals: number) => {
-    const { governor, vanguard } = await loadFixture(deploy)
+  describe('NFT lifecycle', () => {
+    let governor: GovernorRootstockCollective
+    let vanguard: VotingVanguardsRootstockCollective
+    let stRif: StRIFToken
 
-    // Create and vote for the initial proposal
-    const id = await createProposal(governor)
-    await governor
-      .connect(voter)
-      .castVote(id, VoteType.For)
-      .then(tx => tx.wait())
+    before(async () => {
+      const contracts = await loadFixture(deploy)
+      governor = contracts.governor
+      vanguard = contracts.vanguard
+      stRif = contracts.stRIF
+    })
 
-    // Create additional proposals
-    for (let i = 0; i < numAdditionalProposals; i++) {
-      await createProposal(governor)
-    }
+    describe('Upon deployment', async () => {
+      it('Contract names should be set after the deployment', async () => {
+        expect(await governor.name()).to.equal('GovernorRootstockCollective')
+        expect(await vanguard.name()).to.equal('VotingVanguardsRootstockCollective')
+      })
+      it('number of past votes to be checked should be set up', async () => {
+        expect(await vanguard.proposalCount()).to.equal(proposalCount)
+      })
+      it('StRif threshold should be set', async () => {
+        expect(await vanguard.stRifThreshold()).to.equal(stRifThreshold)
+      })
+      it('StRif address should be set in the Vanguard contract', async () => {
+        expect(await vanguard.stRif()).to.equal(await stRif.getAddress())
+      })
+      it('Mint limit should be set', async () => {
+        expect(await vanguard.mintLimit()).to.equal(mintLimit)
+      })
+      it('All tokens should be available for minting', async () => {
+        expect(await vanguard.tokensAvailable()).to.equal(maxSupply)
+      })
+      it('Number of proposal to search should be set', async () => {
+        expect(await vanguard.proposalCount()).to.equal(proposalCount)
+      })
 
-    // Mint and measure gas
-    const mintTx = await vanguard.connect(voter).mint()
-    const mintReceipt = await mintTx.wait()
-    if (!mintReceipt) throw new Error('Unable to mint')
-    const { gasPrice, gasUsed } = mintReceipt
-    return {
-      gasPrice,
-      gasUsed,
-      gasFee: +formatEther(gasPrice * gasUsed),
-    }
-  }
+      it('Voter`s StRif balance should be above the StRif threshold', async () => {
+        expect(await stRif.balanceOf(voter.address)).to.be.greaterThanOrEqual(stRifThreshold)
+      })
+      it('Voter should have enough voting power to vote', async () => {
+        expect(await stRif.getVotes(voter.address)).to.equal(votingPower)
+      })
+    })
 
-  describe('measuring gas', () => {
-    it('mint after 0 - 10 proposals', async () => {
-      let totalGasPrice = 0n
-      for (let i = 0; i < proposalCount; i++) {
-        const { gasPrice } = await testMintGas(i)
-        totalGasPrice += gasPrice
+    describe('Minting NFTs', () => {
+      it('Voter should not be able to mint NFT before voting', async () => {
+        await expect(vanguard.connect(voter).mint()).to.be.revertedWithCustomError(vanguard, 'HasNotVoted')
+      })
+      it('hasVoted should detect that voter hasn`t voted yet', async () => {
+        expect(await vanguard.hasVoted(voter.address)).to.be.false
+      })
+      it('Governor should now store 0 proposals', async () => {
+        expect(await governor.proposalCount()).to.equal(0)
+      })
+      it('Voter should NOT be able to mint an NFT if he voted long ago (before `proposalCount`)', async () => {
+        const id = await createProposal(governor)
+
+        await governor.connect(voter).castVote(id, VoteType.For)
+        // voter misses 3 proposals
+        await createProposal(governor)
+        await createProposal(governor)
+        await createProposal(governor)
+        expect(await vanguard.hasVoted(voter.address)).to.be.false
+      })
+      it('voter should vote for a proposal', async () => {
+        const id = await createProposal(governor)
+        await expect(governor.connect(voter).castVote(id, VoteType.For)).to.emit(governor, 'VoteCast')
+        expect(await governor.hasVoted(id, voter.address)).to.be.true
+      })
+      it('should create 2 more proposals', async () => {
+        for (let i = 0; i < 2; i++) {
+          await createProposal(governor)
+        }
+      })
+      it('hasVoted should detect that voter has already voted', async () => {
+        expect(await vanguard.hasVoted(voter.address)).to.be.true
+      })
+      it('Voter should be able to mint NFT after voting', async () => {
+        await expect(vanguard.connect(voter).mint()).to.emit(vanguard, 'Transfer')
+      })
+      it('Voter should NOT be able to mint NFT second time', async () => {
+        await expect(vanguard.connect(voter).mint()).to.be.revertedWithCustomError(
+          vanguard,
+          'ERC721InvalidOwner',
+        )
+      })
+    })
+  })
+
+  describe('Measuring gas', () => {
+    const testMintGas = async (numAdditionalProposals: number) => {
+      const { governor, vanguard } = await loadFixture(deploy)
+
+      // Create and vote for the initial proposal
+      const id = await createProposal(governor)
+      await governor
+        .connect(voter)
+        .castVote(id, VoteType.For)
+        .then(tx => tx.wait())
+
+      // Create additional proposals
+      for (let i = 0; i < numAdditionalProposals; i++) {
+        await createProposal(governor)
       }
-      console.log('average gas price', totalGasPrice / BigInt(proposalCount))
+
+      // Mint and measure gas
+      const mintTx = await vanguard.connect(voter).mint()
+      const mintReceipt = await mintTx.wait()
+      if (!mintReceipt) throw new Error('Unable to mint')
+      const { gasPrice, gasUsed } = mintReceipt
+      return {
+        gasPrice,
+        gasUsed,
+        gasFee: +formatEther(rootstockGasPriceAverage * gasUsed),
+      }
+    }
+
+    it('Fees paid for a single proposal check should be reasonable', async () => {
+      const gasFees: number[] = []
+      for (let i = 0; i < proposalCount; i++) {
+        const { gasFee } = await testMintGas(i)
+        gasFees.push(gasFee)
+      }
+      const feesPerProposalCheck = gasFees.slice(1).map((current, index) => current - gasFees[index])
+      const averageFeePerProposalCheck =
+        feesPerProposalCheck.reduce((sum, diff) => sum + diff, 0) / feesPerProposalCheck.length
+      expect(averageFeePerProposalCheck).lessThan(0.000002)
     })
   })
 })
-
-/* describe.skip('Upon deployment', () => {
-    it('Contract names should be set after the deployment', async () => {
-      expect(await governor.name()).to.equal('GovernorRootstockCollective')
-      expect(await vanguard.name()).to.equal('VanguardNFTRootstockCollective')
-    })
-    it('number of past votes to be checked should be set up', async () => {
-      expect(await vanguard.proposalCount()).to.equal(proposalCount)
-    })
-  })
-  describe.skip('Minting NFTs', () => {
-    it('Voter should not be able to mint NFT before voting', async () => {
-      await expect(vanguard.connect(voter).mint()).to.be.revertedWithCustomError(vanguard, 'HasNotVoted')
-    })
-    it.skip('voter should vote for a proposal', async () => {
-      const id = await createProposal()
-      proposalIds.push(id)
-      await expect(governor.connect(voter).castVote(id, VoteType.For)).to.emit(governor, 'VoteCast')
-      expect(await governor.hasVoted(id, voter.address)).to.be.true
-    })
-    it('should create 10 proposals', async () => {
-      for (let i = 0; i < proposalCount; i++) {
-        await createProposal()
-      }
-    })
-    it('hasVoted should detect that voter hasn`t voted yet', async () => {
-      expect(await vanguard.hasVoted(voter.address, proposalCount)).to.be.false
-    })
-    it('Voter should be able to mint NFT after voting', async () => {
-      await expect(vanguard.connect(voter).mint()).to.emit(vanguard, 'Transfer')
-    })
-   */

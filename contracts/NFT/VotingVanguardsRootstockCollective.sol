@@ -1,0 +1,195 @@
+// SPDX-License-Identifier: MIT
+// Compatible with OpenZeppelin Contracts ^5.0.0
+pragma solidity ^0.8.20;
+
+import {ERC721NonTransferrableUpgradable} from "../NFT/ERC721NonTransferrableUpgradable.sol";
+import {GovernorRootstockCollective} from "../GovernorRootstockCollective.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+contract VotingVanguardsRootstockCollective is ERC721NonTransferrableUpgradable {
+  using Strings for uint256;
+
+  event IpfsFolderChanged(uint256 newNumFiles, string newIpfs);
+  event MintLimitChanged(uint256 newLimit);
+  event ProposalCountChanged(uint8 newCount);
+  event StRifThresholdChanged(uint256 newThreshold);
+
+  error HasNotVoted();
+  error MintLimitReached(uint256 mintLimit);
+  error OutOfTokens(uint256 maxSupply);
+  error BelowStRifThreshold(uint256 balance, uint256 requiredBalance);
+
+  // Rootstock Collective DAO Governor address
+  GovernorRootstockCollective public governor;
+  // Staked RIF token address
+  IERC20 public stRif;
+  // Counter for the total number of minted tokens
+  uint256 private _totalMinted;
+  // number of metadata files in the IPFS directory
+  uint256 private _maxSupply;
+  /**
+   * @notice Defines the maximum number of NFTs that can be claimed during the current phase.
+   * This allows the Foundation to unlock additional phases by updating the limit as needed
+   */
+  uint256 public mintLimit;
+  // Minimum Staked RIF token balance to claim an NFT
+  uint256 public stRifThreshold;
+  // The number of proposals that need to be checked to determine whether the user voted for any of them
+  uint8 public proposalCount;
+  // IPFS CID of the tokens metadata directory
+  string private _folderIpfsCid;
+
+  /// @custom:oz-upgrades-unsafe-allow constructor
+  constructor() {
+    _disableInitializers();
+  }
+
+  function initialize(
+    uint256 maxSupply,
+    uint256 initialMintLimit,
+    uint256 initialStRifThreshold,
+    address initialOwner,
+    address stRifAddress,
+    GovernorRootstockCollective governorAddress,
+    uint8 initialProposalCount,
+    string calldata ipfsFolderCid
+  ) public initializer {
+    __ERC721UpgradableBase_init("VotingVanguardsRootstockCollective", "VV", initialOwner);
+    governor = governorAddress;
+    stRif = IERC20(stRifAddress);
+    setProposalCount(initialProposalCount);
+    setMintLimit(initialMintLimit);
+    setIpfsFolder(maxSupply, ipfsFolderCid);
+    setStRifThreshold(initialStRifThreshold);
+  }
+
+  /**
+   * @dev Sets a new IPFS folder and updates the maximum supply of tokens that can be minted.
+   * This function is meant to be called by an admin when the metadata folder on IPFS is updated.
+   * It ensures that the new maximum supply is greater than the previous one.
+   * @param newMaxSupply The new maximum number of tokens that can be minted.
+   * @param newIpfsCid The new IPFS CID for the metadata folder.
+   */
+  function setIpfsFolder(uint256 newMaxSupply, string calldata newIpfsCid) public virtual onlyOwner {
+    require(newMaxSupply >= _maxSupply, "VotingVanguardsRootstockCollective: Invalid max supply");
+    _maxSupply = newMaxSupply;
+    _folderIpfsCid = newIpfsCid;
+    emit IpfsFolderChanged(newMaxSupply, newIpfsCid);
+  }
+
+  /**
+   * @dev Checks whether the specified address (`caller`) has voted on any of the last
+   * `numProposals` proposals. Iterates through the most recent proposals to determine
+   * if a vote exists for the caller.
+   *
+   * @param caller The address to check for voting activity.
+   * @return True if the caller has voted on at least one of the checked proposals, otherwise false.
+   */
+  function hasVoted(address caller) public view virtual returns (bool) {
+    uint256 firstCheckIndex = governor.proposalCount();
+    uint256 lastCheckIndex = firstCheckIndex > proposalCount ? firstCheckIndex - proposalCount : 0;
+    for (uint256 i = firstCheckIndex; i > lastCheckIndex; ) {
+      // slither-disable-next-line unused-return
+      (uint256 proposalId, , , , ) = governor.proposalDetailsAt(i - 1);
+      if (governor.hasVoted(proposalId, caller)) return true;
+      // Disable overflow check to save gas, as `i` is guaranteed to be > 0 in this loop
+      unchecked {
+        i--;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * @dev Updates the `proposalCount`, which determines the number of recent proposals
+   * to check for user voting activity. Allows the owner to adjust the depth of the check.
+   */
+  function setProposalCount(uint8 newCount) public virtual onlyOwner {
+    emit ProposalCountChanged(newCount);
+    proposalCount = newCount;
+  }
+
+  /**
+   * @dev Updates the `mintLimit` to define the maximum number of NFTs claimable in the current phase
+   */
+  function setMintLimit(uint256 newMintLimit) public virtual onlyOwner {
+    emit MintLimitChanged(newMintLimit);
+    mintLimit = newMintLimit;
+  }
+
+  /**
+   * @dev Sets a new minimum StRIF balance to claim the NFT.
+   */
+  function setStRifThreshold(uint256 newThreshold) public virtual onlyOwner {
+    emit StRifThresholdChanged(newThreshold);
+    stRifThreshold = newThreshold;
+  }
+
+  function mint() external virtual {
+    address caller = _msgSender();
+    // make sure the minter's stRIF balance is above the minimum threshold
+    uint256 stRifBalance = stRif.balanceOf(caller);
+    if (stRifBalance < stRifThreshold) revert BelowStRifThreshold(stRifBalance, stRifThreshold);
+    // make sure we still have some CIDs for minting new tokens
+    if (tokensAvailable() == 0) revert OutOfTokens(_maxSupply);
+    // revert if minter hasn't voted in the last `proposalCount` proposals
+    if (!hasVoted(caller)) revert HasNotVoted();
+    uint256 tokenId = ++_totalMinted;
+    // revert if the mint limit in the current minting phase was reached.
+    if (tokenId > mintLimit) revert MintLimitReached(mintLimit);
+    string memory fileName = string.concat(tokenId.toString(), ".json"); // 1.json, 2.json ...
+    _safeMint(caller, tokenId);
+    _setTokenURI(tokenId, fileName);
+  }
+
+  /**
+   * @dev Returns the number of tokens available for minting
+   */
+  function tokensAvailable() public view virtual returns (uint256) {
+    if (_totalMinted >= _maxSupply) return 0;
+    return _maxSupply - _totalMinted;
+  }
+
+  /**
+   * @dev Returns the token ID for a given owner address.
+   * This is a simplified version of the `tokenOfOwnerByIndex` function without the index
+   * parameter, since a community member can only own one token.
+   */
+  function tokenIdByOwner(address owner) public view virtual returns (uint256) {
+    return tokenOfOwnerByIndex(owner, 0);
+  }
+
+  /**
+   * @dev Returns the token IPFS URI for the given owner address.
+   * This utility function combines two view functions.
+   */
+  function tokenUriByOwner(address owner) public view virtual returns (string memory) {
+    return tokenURI(tokenIdByOwner(owner));
+  }
+
+  /**
+   * @dev Returns the base URI used for constructing the token URI.
+   * @return The base URI string.
+   */
+  function _baseURI() internal view virtual override returns (string memory) {
+    return string.concat("ipfs://", _folderIpfsCid, "/");
+  }
+
+  /**
+   * @dev Prevents the transfer and mint of tokens to addresses that already own one.
+   * Ensures that one address cannot own more than one token.
+   */
+  function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
+    // Disallow transfers by smart contracts, as only EOAs can be community members
+    // slither-disable-next-line tx-origin
+    if (_msgSender() != tx.origin) revert ERC721InvalidOwner(_msgSender());
+    // disallow transfers to members (excluding zero-address for enabling burning)
+    // disable minting more than one token
+    if (to != address(0) && balanceOf(to) > 0) revert ERC721InvalidOwner(to);
+    return super._update(to, tokenId, auth);
+  }
+
+  function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
+}
