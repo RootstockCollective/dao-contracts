@@ -4,7 +4,6 @@ pragma solidity ^0.8.20;
 
 import {ERC721NonTransferrableUpgradable} from "../NFT/ERC721NonTransferrableUpgradable.sol";
 import {GovernorRootstockCollective} from "../GovernorRootstockCollective.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -20,6 +19,7 @@ contract VotingVanguardsRootstockCollective is ERC721NonTransferrableUpgradable 
   error MintLimitReached(uint256 mintLimit);
   error OutOfTokens(uint256 maxSupply);
   error BelowStRifThreshold(uint256 balance, uint256 requiredBalance);
+  error InvalidMaxSupply(uint256 newMaxSupply);
 
   // Rootstock Collective DAO Governor address
   GovernorRootstockCollective public governor;
@@ -73,7 +73,7 @@ contract VotingVanguardsRootstockCollective is ERC721NonTransferrableUpgradable 
    * @param newIpfsCid The new IPFS CID for the metadata folder.
    */
   function setIpfsFolder(uint256 newMaxSupply, string calldata newIpfsCid) public virtual onlyOwner {
-    require(newMaxSupply >= _maxSupply, "VotingVanguardsRootstockCollective: Invalid max supply");
+    if (newMaxSupply < _maxSupply) revert InvalidMaxSupply(newMaxSupply);
     _maxSupply = newMaxSupply;
     _folderIpfsCid = newIpfsCid;
     emit IpfsFolderChanged(newMaxSupply, newIpfsCid);
