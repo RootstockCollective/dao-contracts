@@ -1,7 +1,11 @@
 {
   "VanguardNFT": {
+    "maxSupply": 1000,
+    "mintLimit": 200,
+    "stRifThreshold": 50000000000000000000,
+    "stRif": "0x4861198e9A6814EBfb152552D1b1a37426C54D23",
     "governor": "0x2109FF4a9D5548a21F877cA937Ac5847Fde49694",
-    "maxSupply": 20,
+    "proposalCount": 3,
     "ipfsFolderCid": "QmPaCP36tFjXp7xqcPi4ggatL7w4dsWKGTv1kpaSVkv9KW"
   }
 }
