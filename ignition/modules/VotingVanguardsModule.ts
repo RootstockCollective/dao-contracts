@@ -11,7 +11,7 @@ export const VanguardNFTModule = buildModule('VanguardNFT', m => {
   const initialOwner = m.getAccount(0)
   const stRif = m.getParameter<string>('stRif')
   const governor = m.getParameter<string>('governor')
-  const proposalCount = m.getParameter<number>('proposalCount')
+  const proposalAmountToCheck = m.getParameter<number>('proposalAmountToCheck')
   const ipfsFolderCid = m.getParameter<string>('ipfsFolderCid')
 
   // deploy proxy
@@ -20,7 +20,16 @@ export const VanguardNFTModule = buildModule('VanguardNFT', m => {
     m.encodeFunctionCall(
       implementation,
       'initialize',
-      [maxSupply, mintLimit, stRifThreshold, initialOwner, stRif, governor, proposalCount, ipfsFolderCid],
+      [
+        maxSupply,
+        mintLimit,
+        stRifThreshold,
+        initialOwner,
+        stRif,
+        governor,
+        proposalAmountToCheck,
+        ipfsFolderCid,
+      ],
       {
         id: 'Proxy',
       },
