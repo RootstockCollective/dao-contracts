@@ -9,7 +9,7 @@ import VotingVanguardsModule from '../ignition/modules/VotingVanguardsModule'
 import { deployContracts } from './deployContracts'
 import { expect } from 'chai'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { randomBytes, hexlify, formatEther } from 'ethers'
+import { randomBytes, hexlify, formatEther, ZeroAddress } from 'ethers'
 import { loadFixture, mine } from '@nomicfoundation/hardhat-network-helpers'
 import { VoteType } from '../types'
 
@@ -154,14 +154,27 @@ describe('Vanguard NFT', () => {
       it('hasVoted should detect that voter has already voted', async () => {
         expect(await vanguard.hasVoted(voter.address)).to.be.true
       })
+      it('Voter should not be a community member before minting', async () => {
+        expect(await vanguard.isMember(voter.address)).to.be.false
+      })
       it('Voter should be able to mint NFT after voting', async () => {
-        await expect(vanguard.connect(voter).mint()).to.emit(vanguard, 'Transfer')
+        await expect(vanguard.connect(voter).mint())
+          .to.emit(vanguard, 'Transfer')
+          .withArgs(ZeroAddress, voter.address, 1)
+      })
+      it('Voter should now be a community member after minting', async () => {
+        expect(await vanguard.isMember(voter.address)).to.be.true
       })
       it('Voter should NOT be able to mint NFT second time', async () => {
         await expect(vanguard.connect(voter).mint()).to.be.revertedWithCustomError(
           vanguard,
           'ERC721InvalidOwner',
         )
+      })
+      it('Member cannot transfer his NFT to no one because the NFT is untransferable', async () => {
+        await expect(
+          vanguard.connect(voter).transferFrom(voter.address, deployer.address, 1),
+        ).to.be.revertedWithCustomError(vanguard, 'TransfersDisabled')
       })
     })
   })
