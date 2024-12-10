@@ -235,8 +235,8 @@ Successfully verified contract "contracts/EarlyAdopters.sol:EarlyAdopters" for n
 | OGContributorsRootstockCollective proxy        | 0xDC03B8fb7E47E4651f5008bD718a804726424A75 |
 | OGFoundersRootstockCollective impl             | 0xF8316455785979657Db49d1C4768376db55789C7 |
 | OGFoundersRootstockCollective proxy            | 0x7E6d9969CAC008bAe5f7b144df3c955515404538 |
-| VotingVanguardsRootstockCollective impl        | 0x05F883C9EBd796c412807145b0E3F7a896460D09 |
-| VotingVanguardsRootstockCollective proxy       | 0xBd62049196A753Bb310F0D5F94e2146988a4aCD9 |
+| VotingVanguardsRootstockCollective impl        | 0xAEA1187e2BBDb6167DdDBa10c52C8bd9CcdAA9a9 |
+| VotingVanguardsRootstockCollective proxy       | 0x7de6f62ED0481Be42f0cdcc1deE52400e2aaF26B |
 
 ### Rootstock Mainnet
 
