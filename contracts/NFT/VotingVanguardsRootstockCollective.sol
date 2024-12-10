@@ -88,11 +88,11 @@ contract VotingVanguardsRootstockCollective is ERC721NonTransferrableUpgradable 
    * @return True if the caller has voted on at least one of the checked proposals, otherwise false.
    */
   function hasVoted(address caller) public view virtual returns (bool) {
-    uint256 firstCheckIndex = governor.proposalCount();
-    uint256 lastCheckIndex = firstCheckIndex > proposalAmountToCheck
-      ? firstCheckIndex - proposalAmountToCheck
+    uint256 firstCheckProposalNumber = governor.proposalCount();
+    uint256 lastCheckProposalNumber = firstCheckProposalNumber > proposalAmountToCheck
+      ? firstCheckProposalNumber - proposalAmountToCheck
       : 0;
-    for (uint256 i = firstCheckIndex; i > lastCheckIndex; ) {
+    for (uint256 i = firstCheckProposalNumber; i > lastCheckProposalNumber; ) {
       // slither-disable-next-line unused-return
       (uint256 proposalId, , , , ) = governor.proposalDetailsAt(i - 1);
       if (governor.hasVoted(proposalId, caller)) return true;
