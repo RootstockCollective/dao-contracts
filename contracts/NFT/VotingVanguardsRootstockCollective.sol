@@ -12,7 +12,7 @@ contract VotingVanguardsRootstockCollective is ERC721NonTransferrableUpgradable 
 
   event IpfsFolderChanged(uint256 newNumFiles, string newIpfs);
   event MintLimitChanged(uint256 newLimit);
-  event ProposalCountChanged(uint8 newCount);
+  event ProposalAmountToCheckChanged(uint8 newCount);
   event StRifThresholdChanged(uint256 newThreshold);
 
   error HasNotVoted();
@@ -37,7 +37,7 @@ contract VotingVanguardsRootstockCollective is ERC721NonTransferrableUpgradable 
   // Minimum Staked RIF token balance to claim an NFT
   uint256 public stRifThreshold;
   // The number of proposals that need to be checked to determine whether the user voted for any of them
-  uint8 public proposalCount;
+  uint8 public proposalAmountToCheck;
   // IPFS CID of the tokens metadata directory
   string private _folderIpfsCid;
 
@@ -53,13 +53,13 @@ contract VotingVanguardsRootstockCollective is ERC721NonTransferrableUpgradable 
     address initialOwner,
     address stRifAddress,
     GovernorRootstockCollective governorAddress,
-    uint8 initialProposalCount,
+    uint8 initialProposalAmountToCheck,
     string calldata ipfsFolderCid
   ) public initializer {
     __ERC721UpgradableBase_init("VotingVanguardsRootstockCollective", "VV", initialOwner);
     governor = governorAddress;
     stRif = IERC20(stRifAddress);
-    setProposalCount(initialProposalCount);
+    setProposalAmountToCheck(initialProposalAmountToCheck);
     setMintLimit(initialMintLimit);
     setIpfsFolder(maxSupply, ipfsFolderCid);
     setStRifThreshold(initialStRifThreshold);
@@ -89,7 +89,9 @@ contract VotingVanguardsRootstockCollective is ERC721NonTransferrableUpgradable 
    */
   function hasVoted(address caller) public view virtual returns (bool) {
     uint256 firstCheckIndex = governor.proposalCount();
-    uint256 lastCheckIndex = firstCheckIndex > proposalCount ? firstCheckIndex - proposalCount : 0;
+    uint256 lastCheckIndex = firstCheckIndex > proposalAmountToCheck
+      ? firstCheckIndex - proposalAmountToCheck
+      : 0;
     for (uint256 i = firstCheckIndex; i > lastCheckIndex; ) {
       // slither-disable-next-line unused-return
       (uint256 proposalId, , , , ) = governor.proposalDetailsAt(i - 1);
@@ -103,12 +105,12 @@ contract VotingVanguardsRootstockCollective is ERC721NonTransferrableUpgradable 
   }
 
   /**
-   * @dev Updates the `proposalCount`, which determines the number of recent proposals
+   * @dev Updates the `proposalAmountToCheck`, which determines the number of recent proposals
    * to check for user voting activity. Allows the owner to adjust the depth of the check.
    */
-  function setProposalCount(uint8 newCount) public virtual onlyOwner {
-    emit ProposalCountChanged(newCount);
-    proposalCount = newCount;
+  function setProposalAmountToCheck(uint8 newAmount) public virtual onlyOwner {
+    emit ProposalAmountToCheckChanged(newAmount);
+    proposalAmountToCheck = newAmount;
   }
 
   /**
@@ -134,7 +136,7 @@ contract VotingVanguardsRootstockCollective is ERC721NonTransferrableUpgradable 
     if (stRifBalance < stRifThreshold) revert BelowStRifThreshold(stRifBalance, stRifThreshold);
     // make sure we still have some CIDs for minting new tokens
     if (tokensAvailable() == 0) revert OutOfTokens(_maxSupply);
-    // revert if minter hasn't voted in the last `proposalCount` proposals
+    // revert if minter hasn't voted in the last `proposalAmountToCheck` proposals
     if (!hasVoted(caller)) revert HasNotVoted();
     uint256 tokenId = ++_totalMinted;
     // revert if the mint limit in the current minting phase was reached.

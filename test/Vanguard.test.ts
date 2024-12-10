@@ -18,7 +18,7 @@ const rootstockGasPriceAverage = 63228564n
 
 describe('Vanguard NFT', () => {
   // The number of proposals that need to be checked to determine whether the user voted for any of them
-  const proposalCount = 3
+  const proposalAmountToCheck = 3
   const ipfsFolderCid = 'QmZYHgFMjZ9SNvFwP9rCxtDEgF2JfJwQtaSg2fqxTX31eG'
   const stRifThreshold = 50n * 10n ** 18n
   const votingPower = 100n * 10n ** 18n
@@ -61,7 +61,7 @@ describe('Vanguard NFT', () => {
             stRifThreshold,
             stRif: await contracts.stRIF.getAddress(),
             governor: await contracts.governor.getAddress(),
-            proposalCount,
+            proposalAmountToCheck,
             ipfsFolderCid,
           },
         },
@@ -98,7 +98,7 @@ describe('Vanguard NFT', () => {
         expect(await vanguard.name()).to.equal('VotingVanguardsRootstockCollective')
       })
       it('number of past votes to be checked should be set up', async () => {
-        expect(await vanguard.proposalCount()).to.equal(proposalCount)
+        expect(await vanguard.proposalAmountToCheck()).to.equal(proposalAmountToCheck)
       })
       it('StRif threshold should be set', async () => {
         expect(await vanguard.stRifThreshold()).to.equal(stRifThreshold)
@@ -111,9 +111,6 @@ describe('Vanguard NFT', () => {
       })
       it('All tokens should be available for minting', async () => {
         expect(await vanguard.tokensAvailable()).to.equal(maxSupply)
-      })
-      it('Number of proposal to search should be set', async () => {
-        expect(await vanguard.proposalCount()).to.equal(proposalCount)
       })
 
       it('Voter`s StRif balance should be above the StRif threshold', async () => {
@@ -134,7 +131,7 @@ describe('Vanguard NFT', () => {
       it('Governor should now store 0 proposals', async () => {
         expect(await governor.proposalCount()).to.equal(0)
       })
-      it('Voter should NOT be able to mint an NFT if he voted long ago (before `proposalCount`)', async () => {
+      it('Voter should NOT be able to mint an NFT if he voted long ago (before `proposalAmountToCheck`)', async () => {
         const id = await createProposal(governor)
 
         await governor.connect(voter).castVote(id, VoteType.For)
@@ -199,7 +196,7 @@ describe('Vanguard NFT', () => {
 
     it('Fees paid for a single proposal check should be reasonable', async () => {
       const gasFees: number[] = []
-      for (let i = 0; i < proposalCount; i++) {
+      for (let i = 0; i < proposalAmountToCheck; i++) {
         const { gasFee } = await testMintGas(i)
         gasFees.push(gasFee)
       }
