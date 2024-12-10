@@ -131,6 +131,10 @@ contract VotingVanguardsRootstockCollective is ERC721NonTransferrableUpgradable 
 
   function mint() external virtual {
     address caller = _msgSender();
+    // disable minting for smart contracts
+    if (caller != tx.origin) revert ERC721InvalidOwner(caller);
+    // disable minting more than once
+    if (isMember(caller)) revert ERC721InvalidOwner(caller);
     // make sure the minter's stRIF balance is above the minimum threshold
     uint256 stRifBalance = stRif.balanceOf(caller);
     if (stRifBalance < stRifThreshold) revert BelowStRifThreshold(stRifBalance, stRifThreshold);
@@ -172,25 +176,19 @@ contract VotingVanguardsRootstockCollective is ERC721NonTransferrableUpgradable 
   }
 
   /**
+   * Tells if `owner` is a member of the Early Adopters community
+   * @param owner - address to test for membership
+   */
+  function isMember(address owner) public view virtual returns (bool) {
+    return balanceOf(owner) > 0;
+  }
+
+  /**
    * @dev Returns the base URI used for constructing the token URI.
    * @return The base URI string.
    */
   function _baseURI() internal view virtual override returns (string memory) {
     return string.concat("ipfs://", _folderIpfsCid, "/");
-  }
-
-  /**
-   * @dev Prevents the transfer and mint of tokens to addresses that already own one.
-   * Ensures that one address cannot own more than one token.
-   */
-  function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
-    // Disallow transfers by smart contracts, as only EOAs can be community members
-    // slither-disable-next-line tx-origin
-    if (_msgSender() != tx.origin) revert ERC721InvalidOwner(_msgSender());
-    // disallow transfers to members (excluding zero-address for enabling burning)
-    // disable minting more than one token
-    if (to != address(0) && balanceOf(to) > 0) revert ERC721InvalidOwner(to);
-    return super._update(to, tokenId, auth);
   }
 
   function _authorizeUpgrade(address newImplementation) internal virtual override onlyOwner {}
