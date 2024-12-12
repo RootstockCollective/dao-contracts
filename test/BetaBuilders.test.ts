@@ -3,7 +3,8 @@ import hre, { ethers, ignition } from 'hardhat'
 import { BetaBuildersRootstockCollective } from '../typechain-types'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
 import { betaBuildersModule } from '../ignition/modules/BetaBuildersModule'
-import airdropReceivers from '../params/BetaBuildersModule/airdrop-testnet.json'
+import { BetaBuilders } from '../params/BetaBuildersModule/params.json'
+import { setBalance } from '@nomicfoundation/hardhat-network-helpers'
 
 describe('BetaBuildersRootstockCollective NFT', () => {
   let deployer: SignerWithAddress
@@ -13,15 +14,23 @@ describe('BetaBuildersRootstockCollective NFT', () => {
 
   before(async () => {
     ;[deployer, alice] = await ethers.getSigners()
-    const contract = await ignition.deploy(betaBuildersModule)
+    const contract = await ignition.deploy(betaBuildersModule, {
+      parameters: {
+        BetaBuilders: {
+          deployer: deployer.address,
+        },
+      },
+    })
     betaBuildersEP = contract.ExtBetaBuildersEP as unknown as BetaBuildersRootstockCollective
     // impersonating airdrop receivers
-    for (let i = 0; i < airdropReceivers.length; i++) {
-      const accountAddr = airdropReceivers[i].receiver
+    for (let i = 0; i < BetaBuilders.receivers.length; i++) {
+      const accountAddr = BetaBuilders.receivers[i].receiver
       await hre.network.provider.request({
         method: 'hardhat_impersonateAccount',
         params: [accountAddr],
       })
+
+      await setBalance(accountAddr, ethers.parseEther('2'))
       const account = await ethers.getSigner(accountAddr)
       oldGangsters.push(account)
     }
@@ -44,9 +53,9 @@ describe('BetaBuildersRootstockCollective NFT', () => {
 
   describe('Airdrop', () => {
     it('should execute the initial airdrop after deployment', async () => {
-      await expect(betaBuildersEP.connect(deployer).airdrop(airdropReceivers))
+      await expect(betaBuildersEP.connect(deployer).airdrop(BetaBuilders.receivers))
         .to.emit(betaBuildersEP, 'AirdropExecuted')
-        .withArgs(airdropReceivers.length)
+        .withArgs(BetaBuilders.receivers.length)
     })
     it('the Gangsters should own NFTs after the airdrop', async () => {
       await Promise.all(
@@ -58,26 +67,26 @@ describe('BetaBuildersRootstockCollective NFT', () => {
       )
     })
     it('should top up total supply after the airdrop', async () => {
-      expect(await betaBuildersEP.totalSupply()).to.equal(airdropReceivers.length)
+      expect(await betaBuildersEP.totalSupply()).to.equal(BetaBuilders.receivers.length)
     })
     it('non-owner cannot execute airdrop', async () => {
-      await expect(betaBuildersEP.connect(alice).airdrop(airdropReceivers))
+      await expect(betaBuildersEP.connect(alice).airdrop(BetaBuilders.receivers))
         .to.be.revertedWithCustomError(betaBuildersEP, 'OwnableUnauthorizedAccount')
         .withArgs(alice.address)
     })
     it('should execute the second airdrop to the same addresses', async () => {
-      await expect(betaBuildersEP.connect(deployer).airdrop(airdropReceivers))
+      await expect(betaBuildersEP.connect(deployer).airdrop(BetaBuilders.receivers))
         .to.emit(betaBuildersEP, 'AirdropExecuted')
-        .withArgs(airdropReceivers.length)
+        .withArgs(BetaBuilders.receivers.length)
     })
     it('the Gangsters should own 2 NFTs after the second airdrop', async () => {
       await Promise.all(
         oldGangsters.map(async (gangster, i) => {
-          const tokenId = airdropReceivers.length + i + 1
+          const tokenId = BetaBuilders.receivers.length + i + 1
           expect(await betaBuildersEP.balanceOf(gangster.address)).to.equal(2)
           // token IDs: 6, 7, 8...
           expect(await betaBuildersEP.tokenOfOwnerByIndex(gangster.address, 1)).to.equal(tokenId)
-          const cid = airdropReceivers[i].ipfsCid
+          const cid = BetaBuilders.receivers[i].ipfsCid
           expect(await betaBuildersEP.tokenURI(tokenId)).to.equal(`ipfs://${cid}`)
         }),
       )

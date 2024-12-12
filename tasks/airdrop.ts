@@ -24,16 +24,18 @@ async function airdrop(hre: HardhatRuntimeEnvironment, nftAddress: string, recei
 
 interface Parameters {
   nft: string
-  receivers: string
+  airdropped: string
 }
 
 task('airdrop', 'Execute NFT airdrop')
   .addParam('nft', 'NFT smart contract address')
-  .addParam('receivers', 'JSON file with a list of token receiver addresses and corresponding IPFS CIDs')
-  .setAction(async ({ nft, receivers }: Parameters, hre) => {
+  .addParam('airdropped', 'JSON file with a list of token receiver addresses and corresponding IPFS CIDs')
+  .setAction(async ({ nft, airdropped }: Parameters, hre) => {
     try {
-      const airdropReceivers: AirdropRecipient[] = await fs.readJson(receivers)
-      airdrop(hre, nft, airdropReceivers)
+      const {
+        BetaBuilders: { receivers },
+      }: { BetaBuilders: { receivers: AirdropRecipient[] } } = await fs.readJson(airdropped)
+      await airdrop(hre, nft, receivers)
       console.log('Airdrop was executed')
     } catch (error) {
       console.log(error instanceof Error ? error.message : error)

@@ -4,7 +4,7 @@ export const betaBuildersModule = buildModule('BetaBuilders', m => {
   // deploy implementation
   const implementation = m.contract('BetaBuildersRootstockCollective', [], { id: 'Implementation' })
 
-  const deployer = m.getAccount(0)
+  const deployer = m.getParameter('deployer')
   // deploy proxy
   const proxy = m.contract('ERC1967Proxy', [
     implementation,
