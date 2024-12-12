@@ -4,23 +4,23 @@
     "receivers": [
       {
         "receiver": "0x0C48e53E5852780Cb0a5Bf168eb92DE3B88Ebe89",
-        "ipfsCid": "bafybeid4rpyhpbccvgr2j2paoegvjycdsbvuflydclqiuvtanymh3jfgja/1.json"
+        "ipfsCid": "bafybeiabgvm3zylkuj24ukfa4aimh3g3nryivhuqr6ztczjlbhqbt3flvm/1.json"
       },
       {
         "receiver": "0x81DF35317dF983E419630908eF6Cb2Bb48CE21Ca",
-        "ipfsCid": "bafybeid4rpyhpbccvgr2j2paoegvjycdsbvuflydclqiuvtanymh3jfgja/2.json"
+        "ipfsCid": "bafybeiabgvm3zylkuj24ukfa4aimh3g3nryivhuqr6ztczjlbhqbt3flvm/2.json"
       },
       {
         "receiver": "0x55A6AA81f8f89e1C14482CE3a6Fb40bAB57971B5",
-        "ipfsCid": "bafybeid4rpyhpbccvgr2j2paoegvjycdsbvuflydclqiuvtanymh3jfgja/3.json"
+        "ipfsCid": "bafybeiabgvm3zylkuj24ukfa4aimh3g3nryivhuqr6ztczjlbhqbt3flvm/3.json"
       },
       {
         "receiver": "0x61cB47ea86430e40Ac1128eA4BC28dEAB66554D5",
-        "ipfsCid": "bafybeid4rpyhpbccvgr2j2paoegvjycdsbvuflydclqiuvtanymh3jfgja/4.json"
+        "ipfsCid": "bafybeiabgvm3zylkuj24ukfa4aimh3g3nryivhuqr6ztczjlbhqbt3flvm/4.json"
       },
       {
         "receiver": "0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc",
-        "ipfsCid": "bafybeid4rpyhpbccvgr2j2paoegvjycdsbvuflydclqiuvtanymh3jfgja/5.json"
+        "ipfsCid": "bafybeiabgvm3zylkuj24ukfa4aimh3g3nryivhuqr6ztczjlbhqbt3flvm/5.json"
       }
     ]
   }

@@ -2,9 +2,9 @@ import { task } from 'hardhat/config'
 import fs from 'fs-extra'
 import { BetaBuildersRootstockCollective } from '../typechain-types'
 
-// BetaBuilders#Implementation - 0xC7EbE794E613a7ba27925062D2abcC3b002e4ca4
-// BetaBuilders#ERC1967Proxy - 0xA537018F1d16D5D53fCb8F6063d2A42d541A9827
-// BetaBuilders#Contract - 0xA537018F1d16D5D53fCb8F6063d2A42d541A9827
+// BetaBuilders#Implementation - 0x3D584161A15CE982eE339cbC28ebb0e1E535A7D3
+// BetaBuilders#ERC1967Proxy - 0xc9B3346a3f151090130b63A28D35875F3C2d6a4d
+// BetaBuilders#Contract - 0xc9B3346a3f151090130b63A28D35875F3C2d6a4d
 
 interface Parameters {
   addresses: string
@@ -24,7 +24,7 @@ task('ownerships', 'It will check ownerships of airdropped NFTs')
     try {
       const contract = await hre.ethers.getContractAt(
         'BetaBuildersRootstockCollective',
-        '0xA537018F1d16D5D53fCb8F6063d2A42d541A9827',
+        '0xc9B3346a3f151090130b63A28D35875F3C2d6a4d',
       )
 
       const totalSupply = await contract.totalSupply()
