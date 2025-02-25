@@ -55,7 +55,7 @@
     "typescript-eslint": "^7.14.1"
   },
   "dependencies": {
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.4.7",
     "fs-extra": "^11.2.0",
     "rif-token-contracts": "https://github.com/Freshenext/RIF-Token"
   },
