@@ -283,7 +283,7 @@ Successfully verified contract "contracts/EarlyAdopters.sol:EarlyAdopters" for n
    yarn run test
    ```
    to run all the tests
-2. if you'd like to run specific tests use:
+2. if you would like to run specific tests use:
    ```shell
     yarn run test ./test/Governor.test.ts
    ```
