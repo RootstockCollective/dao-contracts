@@ -6,6 +6,7 @@ import './tasks/cancelProposal'
 import './tasks/withdrawTreasury'
 import './tasks/airdrop'
 import './tasks/stRifUpgradeV1-v2'
+import './tasks/ownerships'
 
 dotent.config()
 
