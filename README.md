@@ -275,3 +275,15 @@ Successfully verified contract "contracts/EarlyAdopters.sol:EarlyAdopters" for n
 | TreasuryRootstockCollective                    | 0xD2F300D6AecC7db7FDb98d15568ffeFb13BAd7c8 |
 | EarlyAdoptersRootstockCollective impl          | 0xa060A65967cb9b9511E3A4ec091Aa81c6dCe6662 |
 | EarlyAdoptersRootstockCollective proxy         | 0xe4E91A8EeCdF48Ef13f8E98Dfd2f0b7147e89816 |
+
+## Running tests:
+
+1. use
+   ```shell
+   yarn run test
+   ```
+   to run all the tests
+2. if you would like to run specific tests use:
+   ```shell
+    yarn run test ./test/Governor.test.ts
+   ```
