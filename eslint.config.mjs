@@ -6,22 +6,42 @@ import json from '@eslint/json'
 import markdown from '@eslint/markdown'
 
 export default [
-  { files: ['**/*.{js,mjs,cjs,ts}'] },
-  { languageOptions: { globals: globals.node } },
+  // 1) Base config for JS & TS
+  {
+    files: ['**/*.{js,mjs,cjs,ts}'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
+
+  // 2) Register plugins
   {
     plugins: {
       markdown,
       json,
     },
   },
+
+  // 3) Extend from recommended configurations
   pluginJs.configs.recommended,
   ...tseslint.configs.recommended,
   eslintPluginPrettier,
+
+  // 4) Shared “top-level” rules for all matching files
   {
     rules: {
       'prettier/prettier': ['warn'],
       'markdown/no-html': 'error',
       'json/no-duplicate-keys': 'error',
+    },
+  },
+
+  // 5) **Override just for test files**
+  {
+    files: ['test/**/*.ts', 'test/**/*.js'],
+    rules: {
+      // Turn off the rule that flags Chai property-based assertions
+      '@typescript-eslint/no-unused-expressions': 'off',
     },
   },
 ]
