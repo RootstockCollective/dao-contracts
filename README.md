@@ -1,4 +1,4 @@
-# Rootstock DAO
+# RootstockCollective DAO
 
 ## Installation
 
