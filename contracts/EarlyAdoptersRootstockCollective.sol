@@ -225,6 +225,18 @@ contract EarlyAdoptersRootstockCollective is
     stRifThreshold = newStRifThreshold;
   }
 
+  /**
+   * @dev Restricts contract upgrades to accounts with UPGRADER_ROLE.
+   *
+   * Unlike using DEFAULT_ADMIN_ROLE, we define a separate UPGRADER_ROLE to follow
+   * the principle of least privilege. This isolates upgrade permission from broader
+   * administrative powers, reducing the impact of a compromised admin key.
+   *
+   * This role can be assigned to a dedicated upgrade-safe signer, such as a multisig
+   * or ops key, while admin powers remain with DAO or community governance.
+   *
+   * Avoids over-reliance on a single authority and supports modular, auditable permissions.
+   */
   function _authorizeUpgrade(address newImplementation) internal override onlyRole(UPGRADER_ROLE) {
     // empty function body
   }
