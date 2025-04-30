@@ -2,7 +2,7 @@
   "name": "dao-contracts",
   "version": "1.0.8",
   "description": "Smart Contracts for Rootstock DAO",
-  "repository": "git@github.com:rsksmart/dao-contracts.git",
+  "repository": "git@github.com:rootstockcollective/dao-contracts.git",
   "author": "RootstockLabs",
   "license": "MIT",
   "scripts": {
