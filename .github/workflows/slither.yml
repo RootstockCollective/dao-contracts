@@ -1,5 +1,6 @@
 name: Slither Analysis
 on: [push]
+permissions: {}
 jobs:
   analyze:
     runs-on: ubuntu-latest
