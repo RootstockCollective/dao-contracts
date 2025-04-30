@@ -606,13 +606,13 @@
   resolved "https://registry.yarnpkg.com/@nomicfoundation/hardhat-ignition-ethers/-/hardhat-ignition-ethers-0.15.10.tgz#a053c3ef90bc2dd8739de7b12a1badf5915e5151"
   integrity sha512-P90glRiBbR4mnMKP/LePovfUJjYT2YWJjx7118i7yxssUwcaW9wFohb4bFh+236N1tqM4q7aGx9cBvHNgve3zA==
 
-"@nomicfoundation/hardhat-ignition@^0.15.10":
-  version "0.15.10"
-  resolved "https://registry.yarnpkg.com/@nomicfoundation/hardhat-ignition/-/hardhat-ignition-0.15.10.tgz#605912ff4a50019685ffba105487c585e28fdde9"
-  integrity sha512-UScXyLLG5rEm+ANchQYCDOsskdXl6ux3oCPgC24PKE/QMJEib5crGZIo8spAyzdK6vOnRW6i4FG+1qvoO0AGWA==
+"@nomicfoundation/hardhat-ignition@^0.15.11":
+  version "0.15.11"
+  resolved "https://registry.yarnpkg.com/@nomicfoundation/hardhat-ignition/-/hardhat-ignition-0.15.11.tgz#124a4c5f70eca0f2f161ccfd82cef29793111f48"
+  integrity sha512-OXebmK9FCMwwbb4mIeHBbVFFicAGgyGKJT2zrONrpixrROxrVs6KEi1gzsiN25qtQhCQePt8BTjjYrgy86Dfxg==
   dependencies:
-    "@nomicfoundation/ignition-core" "^0.15.10"
-    "@nomicfoundation/ignition-ui" "^0.15.10"
+    "@nomicfoundation/ignition-core" "^0.15.11"
+    "@nomicfoundation/ignition-ui" "^0.15.11"
     chalk "^4.0.0"
     debug "^4.3.2"
     fs-extra "^10.0.0"
@@ -646,10 +646,10 @@
     table "^6.8.0"
     undici "^5.14.0"
 
-"@nomicfoundation/ignition-core@^0.15.10":
-  version "0.15.10"
-  resolved "https://registry.yarnpkg.com/@nomicfoundation/ignition-core/-/ignition-core-0.15.10.tgz#284a986f72a43e93f03773dcbeee3a6dc3e13988"
-  integrity sha512-AWvCviNlBkPT8EKcg34N+yUdQTYFiC/HdpfFZdw8oMFuAs9SMZE0zQA9gJQSCay41GbuyXt2Kietp5/1/nlBIA==
+"@nomicfoundation/ignition-core@^0.15.10", "@nomicfoundation/ignition-core@^0.15.11":
+  version "0.15.11"
+  resolved "https://registry.yarnpkg.com/@nomicfoundation/ignition-core/-/ignition-core-0.15.11.tgz#315fd4dcde00ae6e44932222b92932bb15fe113a"
+  integrity sha512-PeYKRlrQ0koT72yRnlyyG66cXMFiv5X/cIB8hBFPl3ekeg5tPXcHAgs/VZhOsgwEox4ejphTtItLESb1IDBw0w==
   dependencies:
     "@ethersproject/address" "5.6.1"
     "@nomicfoundation/solidity-analyzer" "^0.1.1"
@@ -661,10 +661,10 @@
     lodash "4.17.21"
     ndjson "2.0.0"
 
-"@nomicfoundation/ignition-ui@^0.15.10":
-  version "0.15.10"
-  resolved "https://registry.yarnpkg.com/@nomicfoundation/ignition-ui/-/ignition-ui-0.15.10.tgz#83b1b29ac95f58c40a8ca6c4c3ae78b9fcd31456"
-  integrity sha512-82XQPF+1fvxTimDUPgDVwpTjHjfjFgFs84rERbBiMLQbz6sPtgTlV8HHrlbMx8tT/JKCI/SCU4gxV8xA4CPfcg==
+"@nomicfoundation/ignition-ui@^0.15.11":
+  version "0.15.11"
+  resolved "https://registry.yarnpkg.com/@nomicfoundation/ignition-ui/-/ignition-ui-0.15.11.tgz#94969984dd6ca1671a21f2338af4735cf319c1b3"
+  integrity sha512-VPOVl5xqCKhYCyPOQlposx+stjCwqXQ+BCs5lnw/f2YUfgII+G5Ye0JfHiJOfCJGmqyS03WertBslcj9zQg50A==
 
 "@nomicfoundation/solidity-analyzer-darwin-arm64@0.1.2":
   version "0.1.2"
