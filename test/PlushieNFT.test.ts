@@ -6,7 +6,7 @@ import { PlushieNftModule } from '../ignition/modules/PlushieNftModule'
 import { type PlushieNFT } from '../typechain-types'
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 
-const maxSupply = 400
+const maxSupply = 10
 const ipfsFolderCid = 'QmPaCP36tFjXp7xqcPi4ggatL7w4dsWKGTv1kpaSVkv9KW'
 const minterRole = ethers.keccak256(ethers.toUtf8Bytes('MINTER_ROLE'))
 const whitelistGuardRole = ethers.keccak256(ethers.toUtf8Bytes('WHITELIST_GUARD_ROLE'))
@@ -34,7 +34,6 @@ describe('Plushie NFT', () => {
 
   before(async () => {
     ;[deployer, whitelistGuardAlice, whitelistGuardBob, stranger, ...minters] = await ethers.getSigners()
-    minters = minters.slice(0, 2)
     plushie = await loadFixture(deployPlushieNft)
   })
 
@@ -60,6 +59,9 @@ describe('Plushie NFT', () => {
     })
     it('Deployer should be granted the Whitelist guard role', async () => {
       expect(await plushie.hasRole(whitelistGuardRole, deployer.address)).to.be.true
+    })
+    it('NFT contract should have Max supply of available tokens', async () => {
+      expect(await plushie.tokensAvailable()).to.equal(maxSupply)
     })
   })
 
@@ -109,18 +111,18 @@ describe('Plushie NFT', () => {
       it('Default admin cannot renounce his role when he is the last admin', async () => {
         await expect(plushie.renounceRole(adminRole, deployer.address)).to.be.revertedWithCustomError(
           plushie,
-          'AdminRoleViolation',
+          'PlushieNftAdminRoleViolation',
         )
       })
       it('Cannot grant second admin role - only one admin allowed', async () => {
         await expect(plushie.grantRole(adminRole, stranger.address)).to.be.revertedWithCustomError(
           plushie,
-          'AdminRoleViolation',
+          'PlushieNftAdminRoleViolation',
         )
       })
       it('Owner removes whitelist guard role, then that address tries to modify whitelist', async () => {
         // Remove Alice's whitelist guard role
-        await plushie.removeWhitelistGuards([whitelistGuardAlice.address])
+        await plushie.removeWhitelistGuards([whitelistGuardAlice.address]).then(tx => tx.wait())
         // Verify Alice no longer has the role
         expect(await plushie.hasRole(whitelistGuardRole, whitelistGuardAlice.address)).to.be.false
         // Alice tries to whitelist someone but should fail
@@ -128,7 +130,372 @@ describe('Plushie NFT', () => {
           .to.be.revertedWithCustomError(plushie, 'AccessControlUnauthorizedAccount')
           .withArgs(whitelistGuardAlice.address, whitelistGuardRole)
         // return guard role to Alice
-        await plushie.addWhitelistGuards([whitelistGuardAlice.address])
+        await plushie.addWhitelistGuards([whitelistGuardAlice.address]).then(tx => tx.wait())
+      })
+    })
+  })
+
+  describe('Whitelist Management', () => {
+    describe('Happy path', () => {
+      it('Whitelist guard can add themselves to the minting whitelist', async () => {
+        await expect(plushie.connect(whitelistGuardAlice).addToWhitelist([whitelistGuardAlice.address]))
+          .to.emit(plushie, 'RoleGranted')
+          .withArgs(minterRole, whitelistGuardAlice.address, whitelistGuardAlice.address)
+
+        expect(await plushie.hasRole(minterRole, whitelistGuardAlice.address)).to.be.true
+      })
+
+      it('Add the same address to whitelist multiple times - handle gracefully', async () => {
+        // First addition
+        await plushie
+          .connect(whitelistGuardAlice)
+          .addToWhitelist([stranger.address])
+          .then(tx => tx.wait())
+        expect(await plushie.hasRole(minterRole, stranger.address)).to.be.true
+
+        // Second addition - should not revert, just no-op
+        await expect(plushie.connect(whitelistGuardAlice).addToWhitelist([stranger.address])).to.not.be
+          .reverted
+
+        // Still has the role
+        expect(await plushie.hasRole(minterRole, stranger.address)).to.be.true
+      })
+
+      it('Remove non-whitelisted address from whitelist - handle gracefully', async () => {
+        // Try to remove address that was never whitelisted
+        await expect(plushie.connect(whitelistGuardAlice).removeFromWhitelist([stranger.address])).to.not.be
+          .reverted
+
+        // Verify they still don't have the role
+        expect(await plushie.hasRole(minterRole, stranger.address)).to.be.false
+      })
+
+      it('Add contract address itself to whitelist - handle gracefully', async () => {
+        const contractAddress = await plushie.getAddress()
+
+        await expect(plushie.connect(whitelistGuardAlice).addToWhitelist([contractAddress]))
+          .to.emit(plushie, 'RoleGranted')
+          .withArgs(minterRole, contractAddress, whitelistGuardAlice.address)
+
+        expect(await plushie.hasRole(minterRole, contractAddress)).to.be.true
+      })
+
+      it('Batch whitelist operations: Add multiple addresses in single transaction', async () => {
+        const addresses = minters.slice(10, 15).map(s => s.address) // 5 addresses
+
+        const tx = plushie.connect(whitelistGuardAlice).addToWhitelist(addresses)
+
+        // Check all events are emitted
+        const eventChecks = addresses.map(address =>
+          expect(tx)
+            .to.emit(plushie, 'RoleGranted')
+            .withArgs(minterRole, address, whitelistGuardAlice.address),
+        )
+        await Promise.all(eventChecks)
+
+        // Verify all have minter roles
+        const roleChecks = addresses.map(address => plushie.hasRole(minterRole, address))
+        const results = await Promise.all(roleChecks)
+        results.forEach(hasRole => expect(hasRole).to.be.true)
+      })
+
+      it('Batch whitelist operations: Remove multiple addresses in single transaction', async () => {
+        const addresses = minters.slice(10, 15).map(s => s.address) // 5 addresses
+
+        // Then remove them
+        const tx = plushie.connect(whitelistGuardAlice).removeFromWhitelist(addresses)
+
+        // Check all revoke events are emitted
+        const eventChecks = addresses.map(address =>
+          expect(tx)
+            .to.emit(plushie, 'RoleRevoked')
+            .withArgs(minterRole, address, whitelistGuardAlice.address),
+        )
+        await Promise.all(eventChecks)
+
+        // Verify all lost minter roles
+        const roleChecks = addresses.map(address => plushie.hasRole(minterRole, address))
+        const results = await Promise.all(roleChecks)
+        results.forEach(hasRole => expect(hasRole).to.be.false)
+      })
+
+      it('Whitelisting empty array - handle gracefully', async () => {
+        // Empty array should not revert
+        await expect(plushie.connect(whitelistGuardAlice).addToWhitelist([])).to.not.be.reverted
+
+        await expect(plushie.connect(whitelistGuardAlice).removeFromWhitelist([])).to.not.be.reverted
+      })
+    })
+    describe('Sad path', () => {
+      it('Whitelist guard cannot add zero address to whitelist', async () => {
+        await expect(
+          plushie.connect(whitelistGuardAlice).addToWhitelist([ethers.ZeroAddress]),
+        ).to.be.revertedWithCustomError(plushie, 'PlushieNftAdminRoleViolation')
+
+        // But verify the behavior
+        expect(await plushie.hasRole(minterRole, ethers.ZeroAddress)).to.be.false
+      })
+
+      it('Batch whitelist with zero address mixed with valid addresses - should fail', async () => {
+        const validAddresses = [minters[2].address, minters[3].address]
+        const mixedAddresses = [validAddresses[0], ethers.ZeroAddress, validAddresses[1]]
+
+        await expect(
+          plushie.connect(whitelistGuardAlice).addToWhitelist(mixedAddresses),
+        ).to.be.revertedWithCustomError(plushie, 'PlushieNftAdminRoleViolation')
+
+        // Verify none of the addresses got the role (transaction reverted)
+        const roleChecks = validAddresses.map(address => plushie.hasRole(minterRole, address))
+        const results = await Promise.all(roleChecks)
+        results.forEach(hasRole => expect(hasRole).to.be.false)
+
+        // Zero address also shouldn't have the role
+        expect(await plushie.hasRole(minterRole, ethers.ZeroAddress)).to.be.false
+      })
+    })
+  })
+
+  describe('Minting', () => {
+    const minterNum = 4
+    describe('Happy path', () => {
+      it('User gets minter role when whitelisted', async () => {
+        // Whitelist a user
+        await expect(plushie.connect(whitelistGuardAlice).addToWhitelist([minters[minterNum].address]))
+          .to.emit(plushie, 'RoleGranted')
+          .withArgs(minterRole, minters[minterNum].address, whitelistGuardAlice.address)
+
+        // Verify user received the Minter role
+        expect(await plushie.hasRole(minterRole, minters[minterNum].address)).to.be.true
+      })
+
+      it('Whitelisted user can successfully mint NFT', async () => {
+        // User mints successfully
+        await expect(plushie.connect(minters[minterNum]).mint())
+          .to.emit(plushie, 'Transfer')
+          .withArgs(ethers.ZeroAddress, minters[minterNum].address, 1)
+      })
+
+      it('User owns the minted NFT', async () => {
+        // Verify user owns the NFT
+        expect(await plushie.balanceOf(minters[minterNum].address)).to.equal(1)
+        expect(await plushie.ownerOf(1)).to.equal(minters[minterNum].address)
+      })
+
+      it('User loses minter role after minting', async () => {
+        // Verify user no longer has minter role
+        expect(await plushie.hasRole(minterRole, minters[minterNum].address)).to.be.false
+      })
+
+      it('Token has correct metadata URI', async () => {
+        // Verify token URI is set correctly
+        expect(await plushie.tokenURI(1)).to.equal('ipfs://1.json')
+      })
+
+      it('Tokens available count decreases after mint', async () => {
+        // Verify available tokens decreased
+        expect(await plushie.tokensAvailable()).to.equal(maxSupply - 1)
+      })
+    })
+    describe('Sad path', () => {
+      it('User who is not in the whitelist cannot mint NFT', async () => {
+        await expect(plushie.connect(stranger).mint())
+          .to.be.revertedWithCustomError(plushie, 'AccessControlUnauthorizedAccount')
+          .withArgs(stranger.address, minterRole)
+      })
+
+      it('Admin role who is not in the whitelist cannot mint NFT', async () => {
+        await expect(plushie.connect(deployer).mint())
+          .to.be.revertedWithCustomError(plushie, 'AccessControlUnauthorizedAccount')
+          .withArgs(deployer.address, minterRole)
+      })
+
+      it('Whitelist guard who is not in the whitelist cannot mint NFT', async () => {
+        // dewhitelist previously whitelisted guard (by another guard)
+        await plushie
+          .connect(whitelistGuardBob)
+          .removeFromWhitelist([whitelistGuardAlice.address])
+          .then(tx => tx.wait())
+        // make sure the guard was removed from whitelist
+        expect(await plushie.hasRole(minterRole, whitelistGuardAlice.address)).to.be.false
+        // trying to mint
+        await expect(plushie.connect(whitelistGuardAlice).mint())
+          .to.be.revertedWithCustomError(plushie, 'AccessControlUnauthorizedAccount')
+          .withArgs(whitelistGuardAlice.address, minterRole)
+      })
+
+      it('Address who already minted NFT cannot mint another NFT event after granting another minter role', async () => {
+        // Whitelist and mint first NFT
+        await plushie
+          .connect(whitelistGuardAlice)
+          .addToWhitelist([minters[minterNum].address])
+          .then(tx => tx.wait())
+        expect(await plushie.hasRole(minterRole, minters[minterNum].address)).to.be.true
+        await expect(plushie.connect(minters[minterNum]).mint())
+          .to.be.revertedWithCustomError(plushie, 'ERC721InvalidOwner')
+          .withArgs(minters[minterNum].address)
+      })
+    })
+  })
+
+  describe('Supply Limits', () => {
+    describe('Happy path', () => {
+      it('10th mint by whitelisted address succeeds', async () => {
+        // Mint 9 more NFTs to reach the limit (1 already minted in previous tests)
+        // Using available indices: [5], [6], [7], [8], [9], [10], [11], [12], [13]
+        const availableMintersIndices = [5, 6, 7, 8, 9, 10, 11, 12, 13]
+        const addresses = availableMintersIndices.map(i => minters[i].address)
+
+        // Whitelist all users
+        await plushie.connect(whitelistGuardBob).addToWhitelist(addresses)
+
+        // Mint 9 NFTs
+        for (const index of availableMintersIndices) {
+          await plushie.connect(minters[index]).mint()
+        }
+
+        // Verify we have 10 total minted
+        expect(await plushie.tokensAvailable()).to.equal(0) // maxSupply(10) - totalMinted(10)
+
+        // Verify the 10th token exists
+        expect(await plushie.ownerOf(10)).to.not.be.reverted
+      })
+    })
+
+    describe('Sad path', () => {
+      it('Attempt to mint when supply reaches exactly 10 - should fail', async () => {
+        // Try to whitelist and mint when supply is exhausted
+        await plushie.connect(whitelistGuardAlice).addToWhitelist([minters[14].address])
+
+        await expect(plushie.connect(minters[14]).mint())
+          .to.be.revertedWithCustomError(plushie, 'PlushieNftOutOfTokens')
+          .withArgs(10) // maxSupply
+      })
+
+      it('Multiple whitelisted users cannot mint simultaneously when supply exhausted', async () => {
+        // Whitelist multiple users when supply is already exhausted
+        const addresses = [minters[15].address, minters[16].address, minters[17].address]
+        await plushie.connect(whitelistGuardAlice).addToWhitelist(addresses)
+
+        // All should fail to mint
+        const failIndices = [15, 16, 17]
+        for (const index of failIndices) {
+          await expect(plushie.connect(minters[index]).mint())
+            .to.be.revertedWithCustomError(plushie, 'PlushieNftOutOfTokens')
+            .withArgs(10)
+        }
+      })
+    })
+  })
+
+  describe('Transfer Prevention', () => {
+    describe('Happy path', () => {
+      it('approve() function works but transfers still fail', async () => {
+        // Use existing NFT (token ID 1 owned by minters[4] from minting tests)
+        const tokenOwner = minters[4]
+        const approvedUser = minters[19]
+        const tokenId = 1
+
+        // approve() should work
+        await expect(plushie.connect(tokenOwner).approve(approvedUser.address, tokenId)).to.not.be.reverted
+
+        // Check approval was set
+        expect(await plushie.getApproved(tokenId)).to.equal(approvedUser.address)
+
+        // But transfer should still fail
+        await expect(
+          plushie.connect(approvedUser).transferFrom(tokenOwner.address, approvedUser.address, tokenId),
+        ).to.be.revertedWithCustomError(plushie, 'PlushieNftTransfersDisabled')
+      })
+
+      it('setApprovalForAll() works but transfers still fail', async () => {
+        // Use existing NFT owner
+        const tokenOwner = minters[4]
+        const operator = minters[19]
+        const tokenId = 1
+
+        // setApprovalForAll should work
+        await expect(plushie.connect(tokenOwner).setApprovalForAll(operator.address, true)).to.not.be.reverted
+
+        // Check approval was set
+        expect(await plushie.isApprovedForAll(tokenOwner.address, operator.address)).to.be.true
+
+        // But transfer should still fail
+        await expect(
+          plushie.connect(operator).transferFrom(tokenOwner.address, operator.address, tokenId),
+        ).to.be.revertedWithCustomError(plushie, 'PlushieNftTransfersDisabled')
+      })
+    })
+    describe('Sad path', () => {
+      it('User A cannot transfer token to User B', async () => {
+        const tokenOwner = minters[4]
+        const recipient = minters[19]
+        const tokenId = 1
+
+        await expect(
+          plushie.connect(tokenOwner).transferFrom(tokenOwner.address, recipient.address, tokenId),
+        ).to.be.revertedWithCustomError(plushie, 'PlushieNftTransfersDisabled')
+      })
+
+      it('Admin cannot execute transfer on behalf of user', async () => {
+        const tokenOwner = minters[4]
+        const recipient = minters[19]
+        const tokenId = 1
+
+        await expect(
+          plushie.connect(deployer).transferFrom(tokenOwner.address, recipient.address, tokenId),
+        ).to.be.revertedWithCustomError(plushie, 'PlushieNftTransfersDisabled')
+      })
+
+      it('Marketplace contract cannot execute transfer after approval', async () => {
+        // Simulate marketplace contract (using another signer)
+        const tokenOwner = minters[4]
+        const marketplaceContract = minters[20]
+        const recipient = minters[19]
+        const tokenId = 1
+
+        // User approves marketplace
+        await plushie
+          .connect(tokenOwner)
+          .approve(marketplaceContract.address, tokenId)
+          .then(tx => tx.wait())
+
+        // Marketplace tries to transfer but fails
+        await expect(
+          plushie.connect(marketplaceContract).transferFrom(tokenOwner.address, recipient.address, tokenId),
+        ).to.be.revertedWithCustomError(plushie, 'PlushieNftTransfersDisabled')
+      })
+    })
+  })
+
+  describe('Contract State & Metadata', () => {
+    describe('Happy path', () => {
+      it('Check totalSupply(), balanceOf(), and ownerOf() accuracy after various operations', async () => {
+        // Should have exactly 10 tokens (maxSupply reached)
+        const totalSupply = await plushie.totalSupply()
+        expect(totalSupply).to.equal(10)
+
+        // Check specific balances
+        expect(await plushie.balanceOf(minters[4].address)).to.equal(1) // minterNum from minting tests
+
+        // Verify ownership of first and last tokens
+        expect(await plushie.ownerOf(1)).to.equal(minters[4].address) // First token from minting tests
+        expect(await plushie.ownerOf(10)).to.equal(minters[13].address) // Last token from supply limit tests
+
+        // Verify tokens available is 0
+        expect(await plushie.tokensAvailable()).to.equal(0)
+      })
+    })
+    describe('Sad path', () => {
+      it('tokenURI() for non-existent token reverts with clear message', async () => {
+        await expect(plushie.tokenURI(999))
+          .to.be.revertedWithCustomError(plushie, 'ERC721NonexistentToken')
+          .withArgs(999)
+      })
+
+      it('ownerOf() for non-existent token reverts', async () => {
+        await expect(plushie.ownerOf(999))
+          .to.be.revertedWithCustomError(plushie, 'ERC721NonexistentToken')
+          .withArgs(999)
       })
     })
   })
