@@ -41,6 +41,9 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       allowUnlimitedContractSize: true,
+      accounts: {
+        count: 50,
+      },
     },
     rootstockTestnet: {
       chainId: 31,

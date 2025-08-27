@@ -3,7 +3,6 @@
 pragma solidity ^0.8.30;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
@@ -13,7 +12,6 @@ import {ERC721URIStorageUpgradeable} from "@openzeppelin/contracts-upgradeable/t
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {ERC721NonTransferrable} from "./ERC721NonTransferrable.sol";
 
 contract PlushieNFT is
   Initializable,
@@ -21,8 +19,7 @@ contract PlushieNFT is
   ERC721EnumerableUpgradeable,
   ERC721URIStorageUpgradeable,
   AccessControlEnumerableUpgradeable,
-  UUPSUpgradeable,
-  ERC721NonTransferrable
+  UUPSUpgradeable
 {
   using Strings for uint256;
   /// @notice potential NFT owner in the period between whitelisting and minting
@@ -43,8 +40,9 @@ contract PlushieNFT is
   }
 
   error PlushieNftOutOfTokens(uint256 maxSupply);
-  error AdminRoleViolation();
+  error PlushieNftAdminRoleViolation();
   event PlushieNftTokenParamsChanged(uint256 maxSupply, string folderIpfsCid);
+  error PlushieNftTransfersDisabled();
 
   function initialize(
     address defaultAdmin,
@@ -131,7 +129,7 @@ contract PlushieNFT is
   ) public virtual override(AccessControlUpgradeable, IAccessControl) {
     // Prevent the last admin from renouncing their role
     if (role == DEFAULT_ADMIN_ROLE && getRoleMemberCount(DEFAULT_ADMIN_ROLE) == 1) {
-      revert AdminRoleViolation();
+      revert PlushieNftAdminRoleViolation();
     }
     super.renounceRole(role, callerConfirmation);
   }
@@ -141,9 +139,24 @@ contract PlushieNFT is
     address account
   ) public virtual override(AccessControlUpgradeable, IAccessControl) {
     if (role == DEFAULT_ADMIN_ROLE && getRoleMemberCount(DEFAULT_ADMIN_ROLE) >= 1) {
-      revert AdminRoleViolation();
+      revert PlushieNftAdminRoleViolation();
     }
     super.grantRole(role, account);
+  }
+
+  /**
+   * @dev This function is overridden to disable transfers.
+   */
+  function transferFrom(address, address, uint256) public virtual override(ERC721Upgradeable, IERC721) {
+    revert PlushieNftTransfersDisabled();
+  }
+
+  /**
+   * @dev This function is overridden to prevent from granting roles to zero address.
+   */
+  function _grantRole(bytes32 role, address receiver) internal virtual override returns (bool) {
+    if (receiver == address(0)) revert PlushieNftAdminRoleViolation();
+    return super._grantRole(role, receiver);
   }
 
   function _authorizeUpgrade(
@@ -151,28 +164,6 @@ contract PlushieNFT is
   ) internal virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
   // The following functions are overrides required by Solidity.
-
-  function setApprovalForAll(
-    address operator,
-    bool approved
-  ) public virtual override(IERC721, ERC721Upgradeable, ERC721NonTransferrable) {
-    super.setApprovalForAll(operator, approved);
-  }
-
-  function approve(
-    address to,
-    uint256 tokenId
-  ) public virtual override(IERC721, ERC721Upgradeable, ERC721NonTransferrable) {
-    super.approve(to, tokenId);
-  }
-
-  function transferFrom(
-    address from,
-    address to,
-    uint256 tokenId
-  ) public virtual override(IERC721, ERC721Upgradeable, ERC721NonTransferrable) {
-    super.transferFrom(from, to, tokenId);
-  }
 
   function _update(
     address to,
@@ -201,7 +192,6 @@ contract PlushieNFT is
     public
     view
     override(
-      IERC165,
       ERC721Upgradeable,
       ERC721EnumerableUpgradeable,
       ERC721URIStorageUpgradeable,
