@@ -2,45 +2,61 @@ import { expect } from 'chai'
 import { ethers } from 'hardhat'
 import { ignition } from 'hardhat'
 import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { PlushieNftModule } from '../ignition/modules/PlushieNftModule'
-import { type PlushieNFT } from '../typechain-types'
-import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
+import { PlushieSeries1Module } from '../ignition/modules/PlushieSeries1Module'
+import { RIFToken, StRIFToken, type PlushieSeries1RootstockCollective } from '../typechain-types'
+import { deployContracts } from './deployContracts'
 
 const maxSupply = 10
+const stRifThreshold = 1n * 10n ** 18n // 1 StRIF
 const ipfsFolderCid = 'QmPaCP36tFjXp7xqcPi4ggatL7w4dsWKGTv1kpaSVkv9KW'
 const minterRole = ethers.keccak256(ethers.toUtf8Bytes('MINTER_ROLE'))
 const whitelistGuardRole = ethers.keccak256(ethers.toUtf8Bytes('WHITELIST_GUARD_ROLE'))
 const adminRole = ethers.ZeroHash
 
-async function deployPlushieNft() {
-  const { plushieNft } = await ignition.deploy(PlushieNftModule, {
+async function deployPlushieNft(stRifAddress: string) {
+  const { plushieSeries1 } = await ignition.deploy(PlushieSeries1Module, {
     parameters: {
-      PlushieNft: {
+      PlushieSeries1: {
+        stRif: stRifAddress,
+        stRifThreshold,
         maxSupply,
         ipfsFolderCid,
       },
     },
   })
-  return plushieNft as unknown as PlushieNFT
+  return plushieSeries1 as unknown as PlushieSeries1RootstockCollective
 }
 
-describe('Plushie NFT', () => {
-  let plushie: PlushieNFT
+describe('PlushieSeries1RootstockCollective NFT', () => {
+  let plushie: PlushieSeries1RootstockCollective
   let deployer: SignerWithAddress
   let whitelistGuardAlice: SignerWithAddress
   let whitelistGuardBob: SignerWithAddress
   let stranger: SignerWithAddress
   let minters: SignerWithAddress[]
+  let rif: RIFToken
+  let stRIF: StRIFToken
+
+  async function sendStRifsTo(...holders: SignerWithAddress[]) {
+    for (const holder of holders) {
+      await (await rif.transfer(holder.address, stRifThreshold)).wait()
+      await (await rif.connect(holder).approve(await stRIF.getAddress(), stRifThreshold)).wait()
+      await (await stRIF.connect(holder).depositAndDelegate(holder.address, stRifThreshold)).wait()
+    }
+  }
 
   before(async () => {
     ;[deployer, whitelistGuardAlice, whitelistGuardBob, stranger, ...minters] = await ethers.getSigners()
-    plushie = await loadFixture(deployPlushieNft)
+    ;({ stRIF, rif } = await deployContracts())
+    await sendStRifsTo(...minters.slice(0, -1))
+    const stRifAddress = await stRIF.getAddress()
+    plushie = await deployPlushieNft(stRifAddress)
   })
 
   describe('upon deployment', () => {
     it('should set up proper NFT name and symbol', async () => {
-      expect(await plushie.name()).to.equal('PlushieNFT')
-      expect(await plushie.symbol()).to.equal('PLU')
+      expect(await plushie.name()).to.equal('PlushieSeries1RootstockCollective')
+      expect(await plushie.symbol()).to.equal('PS1')
     })
     it('Minter role should be set up', async () => {
       expect(await plushie.MINTER_ROLE()).to.equal(minterRole)
@@ -60,8 +76,17 @@ describe('Plushie NFT', () => {
     it('Deployer should be granted the Whitelist guard role', async () => {
       expect(await plushie.hasRole(whitelistGuardRole, deployer.address)).to.be.true
     })
+    it('Should set max supply correctly', async () => {
+      expect(await plushie.maxSupply()).to.equal(maxSupply)
+    })
     it('NFT contract should have Max supply of available tokens', async () => {
       expect(await plushie.tokensAvailable()).to.equal(maxSupply)
+    })
+    it('Should set StRif as underlying token', async () => {
+      expect(await plushie.underlyingToken()).to.equal(await stRIF.getAddress())
+    })
+    it('Should set StRif threshold for NFT minting', async () => {
+      expect(await plushie.underlyingTokenThreshold()).to.equal(stRifThreshold)
     })
   })
 
@@ -297,6 +322,23 @@ describe('Plushie NFT', () => {
       })
     })
     describe('Sad path', () => {
+      it('User with insufficient StRif balance cannot mint NFT', async () => {
+        // Create a new user with no stRIF balance
+        const [poorUser] = [minters.at(-1)!]
+
+        // Whitelist the poor user (give them minter role)
+        await plushie.connect(whitelistGuardAlice).addToWhitelist([poorUser.address])
+        expect(await plushie.hasRole(minterRole, poorUser.address)).to.be.true
+
+        // Verify they have insufficient stRIF balance (should be 0)
+        const userBalance = await stRIF.balanceOf(poorUser.address)
+        expect(userBalance).to.be.lt(stRifThreshold)
+
+        // Attempt to mint should fail with balance threshold error
+        await expect(plushie.connect(poorUser).mint())
+          .to.be.revertedWithCustomError(plushie, 'PlushieNftBelowTokenThreshold')
+          .withArgs(userBalance, stRifThreshold)
+      })
       it('User who is not in the whitelist cannot mint NFT', async () => {
         await expect(plushie.connect(stranger).mint())
           .to.be.revertedWithCustomError(plushie, 'AccessControlUnauthorizedAccount')
