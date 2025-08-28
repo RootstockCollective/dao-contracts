@@ -247,10 +247,8 @@ contract PlushieSeries1RootstockCollective is
     address auth
   ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (address) {
     address from = _ownerOf(tokenId);
-    // Запрещаем обычные переводы (оба конца не нули)
-    if (from != address(0) && to != address(0)) {
-      revert PlushieNftTransfersDisabled();
-    }
+    // restrict usual transfers (except burning and minting)
+    if (from != address(0) && to != address(0)) revert PlushieNftTransfersDisabled();
 
     return super._update(to, tokenId, auth);
   }
