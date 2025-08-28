@@ -60,7 +60,7 @@ contract PlushieSeries1RootstockCollective is
 
   // EVENTS
 
-  event PlushieNftUnderlyingTokenChanged(address indexed oldToken, address indexed newToken);
+  event PlushieNftUnderlyingTokenChanged(IERC20 indexed oldToken, IERC20 indexed newToken);
   event PlushieNftTokenThresholdChanged(uint256 oldThreshold, uint256 newThreshold);
   event PlushieNftMaxSupplyChanged(uint256 oldMaxSupply, uint256 newMaxSupply);
   event PlushieNftFolderIpfsCidChanged(string oldCid, string newCid);
@@ -72,6 +72,7 @@ contract PlushieSeries1RootstockCollective is
   error PlushieNftTransfersDisabled();
   error PlushieNftBelowTokenThreshold(uint256 balance, uint256 threshold);
   error PlushieNftInvalidMaxSupply(uint256 newMaxSupply, uint256 currentMaxSupply);
+  error PlushieNftInvalidTokenAddress(address);
 
   // INITIALIZERS
 
@@ -91,12 +92,13 @@ contract PlushieSeries1RootstockCollective is
     __ERC721Enumerable_init();
     __ERC721URIStorage_init();
     __AccessControl_init();
+    __AccessControlEnumerable_init();
     __UUPSUpgradeable_init();
 
     _grantRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
     _grantRole(WHITELIST_GUARD_ROLE, defaultAdmin);
 
-    // Set up role hierarchy: only whitelisters can assign the minter role
+    // Set up role hierarchy: whitelisters can assign the minter role
     _setRoleAdmin(MINTER_ROLE, WHITELIST_GUARD_ROLE);
 
     setUnderlyingToken(token);
@@ -197,9 +199,10 @@ contract PlushieSeries1RootstockCollective is
 
   /// @notice Set underlying token contract address
   function setUnderlyingToken(IERC20 newToken) public virtual onlyRole(DEFAULT_ADMIN_ROLE) {
-    address oldToken = address(underlyingToken);
+    if (newToken == IERC20(address(0))) revert PlushieNftInvalidTokenAddress(address(newToken));
+    IERC20 oldToken = underlyingToken;
     underlyingToken = newToken;
-    emit PlushieNftUnderlyingTokenChanged(oldToken, address(newToken));
+    emit PlushieNftUnderlyingTokenChanged(oldToken, newToken);
   }
 
   // VIEW FUNCTIONS
@@ -210,8 +213,8 @@ contract PlushieSeries1RootstockCollective is
     return maxSupply - _totalMinted;
   }
 
-  function _baseURI() internal pure override returns (string memory) {
-    return "ipfs://";
+  function _baseURI() internal view override returns (string memory) {
+    return string.concat("ipfs://", _folderIpfsCid, "/");
   }
 
   // OVERRIDES
@@ -239,8 +242,18 @@ contract PlushieSeries1RootstockCollective is
   }
 
   /// @dev This function is overridden to disable transfers.
-  function transferFrom(address, address, uint256) public virtual override(ERC721Upgradeable, IERC721) {
-    revert PlushieNftTransfersDisabled();
+  function _update(
+    address to,
+    uint256 tokenId,
+    address auth
+  ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (address) {
+    address from = _ownerOf(tokenId);
+    // Запрещаем обычные переводы (оба конца не нули)
+    if (from != address(0) && to != address(0)) {
+      revert PlushieNftTransfersDisabled();
+    }
+
+    return super._update(to, tokenId, auth);
   }
 
   /// @dev This function is overridden to prevent from granting roles to zero address.
@@ -255,14 +268,6 @@ contract PlushieSeries1RootstockCollective is
   ) internal virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
   // The following functions are overrides required by Solidity.
-
-  function _update(
-    address to,
-    uint256 tokenId,
-    address auth
-  ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (address) {
-    return super._update(to, tokenId, auth);
-  }
 
   function _increaseBalance(
     address account,

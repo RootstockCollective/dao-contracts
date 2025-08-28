@@ -313,7 +313,7 @@ describe('PlushieSeries1RootstockCollective NFT', () => {
 
       it('Token has correct metadata URI', async () => {
         // Verify token URI is set correctly
-        expect(await plushie.tokenURI(1)).to.equal('ipfs://1.json')
+        expect(await plushie.tokenURI(1)).to.equal(`ipfs://${ipfsFolderCid}/1.json`)
       })
 
       it('Tokens available count decreases after mint', async () => {
@@ -392,14 +392,15 @@ describe('PlushieSeries1RootstockCollective NFT', () => {
 
         // Mint 9 NFTs
         for (const index of availableMintersIndices) {
-          await plushie.connect(minters[index]).mint()
+          await plushie
+            .connect(minters[index])
+            .mint()
+            .then(tx => tx.wait())
         }
 
         // Verify we have 10 total minted
         expect(await plushie.tokensAvailable()).to.equal(0) // maxSupply(10) - totalMinted(10)
-
-        // Verify the 10th token exists
-        expect(await plushie.ownerOf(10)).to.not.be.reverted
+        expect(await plushie.totalSupply()).to.equal(10)
       })
     })
 
@@ -466,6 +467,18 @@ describe('PlushieSeries1RootstockCollective NFT', () => {
           plushie.connect(operator).transferFrom(tokenOwner.address, operator.address, tokenId),
         ).to.be.revertedWithCustomError(plushie, 'PlushieNftTransfersDisabled')
       })
+
+      it('Owner is unable to transfer Plushie with safeTransferFrom() function', async () => {
+        const tokenOwner = minters[4]
+        const operator = minters[19]
+        const tokenId = 1
+        expect(await plushie.balanceOf(tokenOwner.address)).equals(1)
+        await expect(
+          plushie
+            .connect(tokenOwner)
+            ['safeTransferFrom(address,address,uint256)'](tokenOwner.address, operator.address, tokenId),
+        ).to.be.revertedWithCustomError(plushie, 'PlushieNftTransfersDisabled')
+      })
     })
     describe('Sad path', () => {
       it('User A cannot transfer token to User B', async () => {
@@ -522,6 +535,7 @@ describe('PlushieSeries1RootstockCollective NFT', () => {
         // Verify ownership of first and last tokens
         expect(await plushie.ownerOf(1)).to.equal(minters[4].address) // First token from minting tests
         expect(await plushie.ownerOf(10)).to.equal(minters[13].address) // Last token from supply limit tests
+        expect(await plushie.tokenURI(10)).to.equal(`ipfs://${ipfsFolderCid}/10.json`) // Verify token URI is set correctly
 
         // Verify tokens available is 0
         expect(await plushie.tokensAvailable()).to.equal(0)
