@@ -3,16 +3,13 @@
 pragma solidity ^0.8.30;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {AccessControlEnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/extensions/AccessControlEnumerableUpgradeable.sol";
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {ERC721EnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
-import {ERC721URIStorageUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 /**
  * @title Plushie Series 1 NFT Collection
@@ -23,12 +20,9 @@ contract PlushieSeries1RootstockCollective is
   Initializable,
   ERC721Upgradeable,
   ERC721EnumerableUpgradeable,
-  ERC721URIStorageUpgradeable,
   AccessControlEnumerableUpgradeable,
   UUPSUpgradeable
 {
-  using Strings for uint256;
-
   // CONSTANTS
 
   /// @notice potential NFT owner in the period between whitelisting and minting
@@ -47,7 +41,7 @@ contract PlushieSeries1RootstockCollective is
   uint256 public underlyingTokenThreshold;
 
   // Slot 3: 32 bytes
-  /// @notice Number of metadata files
+  /// @notice Maximum number of tokens
   uint256 public maxSupply;
 
   // Slot 4: 20 bytes + 12 bytes free
@@ -55,8 +49,15 @@ contract PlushieSeries1RootstockCollective is
   IERC20 public underlyingToken; // 20 bytes
 
   // Slot 5+: dynamic
-  /// @notice IPFS CID of the tokens metadata directory
-  string private _folderIpfsCid;
+  /// @notice Single tokens metadata file IPFS CID
+  string private _metadataIpfsCid;
+
+  /**
+   * @dev STORAGE GAP: reserved space for future variable additions to preserve storage layout
+   * in upgradeable contract. New state variables must be inserted above this line and the
+   * array size decreased accordingly.
+   */
+  uint256[50] private __gap;
 
   // EVENTS
 
@@ -90,7 +91,6 @@ contract PlushieSeries1RootstockCollective is
   ) public initializer {
     __ERC721_init("PlushieSeries1RootstockCollective", "PS1");
     __ERC721Enumerable_init();
-    __ERC721URIStorage_init();
     __AccessControl_init();
     __AccessControlEnumerable_init();
     __UUPSUpgradeable_init();
@@ -123,9 +123,7 @@ contract PlushieSeries1RootstockCollective is
       revert PlushieNftBelowTokenThreshold(balance, underlyingTokenThreshold);
     // minting
     uint256 tokenId = ++_totalMinted;
-    string memory fileName = string.concat(tokenId.toString(), ".json");
     _safeMint(caller, tokenId);
-    _setTokenURI(tokenId, fileName);
     // token holder is no longer a Minter after acquiring his token
     _revokeRole(MINTER_ROLE, caller);
     return tokenId;
@@ -177,8 +175,8 @@ contract PlushieSeries1RootstockCollective is
 
   /// @notice Set IPFS folder CID for token metadata
   function setFolderIpfsCid(string calldata cid) public virtual onlyRole(DEFAULT_ADMIN_ROLE) {
-    string memory oldCid = _folderIpfsCid;
-    _folderIpfsCid = cid;
+    string memory oldCid = _metadataIpfsCid;
+    _metadataIpfsCid = cid;
     emit PlushieNftFolderIpfsCidChanged(oldCid, cid);
   }
 
@@ -213,11 +211,12 @@ contract PlushieSeries1RootstockCollective is
     return maxSupply - _totalMinted;
   }
 
-  function _baseURI() internal view override returns (string memory) {
-    return string.concat("ipfs://", _folderIpfsCid, "/");
-  }
-
   // OVERRIDES
+  /// @dev This function is overridden to provide a single metadata file for all the minters
+  function tokenURI(uint256 tokenId) public view override returns (string memory) {
+    _requireOwned(tokenId);
+    return string.concat("ipfs://", _metadataIpfsCid);
+  }
 
   /// @dev This function is overridden to prevent the last admin from renouncing his role.
   function renounceRole(
@@ -276,23 +275,12 @@ contract PlushieSeries1RootstockCollective is
     super._increaseBalance(account, value);
   }
 
-  function tokenURI(
-    uint256 tokenId
-  ) public view override(ERC721Upgradeable, ERC721URIStorageUpgradeable) returns (string memory) {
-    return super.tokenURI(tokenId);
-  }
-
   function supportsInterface(
     bytes4 interfaceId
   )
     public
     view
-    override(
-      ERC721Upgradeable,
-      ERC721EnumerableUpgradeable,
-      ERC721URIStorageUpgradeable,
-      AccessControlEnumerableUpgradeable
-    )
+    override(ERC721Upgradeable, ERC721EnumerableUpgradeable, AccessControlEnumerableUpgradeable)
     returns (bool)
   {
     return super.supportsInterface(interfaceId);

@@ -313,7 +313,7 @@ describe('PlushieSeries1RootstockCollective NFT', () => {
 
       it('Token has correct metadata URI', async () => {
         // Verify token URI is set correctly
-        expect(await plushie.tokenURI(1)).to.equal(`ipfs://${ipfsFolderCid}/1.json`)
+        expect(await plushie.tokenURI(1)).to.equal(`ipfs://${ipfsFolderCid}`)
       })
 
       it('Tokens available count decreases after mint', async () => {
@@ -535,10 +535,17 @@ describe('PlushieSeries1RootstockCollective NFT', () => {
         // Verify ownership of first and last tokens
         expect(await plushie.ownerOf(1)).to.equal(minters[4].address) // First token from minting tests
         expect(await plushie.ownerOf(10)).to.equal(minters[13].address) // Last token from supply limit tests
-        expect(await plushie.tokenURI(10)).to.equal(`ipfs://${ipfsFolderCid}/10.json`) // Verify token URI is set correctly
 
         // Verify tokens available is 0
         expect(await plushie.tokensAvailable()).to.equal(0)
+      })
+
+      it('All tokens have the same metadata IPFS CID', async () => {
+        // Check tokenURI for all minted tokens (1 to 10)
+        for (let tokenId = 1; tokenId <= 10; tokenId++) {
+          const tokenUri = await plushie.tokenURI(tokenId)
+          expect(tokenUri).to.equal(`ipfs://${ipfsFolderCid}`)
+        }
       })
     })
     describe('Sad path', () => {
