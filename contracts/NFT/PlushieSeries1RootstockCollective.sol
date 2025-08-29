@@ -171,6 +171,11 @@ contract PlushieSeries1RootstockCollective is
     }
   }
 
+  /**
+   * @notice Transfer DEFAULT_ADMIN_ROLE to another address in a single atomic operation
+   * @dev This function grants the role to the receiver and revokes it from the caller atomically
+   * @param receiver The address to receive the DEFAULT_ADMIN_ROLE
+   */
   function transferDefaultAdminRole(address receiver) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     if (receiver == address(0)) revert PlushieNftInvalidAddress(receiver);
     _grantRole(DEFAULT_ADMIN_ROLE, receiver);
