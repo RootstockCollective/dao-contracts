@@ -73,7 +73,7 @@ contract PlushieSeries1RootstockCollective is
   error PlushieNftTransfersDisabled();
   error PlushieNftBelowTokenThreshold(uint256 balance, uint256 threshold);
   error PlushieNftInvalidMaxSupply(uint256 newMaxSupply, uint256 currentMaxSupply);
-  error PlushieNftInvalidTokenAddress(address);
+  error PlushieNftInvalidAddress(address);
 
   // INITIALIZERS
 
@@ -171,6 +171,12 @@ contract PlushieSeries1RootstockCollective is
     }
   }
 
+  function transferDefaultAdminRole(address receiver) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
+    if (receiver == address(0)) revert PlushieNftInvalidAddress(receiver);
+    _grantRole(DEFAULT_ADMIN_ROLE, receiver);
+    _revokeRole(DEFAULT_ADMIN_ROLE, _msgSender());
+  }
+
   // ADMIN PARAMETER SETTERS
 
   /// @notice Set IPFS folder CID for token metadata
@@ -197,7 +203,7 @@ contract PlushieSeries1RootstockCollective is
 
   /// @notice Set underlying token contract address
   function setUnderlyingToken(IERC20 newToken) public virtual onlyRole(DEFAULT_ADMIN_ROLE) {
-    if (newToken == IERC20(address(0))) revert PlushieNftInvalidTokenAddress(address(newToken));
+    if (newToken == IERC20(address(0))) revert PlushieNftInvalidAddress(address(newToken));
     IERC20 oldToken = underlyingToken;
     underlyingToken = newToken;
     emit PlushieNftUnderlyingTokenChanged(oldToken, newToken);

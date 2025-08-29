@@ -121,6 +121,41 @@ describe('PlushieSeries1RootstockCollective NFT', () => {
         expect(await plushie.hasRole(minterRole, minters[0].address)).to.be.true
         expect(await plushie.hasRole(minterRole, minters[1].address)).to.be.true
       })
+      it('Deployer can transfer DEFAULT_ADMIN_ROLE to another address', async () => {
+        const newAdmin = minters[0] // Use first minter as new admin
+
+        // Verify initial state: deployer has admin role, newAdmin doesn't
+        expect(await plushie.hasRole(adminRole, deployer.address)).to.be.true
+        expect(await plushie.hasRole(adminRole, newAdmin.address)).to.be.false
+        expect(await plushie.getRoleMemberCount(adminRole)).to.equal(1)
+
+        // Transfer admin role to new address
+        const tx = plushie.transferDefaultAdminRole(newAdmin.address)
+        await expect(tx)
+          .to.emit(plushie, 'RoleGranted')
+          .withArgs(adminRole, newAdmin.address, deployer.address)
+        await expect(tx)
+          .to.emit(plushie, 'RoleRevoked')
+          .withArgs(adminRole, deployer.address, deployer.address)
+
+        // Verify final state: only newAdmin has admin role
+        expect(await plushie.hasRole(adminRole, deployer.address)).to.be.false
+        expect(await plushie.hasRole(adminRole, newAdmin.address)).to.be.true
+        expect(await plushie.getRoleMemberCount(adminRole)).to.equal(1)
+
+        // Verify new admin can perform admin functions
+        const newCid = 'QmNewTestCid123'
+        await expect(plushie.connect(newAdmin).setFolderIpfsCid(newCid))
+          .to.emit(plushie, 'PlushieNftFolderIpfsCidChanged')
+          .withArgs(ipfsFolderCid, newCid)
+
+        // give admin role back for testing convenience
+        await plushie
+          .connect(newAdmin)
+          .transferDefaultAdminRole(deployer.address)
+          .then(tx => tx.wait())
+        await plushie.setFolderIpfsCid(ipfsFolderCid).then(tx => tx.wait())
+      })
     })
     describe('Sad path', () => {
       it('Stranger cannot grant himself Whitelist Guard role', async () => {
