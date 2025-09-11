@@ -1,16 +1,14 @@
-import { expect } from 'chai'
-import { ignition } from 'hardhat'
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
-import { StRIFToken, StRIFTokenV2 } from '../typechain-types'
-import { deployContracts } from './deployContracts'
-import stRifTokenV2Module from '../ignition/modules/StRIFTokenUpgradeModule'
+import type { StRIFToken, StRIFTokenV2 } from '../types/ethers-contracts/index.js'
+import { expect, ignition } from './config.js'
+import { deployContracts } from './deployContracts.js'
+import stRifTokenV2Module from '../ignition/modules/StRIFTokenUpgradeModule.js'
 
 describe('Upgrade StRIFToken', () => {
   let stRIF: StRIFToken
   let stRIFV2: StRIFTokenV2
 
   before(async () => {
-    ; ({ stRIF } = await loadFixture(deployContracts))
+    ;({ stRIF } = await deployContracts())
   })
 
   it('StRIFToken V1 should be deployed', async () => {
