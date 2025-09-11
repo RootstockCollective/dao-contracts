@@ -1,4 +1,10 @@
-node_modules
+# Node modules
+/node_modules
+
+# Compilation output
+/dist
+
+# Misc
 .env
 .DS_Store
 
@@ -9,8 +15,9 @@ node_modules
 # TypeChain files
 /typechain
 /typechain-types
+/types
 
-# solidity-coverage files
+# Hardhat coverage reports
 /coverage
 /coverage.json
 

@@ -1,15 +1,15 @@
-import { ethers, ignition } from 'hardhat'
-import {
+import { ethers, ignition } from './config.js'
+import type {
   RIFToken,
   StRIFToken,
   DaoTimelockUpgradableRootstockCollective,
   GovernorRootstockCollective,
   TreasuryRootstockCollective,
   EarlyAdoptersRootstockCollective,
-} from '../typechain-types'
-import RifModule from '../ignition/modules/RifModule'
-import GovernorModule from '../ignition/modules/GovernorModule'
-import EarlyAdoptersModule from '../ignition/modules/EarlyAdoptersModule'
+} from '../types/ethers-contracts/index.js'
+import RifModule from '../ignition/modules/RifModule.js'
+import GovernorModule from '../ignition/modules/GovernorModule.js'
+import EarlyAdoptersModule from '../ignition/modules/EarlyAdoptersModule.js'
 
 export const deployContracts = async () => {
   const [sender] = await ethers.getSigners()
@@ -50,7 +50,7 @@ export const deployContracts = async () => {
   }
 }
 
-export async function deployNFT(
+export async function deployEarlyAdopters(
   ipfsCid: string,
   initialNftSupply: number,
   stRifAddress: string,
