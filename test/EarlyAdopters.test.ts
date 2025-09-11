@@ -1,9 +1,10 @@
-import { expect } from 'chai'
-import { ethers } from 'hardhat'
-import { EarlyAdoptersRootstockCollective, StRIFToken, RIFToken } from '../typechain-types'
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { deployContracts, deployNFT } from './deployContracts'
-import { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
+import type {
+  EarlyAdoptersRootstockCollective,
+  StRIFToken,
+  RIFToken,
+} from '../types/ethers-contracts/index.js'
+import { ethers, expect, type Signer } from './config.js'
+import { deployContracts, deployEarlyAdopters } from './deployContracts.js'
 
 const initialNftSupply = 3
 const ipfsCid = 'QmU1Bu9v1k9ecQ89cDE4uHrRkMKHE8NQ3mxhqFqNJfsKPd'
@@ -15,25 +16,25 @@ describe('Early Adopters', () => {
   let rif: RIFToken
   let stRIF: StRIFToken
   let eaAddress: string
-  let deployer: SignerWithAddress
-  let alice: SignerWithAddress
-  let bob: SignerWithAddress
-  let mike: SignerWithAddress
+  let deployer: Signer
+  let alice: Signer
+  let bob: Signer
+  let mike: Signer
 
   const firstNftId = 1
 
-  async function sendStRifsTo(...holders: SignerWithAddress[]) {
+  async function sendStRifsTo(...holders: Signer[]) {
     for (const holder of holders) {
-      await (await rif.transfer(holder.address, stRifThreshold)).wait()
+      await (await rif.transfer(await holder.getAddress(), stRifThreshold)).wait()
       await (await rif.connect(holder).approve(await stRIF.getAddress(), stRifThreshold)).wait()
-      await (await stRIF.connect(holder).depositAndDelegate(holder.address, stRifThreshold)).wait()
+      await (await stRIF.connect(holder).depositAndDelegate(await holder.getAddress(), stRifThreshold)).wait()
     }
   }
 
   before(async () => {
     ;[deployer, alice, bob, mike] = await ethers.getSigners()
-    ;({ rif, stRIF } = await loadFixture(deployContracts))
-    ea = await deployNFT(ipfsCid, initialNftSupply, await stRIF.getAddress(), stRifThreshold)
+    ;({ rif, stRIF } = await deployContracts())
+    ea = await deployEarlyAdopters(ipfsCid, initialNftSupply, await stRIF.getAddress(), stRifThreshold)
     eaAddress = await ea.getAddress()
     await sendStRifsTo(deployer, alice, bob)
   })
@@ -46,8 +47,8 @@ describe('Early Adopters', () => {
     it('should assign different roles to deployer, alice and bob', async () => {
       const defaultAdminRole = await ea.DEFAULT_ADMIN_ROLE()
       const upgraderRole = await ea.UPGRADER_ROLE()
-      expect(await ea.hasRole(defaultAdminRole, deployer.address)).to.be.true
-      expect(await ea.hasRole(upgraderRole, alice.address)).to.be.true
+      expect(await ea.hasRole(defaultAdminRole, await deployer.getAddress())).to.be.true
+      expect(await ea.hasRole(upgraderRole, await alice.getAddress())).to.be.true
     })
 
     it('all tokens should be available for minting', async () => {
@@ -55,23 +56,24 @@ describe('Early Adopters', () => {
     })
 
     it('deployer, Alice and Bob should own no tokens', async () => {
-      expect(await ea.balanceOf(deployer.address)).to.equal(0)
-      expect(await ea.balanceOf(alice.address)).to.equal(0)
-      expect(await ea.balanceOf(bob.address)).to.equal(0)
+      expect(await ea.balanceOf(await deployer.getAddress())).to.equal(0)
+      expect(await ea.balanceOf(await alice.getAddress())).to.equal(0)
+      expect(await ea.balanceOf(await bob.getAddress())).to.equal(0)
     })
 
     it('deployer, Alice and Bob should not be members of the community', async () => {
-      expect(await ea.isMember(deployer.address)).to.be.false
-      expect(await ea.isMember(alice.address)).to.be.false
-      expect(await ea.isMember(bob.address)).to.be.false
+      expect(await ea.isMember(await deployer.getAddress())).to.be.false
+      expect(await ea.isMember(await alice.getAddress())).to.be.false
+      expect(await ea.isMember(await bob.getAddress())).to.be.false
     })
 
     it('deployer, Alice and Bob should should have no token URIs', async () => {
       await Promise.all(
         [deployer, alice, bob].map(async owner => {
-          await expect(ea.tokenUriByOwner(owner.address))
+          const ownerAddress = await owner.getAddress()
+          await expect(ea.tokenUriByOwner(ownerAddress))
             .to.be.revertedWithCustomError(ea, 'ERC721OutOfBoundsIndex')
-            .withArgs(owner.address, 0)
+            .withArgs(ownerAddress, 0)
         }),
       )
     })
@@ -83,7 +85,7 @@ describe('Early Adopters', () => {
     it('deployer, Alice and Bob should should have enough stRIFs for minting NFTs', async () => {
       await Promise.all(
         [deployer, alice, bob].map(async owner => {
-          expect(await stRIF.balanceOf(owner.address)).to.equal(stRifThreshold)
+          expect(await stRIF.balanceOf(await owner.getAddress())).to.equal(stRifThreshold)
         }),
       )
     })
@@ -97,30 +99,32 @@ describe('Early Adopters', () => {
     })
     it('Alice should join the EA community by minting an Nft', async () => {
       const mintTx = await ea.connect(alice).mint()
-      await expect(mintTx).to.emit(ea, 'Transfer').withArgs(ethers.ZeroAddress, alice.address, firstNftId)
+      await expect(mintTx)
+        .to.emit(ea, 'Transfer')
+        .withArgs(ethers.ZeroAddress, await alice.getAddress(), firstNftId)
     })
 
     it('Alice cannot join the community second time', async () => {
       await expect(ea.connect(alice).mint())
         .to.be.revertedWithCustomError(ea, 'ERC721InvalidOwner')
-        .withArgs(alice.address)
+        .withArgs(await alice.getAddress())
     })
 
     it('Alice should be a member of EA community', async () => {
-      expect(await ea.balanceOf(alice.address)).to.equal(1)
-      expect(await ea.isMember(alice.address)).to.be.true
+      expect(await ea.balanceOf(await alice.getAddress())).to.equal(1)
+      expect(await ea.isMember(await alice.getAddress())).to.be.true
     })
 
     it('Alice should be owner of the first NFT', async () => {
-      expect(await ea.ownerOf(firstNftId)).to.equal(alice.address)
+      expect(await ea.ownerOf(firstNftId)).to.equal(await alice.getAddress())
     })
 
     it('Alice should get her token ID by providing her account address', async () => {
-      expect(await ea.tokenIdByOwner(alice.address)).to.equal(firstNftId)
+      expect(await ea.tokenIdByOwner(await alice.getAddress())).to.equal(firstNftId)
     })
 
     it('Alice should read her token URI by providing her account address', async () => {
-      expect(await ea.tokenUriByOwner(alice.address)).to.equal(nftUri(firstNftId))
+      expect(await ea.tokenUriByOwner(await alice.getAddress())).to.equal(nftUri(firstNftId))
     })
 
     it('EA community should now have 1 member', async () => {
@@ -130,7 +134,9 @@ describe('Early Adopters', () => {
 
   describe('Transferring NFTs / changing EA membership', () => {
     it('Alice should not be able to transfer her token during the distribution', async () => {
-      const transferTx = ea.connect(alice).transferFrom(alice.address, bob.address, firstNftId)
+      const transferTx = ea
+        .connect(alice)
+        .transferFrom(await alice.getAddress(), await bob.getAddress(), firstNftId)
       const tokensAvailable = await ea.tokensAvailable()
       await expect(transferTx)
         .to.be.revertedWithCustomError(ea, 'DistributionActive')
@@ -142,8 +148,8 @@ describe('Early Adopters', () => {
         [deployer, bob].map(async (signer, i) => {
           await expect(ea.connect(signer).mint())
             .to.emit(ea, 'Transfer')
-            .withArgs(ethers.ZeroAddress, signer.address, i + 2)
-          expect(await ea.isMember(signer.address)).to.be.true
+            .withArgs(ethers.ZeroAddress, await signer.getAddress(), i + 2)
+          expect(await ea.isMember(await signer.getAddress())).to.be.true
         }),
       )
       expect(await ea.tokensAvailable()).to.equal(0)
@@ -154,29 +160,35 @@ describe('Early Adopters', () => {
     })
 
     it('Alice should not be able to transfer her token to zero address', async () => {
-      const transferTx = ea.connect(alice).transferFrom(alice.address, ethers.ZeroAddress, firstNftId)
-      await expect(transferTx).to.be.reverted
+      const transferTx = ea
+        .connect(alice)
+        .transferFrom(await alice.getAddress(), ethers.ZeroAddress, firstNftId)
+      await expect(transferTx).to.revert(ethers)
     })
 
     it('Alice should transfer her token to Mike', async () => {
-      const transferTx = ea.connect(alice).transferFrom(alice.address, mike.address, firstNftId)
-      await expect(transferTx).to.emit(ea, 'Transfer').withArgs(alice.address, mike.address, firstNftId)
+      const transferTx = ea
+        .connect(alice)
+        .transferFrom(await alice.getAddress(), await mike.getAddress(), firstNftId)
+      await expect(transferTx)
+        .to.emit(ea, 'Transfer')
+        .withArgs(await alice.getAddress(), await mike.getAddress(), firstNftId)
     })
 
     it('Alice should no longer be a member of EA community', async () => {
-      expect(await ea.isMember(alice.address)).to.be.false
+      expect(await ea.isMember(await alice.getAddress())).to.be.false
     })
 
     it('Mike should now be a member of EA community', async () => {
-      expect(await ea.isMember(mike.address)).to.be.true
+      expect(await ea.isMember(await mike.getAddress())).to.be.true
     })
 
     it('Mike should now be the owner of the first NFT', async () => {
-      expect(await ea.ownerOf(firstNftId)).to.equal(mike.address)
+      expect(await ea.ownerOf(firstNftId)).to.equal(await mike.getAddress())
     })
 
     it('Mike should read his token URI by providing his account address', async () => {
-      expect(await ea.tokenUriByOwner(mike.address)).to.equal(nftUri(firstNftId))
+      expect(await ea.tokenUriByOwner(await mike.getAddress())).to.equal(nftUri(firstNftId))
     })
 
     it('the number of members in the EA community should not change', async () => {
@@ -184,10 +196,10 @@ describe('Early Adopters', () => {
     })
 
     it('Deployer should not be able to transfer his ownership to Bob because Bob is already a member', async () => {
-      expect(await ea.ownerOf(firstNftId + 1)).to.equal(deployer.address)
-      await expect(ea.transferFrom(deployer.address, bob.address, firstNftId + 1))
+      expect(await ea.ownerOf(firstNftId + 1)).to.equal(await deployer.getAddress())
+      await expect(ea.transferFrom(await deployer.getAddress(), await bob.getAddress(), firstNftId + 1))
         .to.be.revertedWithCustomError(ea, 'ERC721InvalidOwner')
-        .withArgs(bob.address)
+        .withArgs(await bob.getAddress())
     })
   })
 
@@ -198,13 +210,13 @@ describe('Early Adopters', () => {
     })
 
     it('Bob should no longer be a member of the community', async () => {
-      expect(await ea.isMember(bob.address)).to.be.false
+      expect(await ea.isMember(await bob.getAddress())).to.be.false
     })
 
     it('Non-member should not be able to burn', async () => {
       await expect(ea.connect(bob)['burn()']())
         .to.be.revertedWithCustomError(ea, 'ERC721OutOfBoundsIndex')
-        .withArgs(bob.address, 0)
+        .withArgs(await bob.getAddress(), 0)
     })
 
     it('the number of members in the EA community should decrease by 1', async () => {
@@ -245,7 +257,7 @@ describe('Early Adopters', () => {
     it('Alice should be able to join the EA community again after topping up the max supply', async () => {
       await expect(await ea.connect(alice).mint())
         .to.emit(ea, 'Transfer')
-        .withArgs(ethers.ZeroAddress, alice.address, 4)
+        .withArgs(ethers.ZeroAddress, await alice.getAddress(), 4)
     })
 
     it('should increase the number of members in the EA by 1', async () => {
@@ -253,11 +265,11 @@ describe('Early Adopters', () => {
     })
 
     it('Deployer should have the same token ID after the folder change', async () => {
-      expect(await ea.tokenIdByOwner(deployer.address)).to.equal(2)
+      expect(await ea.tokenIdByOwner(await deployer.getAddress())).to.equal(2)
     })
 
     it(`Deployer's NFT should change URI after the IPFS directory change`, async () => {
-      expect(await ea.tokenUriByOwner(deployer.address)).to.equal(nftUri(2, newIpfs))
+      expect(await ea.tokenUriByOwner(await deployer.getAddress())).to.equal(nftUri(2, newIpfs))
     })
   })
 })
