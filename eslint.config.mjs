@@ -2,8 +2,6 @@ import globals from 'globals'
 import pluginJs from '@eslint/js'
 import tseslint from 'typescript-eslint'
 import eslintPluginPrettier from 'eslint-plugin-prettier/recommended'
-import json from '@eslint/json'
-import markdown from '@eslint/markdown'
 
 export default [
   // 1) Base config for JS & TS
@@ -11,14 +9,6 @@ export default [
     files: ['**/*.{js,mjs,cjs,ts}'],
     languageOptions: {
       globals: globals.node,
-    },
-  },
-
-  // 2) Register plugins
-  {
-    plugins: {
-      markdown,
-      json,
     },
   },
 
@@ -31,8 +21,6 @@ export default [
   {
     rules: {
       'prettier/prettier': ['warn'],
-      'markdown/no-html': 'error',
-      'json/no-duplicate-keys': 'error',
     },
   },
 
