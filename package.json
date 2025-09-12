@@ -62,6 +62,7 @@
       "prettier --write"
     ],
     "*.sol": [
+      "solhint",
       "solhint --fix",
       "prettier --write"
     ]
