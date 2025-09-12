@@ -543,11 +543,9 @@ describe('PlushieSeries1RootstockCollective NFT', () => {
         await expect(
           plushie
             .connect(tokenOwner)
-            ['safeTransferFrom(address,address,uint256)'](
-              await tokenOwner.getAddress(),
-              await operator.getAddress(),
-              tokenId,
-            ),
+            [
+              'safeTransferFrom(address,address,uint256)'
+            ](await tokenOwner.getAddress(), await operator.getAddress(), tokenId),
         ).to.be.revertedWithCustomError(plushie, 'PlushieNftTransfersDisabled')
       })
     })

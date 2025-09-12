@@ -1,6 +1,6 @@
 import { task } from 'hardhat/config'
 import { resolve } from 'path'
-import { readJSON } from 'fs-extra'
+import fs from 'fs-extra'
 import { ProposalState } from '../types/index.js'
 import { isAddress, type Signer } from 'ethers'
 import { GovernorRootstockCollective } from '../types/ethers-contracts/index.js'
@@ -153,7 +153,7 @@ task('cancel-proposal', 'Guardian can cancel a proposal by ID')
         let jsonParams: JsonParams = {}
 
         try {
-          jsonParams = await readJSON(jsonFile)
+          jsonParams = await fs.readJson(jsonFile)
         } catch (error) {
           console.error(error instanceof Error ? error.message : error)
         }

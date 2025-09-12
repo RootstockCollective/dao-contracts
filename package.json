@@ -8,13 +8,18 @@
   "scripts": {
     "compile": "npx hardhat compile",
     "clean": "hardhat clean",
-    "lint:ts": "eslint 'test/**/*.ts'",
+    "lint": "eslint '**/*.{js,ts}'",
+    "lint:fix": "eslint '**/*.{js,ts}' --fix",
     "lint:sol": "solhint 'contracts/**/*.sol'",
-    "lint": "yarn lint:ts && yarn lint:sol",
-    "test": "npx hardhat test"
+    "lint:sol:fix": "solhint 'contracts/**/*.sol' --fix",
+    "format": "prettier --write '**/*.{js,ts,sol}' --ignore-path .gitignore",
+    "format:check": "prettier --check '**/*.{js,ts,sol}' --ignore-path .gitignore",
+    "test": "npx hardhat test",
+    "prepare": "husky"
   },
   "type": "module",
   "devDependencies": {
+    "@eslint/compat": "^1.3.2",
     "@eslint/js": "^9.35.0",
     "@eslint/json": "^0.13.2",
     "@eslint/markdown": "^7.2.0",
@@ -36,6 +41,8 @@
     "ethers": "^6.15.0",
     "forge-std": "github:foundry-rs/forge-std#v1.9.4",
     "hardhat": "^3.0.6",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.6",
     "mocha": "^11.7.2",
     "prettier": "^3.6.2",
     "prettier-plugin-solidity": "^2.1.0",
@@ -48,5 +55,15 @@
     "@types/fs-extra": "^11.0.4",
     "fs-extra": "^11.3.1",
     "rif-token-contracts": "https://github.com/Freshenext/RIF-Token"
+  },
+  "lint-staged": {
+    "*.{js,ts}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.sol": [
+      "solhint --fix",
+      "prettier --write"
+    ]
   }
 }

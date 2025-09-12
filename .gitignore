@@ -7,6 +7,7 @@
 # Misc
 .env
 .DS_Store
+/nft
 
 # Hardhat files
 /cache
@@ -15,7 +16,7 @@
 # TypeChain files
 /typechain
 /typechain-types
-/types
+/types/ethers-contracts
 
 # Hardhat coverage reports
 /coverage

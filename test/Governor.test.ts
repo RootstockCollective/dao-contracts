@@ -38,8 +38,7 @@ describe('Governor Contact', () => {
   let timelockPropId: string
 
   before(async () => {
-    // prettier-ignore
-    [deployer, ...holders] = await ethers.getSigners();
+    ;[deployer, ...holders] = await ethers.getSigners()
     ;({ rif, stRIF, timelock, governor } = await deployContracts())
     rifAddress = await rif.getAddress()
     proposalTarget = await ethers.deployContract('ProposalTarget')
@@ -926,9 +925,8 @@ describe('Governor Contact', () => {
     describe('Governor Utils', () => {
       it('should return governor votes and state in getStateAndVotes function', async () => {
         const typeBigint = typeof 0n
-        const { againstVotes, abstainVotes, forVotes, proposalState } = await governor.getStateAndVotes(
-          proposalId,
-        )
+        const { againstVotes, abstainVotes, forVotes, proposalState } =
+          await governor.getStateAndVotes(proposalId)
 
         expect(typeof againstVotes).to.equal(typeBigint)
         expect(typeof abstainVotes).to.equal(typeBigint)
