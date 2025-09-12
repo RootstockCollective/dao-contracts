@@ -1,16 +1,24 @@
 import type { HardhatUserConfig } from 'hardhat/config'
-
 import hardhatToolboxMochaEthersPlugin from '@nomicfoundation/hardhat-toolbox-mocha-ethers'
+import hardhatVerify from '@nomicfoundation/hardhat-verify'
 import { configVariable } from 'hardhat/config'
+import { type HttpNetworkAccountsUserConfig } from 'hardhat/types/config'
+import './tasks/airdrop.js'
+
+const derivationPath = "m/44'/60'/0'/0"
+const accounts = {
+  mnemonic: process.env.MNEMONIC ?? '',
+  path: derivationPath,
+} satisfies HttpNetworkAccountsUserConfig
 
 const config: HardhatUserConfig = {
-  plugins: [hardhatToolboxMochaEthersPlugin],
+  plugins: [hardhatToolboxMochaEthersPlugin, hardhatVerify],
   solidity: {
     compilers: [
       {
         version: '0.8.30',
         settings: {
-          optimizer: { enabled: true, runs: 1 },
+          optimizer: { enabled: true, runs: 200 },
         },
       },
       {
@@ -21,20 +29,6 @@ const config: HardhatUserConfig = {
       },
       { version: '0.4.24' },
     ],
-    /* profiles: {
-      default: {
-        version: "0.8.28",
-      },
-      production: {
-        version: "0.8.28",
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 200,
-          },
-        },
-      },
-    }, */
   },
   networks: {
     hardhat: {
@@ -62,6 +56,49 @@ const config: HardhatUserConfig = {
       chainType: 'l1',
       url: configVariable('SEPOLIA_RPC_URL'),
       accounts: [configVariable('SEPOLIA_PRIVATE_KEY')],
+    },
+    rootstockTestnet: {
+      chainId: 31,
+      type: 'http',
+      url: 'https://public-node.testnet.rsk.co/',
+      accounts,
+    },
+    rootstockMainnet: {
+      chainId: 30,
+      type: 'http',
+      url: 'https://public-node.rsk.co/',
+      ...(typeof process.env.MAINNET_DEPLOYER_MNEMONIC !== 'undefined'
+        ? {
+            accounts: {
+              mnemonic: process.env.MAINNET_DEPLOYER_MNEMONIC,
+              path: derivationPath,
+            },
+          }
+        : {
+            accounts,
+          }),
+    },
+  },
+  chainDescriptors: {
+    31: {
+      name: 'rootstockTestnet',
+      blockExplorers: {
+        blockscout: {
+          name: 'Rootstock Testnet Blockscout',
+          url: 'https://rootstock-testnet.blockscout.com',
+          apiUrl: 'https://rootstock-testnet.blockscout.com/api',
+        },
+      },
+    },
+    30: {
+      name: 'rootstockMainnet',
+      blockExplorers: {
+        blockscout: {
+          name: 'Rootstock Blockscout',
+          url: 'https://rootstock.blockscout.com',
+          apiUrl: 'https://rootstock.blockscout.com/api',
+        },
+      },
     },
   },
 }
