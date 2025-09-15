@@ -3,12 +3,14 @@ import hardhatToolboxMochaEthersPlugin from '@nomicfoundation/hardhat-toolbox-mo
 import hardhatVerify from '@nomicfoundation/hardhat-verify'
 import { configVariable } from 'hardhat/config'
 import { type HttpNetworkAccountsUserConfig } from 'hardhat/types/config'
+import dotenv from 'dotenv'
 import './tasks/airdrop'
 import './tasks/cancelProposal'
 import './tasks/stRifUpgradeV1-v2'
 import './tasks/updateIpfsFolder'
 import './tasks/withdrawTreasury'
 
+dotenv.config()
 const derivationPath = "m/44'/60'/0'/0"
 const accounts = {
   mnemonic: process.env.MNEMONIC ?? '',
