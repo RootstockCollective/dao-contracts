@@ -1,4 +1,4 @@
-import { rootlingSeries1Module } from '../ignition/modules/RootlingSeries1Module.js'
+import { RootlingSeries1Module } from '../ignition/modules/RootlingSeries1Module.js'
 import type {
   RootlingSeries1RootstockCollective,
   RIFToken,
@@ -15,7 +15,7 @@ const whitelistGuardRole = ethers.keccak256(ethers.toUtf8Bytes('WHITELIST_GUARD_
 const adminRole = ethers.ZeroHash
 
 async function deployRootlingNft(stRifAddress: string) {
-  const { RootlingSeries1 } = await ignition.deploy(rootlingSeries1Module, {
+  const { RootlingSeries1 } = await ignition.deploy(RootlingSeries1Module, {
     parameters: {
       RootlingSeries1: {
         stRif: stRifAddress,

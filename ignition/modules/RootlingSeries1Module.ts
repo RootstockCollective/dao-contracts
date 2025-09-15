@@ -1,6 +1,6 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-export const rootlingSeries1Module = buildModule('RootlingSeries1', m => {
+export const RootlingSeries1Module = buildModule('RootlingSeries1', m => {
   // deploy implementation
   const implementation = m.contract('RootlingSeries1RootstockCollective', [], { id: 'Implementation' })
 
@@ -28,4 +28,4 @@ export const rootlingSeries1Module = buildModule('RootlingSeries1', m => {
   return { RootlingSeries1 }
 })
 
-export default rootlingSeries1Module
+export default RootlingSeries1Module
