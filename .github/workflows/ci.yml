@@ -16,12 +16,12 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: yarn
+        run: npm install
 
       - name: Compile contracts
-        run: yarn compile
+        run: npm run compile
 
       - name: Test and Lint
         run: |
-          yarn test
-          yarn lint
+          npm run test
+          npm run lint
