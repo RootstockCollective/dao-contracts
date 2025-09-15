@@ -54,7 +54,7 @@
   "dependencies": {
     "@types/fs-extra": "^11.0.4",
     "fs-extra": "^11.3.1",
-    "rif-token-contracts": "https://github.com/Freshenext/RIF-Token"
+    "rif-token-contracts": "https://github.com/RootstockCollective/RIF-Token"
   },
   "lint-staged": {
     "*.{js,ts}": [
