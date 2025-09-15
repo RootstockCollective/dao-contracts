@@ -12,9 +12,11 @@ jobs:
       # TODO: Re-enable Slither when Hardhat 3 compatibility is fixed
       # Current issue: Slither v0.4.1 is not compatible with Hardhat 3.x
       # See: https://github.com/crytic/slither/issues/860
+      # Alternative: Solhint analysis is now running in solidity-lint.yml workflow
       - name: Run Slither (Temporarily Disabled)
         run: |
           echo "Slither analysis temporarily disabled due to Hardhat 3 incompatibility"
+          echo "Alternative Solidity analysis is provided by Solhint in solidity-lint.yml workflow"
           echo "Will be re-enabled when crytic/slither-action supports Hardhat 3.x"
       # - name: Run Slither
       #   uses: crytic/slither-action@4fd765aeef19915d04ddf0be90c2930036a774d8 #v0.4.1

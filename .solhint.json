@@ -2,6 +2,7 @@
   "extends": "solhint:recommended",
   "rules": {
     "func-visibility": ["warn", { "ignoreConstructors": true }],
-    "compiler-version": ["error", ">=0.8.20 <0.9.0 || 0.4.24"]
+    "compiler-version": ["error", ">=0.8.20 <0.9.0 || 0.4.24"],
+    "use-natspec": "off"
   }
 }

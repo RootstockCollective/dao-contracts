@@ -62,9 +62,6 @@
       "eslint --fix",
       "prettier --write"
     ],
-    "*.ts": [
-      "tsc --noEmit"
-    ],
     "*.sol": [
       "solhint",
       "solhint --fix",

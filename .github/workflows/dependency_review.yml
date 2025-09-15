@@ -19,3 +19,5 @@ jobs:
         with:
           fail-on-severity: high
           comment-summary-in-pr: true
+          # Ignore rif-token-contracts package vulnerabilities (known false positive)
+          allow-ghsas: 'GHSA-j7xp-w6x3-3q9v'
