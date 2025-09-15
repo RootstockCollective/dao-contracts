@@ -12,11 +12,11 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
- * @title Plushie Series 1 NFT Collection
+ * @title Rootling Series 1 NFT Collection
  * @notice Non-transferrable POAP-style NFTs for Asia Token 2049 conference participants
  * @dev Whitelisted users can mint once per address. Requires minimum stRIF balance.
  */
-contract PlushieSeries1RootstockCollective is
+contract RootlingSeries1RootstockCollective is
   Initializable,
   ERC721Upgradeable,
   ERC721EnumerableUpgradeable,
@@ -61,19 +61,19 @@ contract PlushieSeries1RootstockCollective is
 
   // EVENTS
 
-  event PlushieNftUnderlyingTokenChanged(IERC20 indexed oldToken, IERC20 indexed newToken);
-  event PlushieNftTokenThresholdChanged(uint256 oldThreshold, uint256 newThreshold);
-  event PlushieNftMaxSupplyChanged(uint256 oldMaxSupply, uint256 newMaxSupply);
-  event PlushieNftFolderIpfsCidChanged(string oldCid, string newCid);
+  event RootlingNftUnderlyingTokenChanged(IERC20 indexed oldToken, IERC20 indexed newToken);
+  event RootlingNftTokenThresholdChanged(uint256 indexed oldThreshold, uint256 indexed newThreshold);
+  event RootlingNftMaxSupplyChanged(uint256 indexed oldMaxSupply, uint256 indexed newMaxSupply);
+  event RootlingNftFolderIpfsCidChanged(string oldCid, string newCid);
 
   // ERRORS
 
-  error PlushieNftOutOfTokens(uint256 maxSupply);
-  error PlushieNftAdminRoleViolation();
-  error PlushieNftTransfersDisabled();
-  error PlushieNftBelowTokenThreshold(uint256 balance, uint256 threshold);
-  error PlushieNftInvalidMaxSupply(uint256 newMaxSupply, uint256 currentMaxSupply);
-  error PlushieNftInvalidAddress(address);
+  error RootlingNftOutOfTokens(uint256 maxSupply);
+  error RootlingNftAdminRoleViolation();
+  error RootlingNftTransfersDisabled();
+  error RootlingNftBelowTokenThreshold(uint256 balance, uint256 threshold);
+  error RootlingNftInvalidMaxSupply(uint256 newMaxSupply, uint256 currentMaxSupply);
+  error RootlingNftInvalidAddress(address);
 
   // INITIALIZERS
 
@@ -89,7 +89,8 @@ contract PlushieSeries1RootstockCollective is
     uint256 initialSupply,
     string calldata ipfsFolderCid
   ) public initializer {
-    __ERC721_init("PlushieSeries1RootstockCollective", "PS1");
+    // solhint-disable-next-line gas-small-strings
+    __ERC721_init("RootlingSeries1RootstockCollective", "RS1");
     __ERC721Enumerable_init();
     __AccessControl_init();
     __AccessControlEnumerable_init();
@@ -117,10 +118,10 @@ contract PlushieSeries1RootstockCollective is
     address caller = _msgSender();
     // checks
     if (balanceOf(caller) > 0) revert ERC721InvalidOwner(caller);
-    if (tokensAvailable() == 0) revert PlushieNftOutOfTokens(maxSupply);
+    if (tokensAvailable() == 0) revert RootlingNftOutOfTokens(maxSupply);
     uint256 balance = underlyingToken.balanceOf(caller);
     if (balance < underlyingTokenThreshold)
-      revert PlushieNftBelowTokenThreshold(balance, underlyingTokenThreshold);
+      revert RootlingNftBelowTokenThreshold(balance, underlyingTokenThreshold);
     // minting
     uint256 tokenId = ++_totalMinted;
     _safeMint(caller, tokenId);
@@ -136,7 +137,7 @@ contract PlushieSeries1RootstockCollective is
     for (uint256 i = 0; i < minters.length; ) {
       _grantRole(MINTER_ROLE, minters[i]);
       unchecked {
-        i++;
+        ++i;
       }
     }
   }
@@ -146,7 +147,7 @@ contract PlushieSeries1RootstockCollective is
     for (uint256 i = 0; i < minters.length; ) {
       _revokeRole(MINTER_ROLE, minters[i]);
       unchecked {
-        i++;
+        ++i;
       }
     }
   }
@@ -156,7 +157,7 @@ contract PlushieSeries1RootstockCollective is
     for (uint256 i = 0; i < guards.length; ) {
       _grantRole(WHITELIST_GUARD_ROLE, guards[i]);
       unchecked {
-        i++;
+        ++i;
       }
     }
   }
@@ -166,7 +167,7 @@ contract PlushieSeries1RootstockCollective is
     for (uint256 i = 0; i < guards.length; ) {
       _revokeRole(WHITELIST_GUARD_ROLE, guards[i]);
       unchecked {
-        i++;
+        ++i;
       }
     }
   }
@@ -177,7 +178,7 @@ contract PlushieSeries1RootstockCollective is
    * @param receiver The address to receive the DEFAULT_ADMIN_ROLE
    */
   function transferDefaultAdminRole(address receiver) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
-    if (receiver == address(0)) revert PlushieNftInvalidAddress(receiver);
+    if (receiver == address(0)) revert RootlingNftInvalidAddress(receiver);
     _grantRole(DEFAULT_ADMIN_ROLE, receiver);
     _revokeRole(DEFAULT_ADMIN_ROLE, _msgSender());
   }
@@ -188,37 +189,38 @@ contract PlushieSeries1RootstockCollective is
   function setFolderIpfsCid(string calldata cid) public virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     string memory oldCid = _metadataIpfsCid;
     _metadataIpfsCid = cid;
-    emit PlushieNftFolderIpfsCidChanged(oldCid, cid);
+    emit RootlingNftFolderIpfsCidChanged(oldCid, cid);
   }
 
   /// @notice Set maximum supply of tokens (can only increase)
   function setMaxSupply(uint256 newMaxSupply) public virtual onlyRole(DEFAULT_ADMIN_ROLE) {
-    if (newMaxSupply < maxSupply) revert PlushieNftInvalidMaxSupply(newMaxSupply, maxSupply);
+    if (newMaxSupply < maxSupply) revert RootlingNftInvalidMaxSupply(newMaxSupply, maxSupply);
     uint256 oldMaxSupply = maxSupply;
     maxSupply = newMaxSupply;
-    emit PlushieNftMaxSupplyChanged(oldMaxSupply, newMaxSupply);
+    emit RootlingNftMaxSupplyChanged(oldMaxSupply, newMaxSupply);
   }
 
   /// @notice Set minimum token balance required for minting
   function setTokenThreshold(uint256 threshold) public virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     uint256 oldThreshold = underlyingTokenThreshold;
     underlyingTokenThreshold = threshold;
-    emit PlushieNftTokenThresholdChanged(oldThreshold, threshold);
+    emit RootlingNftTokenThresholdChanged(oldThreshold, threshold);
   }
 
   /// @notice Set underlying token contract address
   function setUnderlyingToken(IERC20 newToken) public virtual onlyRole(DEFAULT_ADMIN_ROLE) {
-    if (newToken == IERC20(address(0))) revert PlushieNftInvalidAddress(address(newToken));
+    if (newToken == IERC20(address(0))) revert RootlingNftInvalidAddress(address(newToken));
     IERC20 oldToken = underlyingToken;
     underlyingToken = newToken;
-    emit PlushieNftUnderlyingTokenChanged(oldToken, newToken);
+    emit RootlingNftUnderlyingTokenChanged(oldToken, newToken);
   }
 
   // VIEW FUNCTIONS
 
   /// @notice Returns the number of tokens available for minting
   function tokensAvailable() public view virtual returns (uint256) {
-    if (_totalMinted >= maxSupply) return 0;
+    // Safe subtraction: maxSupply >= _totalMinted is guaranteed by contract invariants
+    // (mint() reverts when tokensAvailable() == 0, preventing overflow)
     return maxSupply - _totalMinted;
   }
 
@@ -235,7 +237,7 @@ contract PlushieSeries1RootstockCollective is
     address callerConfirmation
   ) public virtual override(AccessControlUpgradeable, IAccessControl) {
     if (role == DEFAULT_ADMIN_ROLE && getRoleMemberCount(DEFAULT_ADMIN_ROLE) == 1) {
-      revert PlushieNftAdminRoleViolation();
+      revert RootlingNftAdminRoleViolation();
     }
     super.renounceRole(role, callerConfirmation);
   }
@@ -245,8 +247,8 @@ contract PlushieSeries1RootstockCollective is
     bytes32 role,
     address account
   ) public virtual override(AccessControlUpgradeable, IAccessControl) {
-    if (role == DEFAULT_ADMIN_ROLE && getRoleMemberCount(DEFAULT_ADMIN_ROLE) >= 1) {
-      revert PlushieNftAdminRoleViolation();
+    if (role == DEFAULT_ADMIN_ROLE && getRoleMemberCount(DEFAULT_ADMIN_ROLE) == 1) {
+      revert RootlingNftAdminRoleViolation();
     }
     super.grantRole(role, account);
   }
@@ -259,21 +261,28 @@ contract PlushieSeries1RootstockCollective is
   ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (address) {
     address from = _ownerOf(tokenId);
     // restrict usual transfers (except burning and minting)
-    if (from != address(0) && to != address(0)) revert PlushieNftTransfersDisabled();
+    if (from != address(0) && to != address(0)) revert RootlingNftTransfersDisabled();
 
     return super._update(to, tokenId, auth);
   }
 
   /// @dev This function is overridden to prevent from granting roles to zero address.
   function _grantRole(bytes32 role, address receiver) internal virtual override returns (bool) {
-    if (receiver == address(0)) revert PlushieNftAdminRoleViolation();
+    if (receiver == address(0)) revert RootlingNftAdminRoleViolation();
     return super._grantRole(role, receiver);
   }
 
   /// @dev Restricts contract upgrades to accounts with DEFAULT_ADMIN_ROLE
   function _authorizeUpgrade(
     address newImplementation
-  ) internal virtual override onlyRole(DEFAULT_ADMIN_ROLE) {}
+  )
+    internal
+    virtual
+    override
+    onlyRole(DEFAULT_ADMIN_ROLE) // solhint-disable-next-line no-empty-blocks
+  {
+    // Intentionally empty - authorization handled by access control
+  }
 
   // The following functions are overrides required by Solidity.
 
