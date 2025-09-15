@@ -21,7 +21,8 @@ jobs:
       - name: Compile contracts
         run: npm run compile
 
-      - name: Test and Lint
+      - name: Test, Lint and Type Check
         run: |
           npm run test
           npm run lint
+          npm run type-check

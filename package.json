@@ -10,6 +10,7 @@
     "clean": "hardhat clean",
     "lint": "eslint '**/*.{js,ts}'",
     "lint:fix": "eslint '**/*.{js,ts}' --fix",
+    "type-check": "tsc --noEmit",
     "lint:sol": "solhint 'contracts/**/*.sol'",
     "lint:sol:fix": "solhint 'contracts/**/*.sol' --fix",
     "format": "prettier --write '**/*.{js,ts,sol}' --ignore-path .gitignore",
@@ -60,6 +61,9 @@
     "*.{js,ts}": [
       "eslint --fix",
       "prettier --write"
+    ],
+    "*.ts": [
+      "tsc --noEmit"
     ],
     "*.sol": [
       "solhint",
