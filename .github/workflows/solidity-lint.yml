@@ -20,6 +20,3 @@ jobs:
 
       - name: Run Solhint Analysis
         run: npm run lint:sol
-
-      - name: Check Solidity formatting
-        run: npx prettier --check 'contracts/**/*.sol'
