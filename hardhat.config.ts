@@ -85,6 +85,14 @@ const config: HardhatUserConfig = {
           }),
     },
   },
+  verify: {
+    etherscan: {
+      enabled: false,
+    },
+    blockscout: {
+      enabled: true,
+    },
+  },
   chainDescriptors: {
     31: {
       name: 'rootstockTestnet',
