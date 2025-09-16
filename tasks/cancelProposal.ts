@@ -1,10 +1,10 @@
 import { task } from 'hardhat/config'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { resolve } from 'path'
-import { readJSON } from 'fs-extra'
-import { ProposalState } from '../types'
-import { isAddress } from 'ethers'
-import { Governor } from '../typechain-types'
+import fs from 'fs-extra'
+import { ProposalState } from '../types/index.js'
+import { isAddress, type Signer } from 'ethers'
+import { GovernorRootstockCollective } from '../types/ethers-contracts/index.js'
+import { ArgumentType } from 'hardhat/types/arguments'
 
 const paramsFilename = 'cancel-proposal.json'
 
@@ -51,7 +51,10 @@ function parseProposalId(proposalIdRaw?: string): bigint {
  * Validates that the proposal is in a state that allows cancellation.
  * Throws an error if the proposal is not in a valid state.
  */
-async function validateProposalState(governor: Governor, proposalId: bigint): Promise<void> {
+async function validateProposalState(
+  governor: GovernorRootstockCollective,
+  proposalId: bigint,
+): Promise<void> {
   const allowedStates: ProposalState[] = [
     ProposalState.Pending,
     ProposalState.Active,
@@ -70,11 +73,14 @@ async function validateProposalState(governor: Governor, proposalId: bigint): Pr
  * Validates that the caller has the necessary rights (is the Guardian) to cancel the proposal.
  * Throws an error if the caller is not the Guardian.
  */
-async function validateGuardianRights(hre: HardhatRuntimeEnvironment, governor: Governor): Promise<void> {
-  const [signer] = await hre.ethers.getSigners()
+async function validateGuardianRights(
+  ethers: { getSigners: () => Promise<Signer[]> },
+  governor: GovernorRootstockCollective,
+): Promise<void> {
+  const [signer] = await ethers.getSigners()
   const guardian = await governor.guardian()
 
-  if (signer.address !== guardian) {
+  if ((await signer.getAddress()) !== guardian) {
     throw new Error('You are not the Guardian and not allowed to cancel proposals')
   }
 }
@@ -85,18 +91,24 @@ async function validateGuardianRights(hre: HardhatRuntimeEnvironment, governor: 
  * Returns the validated Governor contract and proposal ID.
  */
 async function validateParams(
-  hre: HardhatRuntimeEnvironment,
+  ethers: {
+    getSigners: () => Promise<Signer[]>
+    getContractAt: (name: string, address: string) => Promise<unknown>
+  },
   governorAddress?: string,
   proposalIdRaw?: string,
-): Promise<{ governor: Governor; proposalId: bigint }> {
+): Promise<{ governor: GovernorRootstockCollective; proposalId: bigint }> {
   const validatedGovernorAddress = await validateGovernorAddress(governorAddress)
 
   const proposalId = parseProposalId(proposalIdRaw)
-  const governor = await hre.ethers.getContractAt('Governor', validatedGovernorAddress)
+  const governor = (await ethers.getContractAt(
+    'GovernorRootstockCollective',
+    validatedGovernorAddress,
+  )) as GovernorRootstockCollective
 
   await validateProposalState(governor, proposalId)
 
-  await validateGuardianRights(hre, governor)
+  await validateGuardianRights(ethers, governor)
 
   return { governor, proposalId }
 }
@@ -105,7 +117,7 @@ async function validateParams(
  * Cancels the proposal with the given ID on the specified Governor contract.
  * Waits for the transaction to be confirmed and logs the new state of the proposal.
  */
-async function cancelProposal(governor: Governor, proposalId: bigint) {
+async function cancelProposal(governor: GovernorRootstockCollective, proposalId: bigint) {
   const tx = await governor['cancel(uint256)'](proposalId)
   await tx.wait()
 
@@ -122,29 +134,42 @@ async function cancelProposal(governor: Governor, proposalId: bigint) {
  * Validates inputs, reads parameters from a file if necessary, and performs the cancellation.
  */
 task('cancel-proposal', 'Guardian can cancel a proposal by ID')
-  .addOptionalParam('governor', 'Deployed Governor address')
-  .addOptionalParam('id', 'Proposal ID to cancel')
-  .setAction(async ({ governor, id }: { governor: string; id: string }, hre) => {
-    try {
-      const jsonFile = resolve('.', 'tasks', paramsFilename)
-      let jsonParams: JsonParams = {}
-
-      try {
-        jsonParams = await readJSON(jsonFile)
-      } catch (error) {
-        console.error(error instanceof Error ? error.message : error)
-      }
-
-      const governorAddress = governor || jsonParams.governorAddress
-      const proposalIdRaw = id || jsonParams.proposalId
-
-      const { governor: governorContract, proposalId } = await validateParams(
-        hre,
-        governorAddress,
-        proposalIdRaw,
-      )
-      await cancelProposal(governorContract, proposalId)
-    } catch (error) {
-      console.error(`Error running the task: `, error instanceof Error ? error.message : error)
-    }
+  .addOption({
+    name: 'governor',
+    description: 'Deployed Governor address',
+    defaultValue: '',
+    type: ArgumentType.STRING,
   })
+  .addOption({
+    name: 'id',
+    description: 'Proposal ID to cancel',
+    defaultValue: '',
+    type: ArgumentType.STRING,
+  })
+  .setAction(async () => ({
+    default: async ({ governor, id }, hre) => {
+      try {
+        const jsonFile = resolve('.', 'tasks', paramsFilename)
+        let jsonParams: JsonParams = {}
+
+        try {
+          jsonParams = await fs.readJson(jsonFile)
+        } catch (error) {
+          console.error(error instanceof Error ? error.message : error)
+        }
+
+        const governorAddress = governor || jsonParams.governorAddress
+        const proposalIdRaw = id || jsonParams.proposalId
+
+        const { ethers } = await hre.network.connect()
+        const { governor: governorContract, proposalId } = await validateParams(
+          ethers,
+          governorAddress,
+          proposalIdRaw,
+        )
+        await cancelProposal(governorContract, proposalId)
+      } catch (error) {
+        console.error(`Error running the task: `, error instanceof Error ? error.message : error)
+      }
+    },
+  }))

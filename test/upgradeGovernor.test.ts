@@ -1,16 +1,17 @@
-import { expect } from 'chai'
-import { ethers, ignition } from 'hardhat'
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
-import { GovernorRootstockCollective, GovernorV2RootstockCollective } from '../typechain-types'
-import { deployContracts } from './deployContracts'
-import governorV2Module from '../ignition/modules/GovernorUpgradeModule'
+import type {
+  GovernorRootstockCollective,
+  GovernorV2RootstockCollective,
+} from '../types/ethers-contracts/index.js'
+import { ethers, expect, ignition } from './config.js'
+import { deployContracts } from './deployContracts.js'
+import governorV2Module from '../ignition/modules/GovernorUpgradeModule.js'
 
 describe('Upgrade Governor', () => {
   let governor: GovernorRootstockCollective
   let governorV2: GovernorV2RootstockCollective
 
   before(async () => {
-    ;({ governor } = await loadFixture(deployContracts))
+    ;({ governor } = await deployContracts())
   })
 
   it('Governor V1 should be deployed', async () => {

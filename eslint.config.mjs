@@ -1,11 +1,16 @@
+import { defineConfig } from 'eslint/config'
 import globals from 'globals'
 import pluginJs from '@eslint/js'
+import { includeIgnoreFile } from '@eslint/compat'
 import tseslint from 'typescript-eslint'
 import eslintPluginPrettier from 'eslint-plugin-prettier/recommended'
 import json from '@eslint/json'
 import markdown from '@eslint/markdown'
+import { fileURLToPath } from 'node:url'
 
-export default [
+const gitignorePath = fileURLToPath(new URL('.gitignore', import.meta.url))
+
+export default defineConfig([
   // 1) Base config for JS & TS
   {
     files: ['**/*.{js,mjs,cjs,ts}'],
@@ -36,7 +41,10 @@ export default [
     },
   },
 
-  // 5) **Override just for test files**
+  // 5) Ignore gitignore files and folders
+  includeIgnoreFile(gitignorePath, 'Imported .gitignore patterns'),
+
+  // 6) **Override just for test files**
   {
     files: ['test/**/*.ts', 'test/**/*.js'],
     rules: {
@@ -44,4 +52,4 @@ export default [
       '@typescript-eslint/no-unused-expressions': 'off',
     },
   },
-]
+])

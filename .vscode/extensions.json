@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "NomicFoundation.hardhat-solidity",
+    "ms-vscode.vscode-typescript-next"
+  ]
+}

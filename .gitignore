@@ -1,6 +1,13 @@
-node_modules
+# Node modules
+/node_modules
+
+# Compilation output
+/dist
+
+# Misc
 .env
 .DS_Store
+/nft
 
 # Hardhat files
 /cache
@@ -9,8 +16,9 @@ node_modules
 # TypeChain files
 /typechain
 /typechain-types
+/types/ethers-contracts
 
-# solidity-coverage files
+# Hardhat coverage reports
 /coverage
 /coverage.json
 

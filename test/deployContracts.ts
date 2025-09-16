@@ -1,30 +1,30 @@
-import { ethers, ignition } from 'hardhat'
-import {
+import { ethers, ignition } from './config.js'
+import type {
   RIFToken,
   StRIFToken,
   DaoTimelockUpgradableRootstockCollective,
   GovernorRootstockCollective,
   TreasuryRootstockCollective,
   EarlyAdoptersRootstockCollective,
-} from '../typechain-types'
-import RifModule from '../ignition/modules/RifModule'
-import GovernorModule from '../ignition/modules/GovernorModule'
-import EarlyAdoptersModule from '../ignition/modules/EarlyAdoptersModule'
+} from '../types/ethers-contracts/index.js'
+import RifModule from '../ignition/modules/RifModule.js'
+import GovernorModule from '../ignition/modules/GovernorModule.js'
+import EarlyAdoptersModule from '../ignition/modules/EarlyAdoptersModule.js'
 
 export const deployContracts = async () => {
   const [sender] = await ethers.getSigners()
   // deploy RIF before the rest DAO contracts
-  const { rif } = await ignition.deploy(RifModule, { defaultSender: sender?.address })
+  const { rif } = await ignition.deploy(RifModule, { defaultSender: await sender?.getAddress() })
   // insert RIF address as a parameter to stRIF deployment module
   const dao = await ignition.deploy(GovernorModule, {
     parameters: {
       stRifProxy: {
         rifAddress: await rif.getAddress(),
-        owner: sender.address,
+        owner: await sender.getAddress(),
       },
       GovernorProxy: {
-        owner: sender.address,
-        guardian: sender.address,
+        owner: await sender.getAddress(),
+        guardian: await sender.getAddress(),
         votingDelay: 1,
         votingPeriod: 240,
         proposalThreshold: 10n * 10n ** 18n,
@@ -32,11 +32,11 @@ export const deployContracts = async () => {
       },
       TimelockProxy: {
         minDelay: 900,
-        admin: sender.address,
+        admin: await sender.getAddress(),
       },
       Treasury: {
-        owner: sender.address,
-        guardian: sender.address,
+        owner: await sender.getAddress(),
+        guardian: await sender.getAddress(),
         whitelist: [await rif.getAddress()],
       },
     },
@@ -50,7 +50,7 @@ export const deployContracts = async () => {
   }
 }
 
-export async function deployNFT(
+export async function deployEarlyAdopters(
   ipfsCid: string,
   initialNftSupply: number,
   stRifAddress: string,
@@ -62,8 +62,8 @@ export async function deployNFT(
       EarlyAdoptersProxy: {
         ipfs: ipfsCid,
         numFiles: initialNftSupply,
-        defaultAdmin: defaultAdmin.address,
-        upgrader: upgrader.address,
+        defaultAdmin: await defaultAdmin.getAddress(),
+        upgrader: await upgrader.getAddress(),
         stRif: stRifAddress,
         stRifThreshold,
       },

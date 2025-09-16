@@ -1,6 +1,6 @@
 import { task } from 'hardhat/config'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { IERC20, TreasuryDao } from '../typechain-types'
+import { type HardhatRuntimeEnvironment } from 'hardhat/types/hre'
+import { type Contract } from 'ethers'
 import { isAddress } from 'ethers'
 
 const defaultTreasury = '0xaCeaa438AfA008f43c50dB760b112ddc8fE3751B'
@@ -29,8 +29,9 @@ async function validateAddress(address?: string): Promise<string> {
  * Validates that the caller has the necessary rights (is a Guardian) to withdraw all the funds.
  * Throws an error if the caller is not the Guardian.
  */
-async function validateGuardianRights(hre: HardhatRuntimeEnvironment, treasury: TreasuryDao): Promise<void> {
-  const [signer] = await hre.ethers.getSigners()
+async function validateGuardianRights(hre: HardhatRuntimeEnvironment, treasury: Contract): Promise<void> {
+  const { ethers } = await hre.network.connect()
+  const [signer] = await ethers.getSigners()
   const GuardianRole = await treasury.GUARDIAN_ROLE()
   const hasGuardianRole = await treasury.hasRole(GuardianRole, signer)
 
@@ -48,16 +49,17 @@ async function validateParams(
   treasuryAddress?: string,
   recipientAddress?: string,
   tokenAddress?: string,
-): Promise<{ treasury: TreasuryDao; recipient: string; token?: IERC20 }> {
+): Promise<{ treasury: Contract; recipient: string; token?: Contract }> {
+  const { ethers } = await hre.network.connect()
   const validatedTreasuryAddress = await validateAddress(treasuryAddress)
   const validatedRecipientAddress = await validateAddress(recipientAddress)
-  const treasury = await hre.ethers.getContractAt('TreasuryDao', validatedTreasuryAddress)
+  const treasury = await ethers.getContractAt('TreasuryDao', validatedTreasuryAddress)
 
   await validateGuardianRights(hre, treasury)
 
   if (tokenAddress) {
     const validatedTokenAddress = await validateAddress(tokenAddress)
-    const token = await hre.ethers.getContractAt('IERC20', validatedTokenAddress)
+    const token = await ethers.getContractAt('IERC20', validatedTokenAddress)
     return { treasury, recipient: validatedRecipientAddress, token }
   }
   return { treasury, recipient: validatedRecipientAddress }
@@ -67,11 +69,12 @@ async function validateParams(
  * Withdraw all RBTC to the recipient.
  * Waits for the transaction to be confirmed and logs the new Treasury balance.
  */
-async function withdraw(hre: HardhatRuntimeEnvironment, treasury: TreasuryDao, recipient: string) {
-  const balance = await hre.ethers.provider.getBalance(treasury)
+async function withdraw(hre: HardhatRuntimeEnvironment, treasury: Contract, recipient: string) {
+  const { ethers } = await hre.network.connect()
+  const balance = await ethers.provider.getBalance(treasury)
   const sentTx = await treasury.emergencyWithdraw(recipient)
   await sentTx.wait()
-  const newBalance = await hre.ethers.provider.getBalance(treasury)
+  const newBalance = await ethers.provider.getBalance(treasury)
   console.info(
     `You have successfully withdrawn ${balance} RBTC from Treasury. Now the balance is ${newBalance}`,
   )
@@ -81,7 +84,7 @@ async function withdraw(hre: HardhatRuntimeEnvironment, treasury: TreasuryDao, r
  * Withdraw all ERC20 tokens to the recipient.
  * Waits for the transaction to be confirmed and logs the new Treasury balance.
  */
-async function withdrawERC20(treasury: TreasuryDao, recipient: string, token: IERC20) {
+async function withdrawERC20(treasury: Contract, recipient: string, token: Contract) {
   const balance = await token.balanceOf(treasury)
   const sentTx = await treasury.emergencyWithdrawERC20(token, recipient)
   await sentTx.wait()
@@ -93,30 +96,44 @@ async function withdrawERC20(treasury: TreasuryDao, recipient: string, token: IE
 }
 
 task('withdraw', 'Withdraw all RBTC from Treasury')
-  .addOptionalParam('recipient', 'The entity or account that will receive all RBTC')
-  .addOptionalParam('treasury', 'The treasury smart contract')
-  .setAction(async ({ recipient, treasury }: { recipient: string; treasury: string }, hre) => {
-    try {
-      const treasuryAddress = treasury || defaultTreasury
-      const recipientAddress = recipient || defaultRecipient
-
-      const { treasury: treasuryContract, recipient: recipientAccount } = await validateParams(
-        hre,
-        treasuryAddress,
-        recipientAddress,
-      )
-      await withdraw(hre, treasuryContract, recipientAccount)
-    } catch (error) {
-      console.error(`Error running the task: `, error instanceof Error ? error.message : error)
-    }
+  .addOption({
+    name: 'recipient',
+    description: 'The entity or account that will receive all RBTC',
+    defaultValue: '',
   })
+  .addOption({ name: 'treasury', description: 'The treasury smart contract', defaultValue: '' })
+  .setAction(async () => ({
+    default: async ({ recipient, treasury }, hre) => {
+      try {
+        const treasuryAddress = treasury || defaultTreasury
+        const recipientAddress = recipient || defaultRecipient
+
+        const { treasury: treasuryContract, recipient: recipientAccount } = await validateParams(
+          hre,
+          treasuryAddress,
+          recipientAddress,
+        )
+        await withdraw(hre, treasuryContract, recipientAccount)
+      } catch (error) {
+        console.error(`Error running the task: `, error instanceof Error ? error.message : error)
+      }
+    },
+  }))
 
 task('withdraw-erc20', 'Withdraw all ERC20 tokens from Treasury')
-  .addOptionalParam('recipient', 'The entity or account that will receive all ERC20 tokens')
-  .addOptionalParam('treasury', 'The treasury smart contract')
-  .addOptionalParam('token', 'The ERC20 token address')
-  .setAction(
-    async ({ recipient, treasury, token }: { recipient: string; treasury: string; token: string }, hre) => {
+  .addOption({
+    name: 'recipient',
+    description: 'The entity or account that will receive all ERC20 tokens',
+    defaultValue: '',
+  })
+  .addOption({
+    name: 'treasury',
+    description: 'The treasury smart contract',
+    defaultValue: '',
+  })
+  .addOption({ name: 'token', description: 'The ERC20 token address', defaultValue: '' })
+  .setAction(async () => ({
+    default: async ({ recipient, token, treasury }, hre) => {
       try {
         const treasuryAddress = treasury || defaultTreasury
         const recipientAddress = recipient || defaultRecipient
@@ -132,4 +149,4 @@ task('withdraw-erc20', 'Withdraw all ERC20 tokens from Treasury')
         console.error(`Error running the task: `, error instanceof Error ? error.message : error)
       }
     },
-  )
+  }))

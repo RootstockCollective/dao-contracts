@@ -1,27 +1,30 @@
-import type { HardhatUserConfig, HttpNetworkHDAccountsConfig } from 'hardhat/types'
-import '@nomicfoundation/hardhat-toolbox'
-import dotent from 'dotenv'
-import './tasks/updateIpfsFolder'
-import './tasks/cancelProposal'
-import './tasks/withdrawTreasury'
+import type { HardhatUserConfig } from 'hardhat/config'
+import hardhatToolboxMochaEthersPlugin from '@nomicfoundation/hardhat-toolbox-mocha-ethers'
+import hardhatVerify from '@nomicfoundation/hardhat-verify'
+import { configVariable } from 'hardhat/config'
+import { type HttpNetworkAccountsUserConfig } from 'hardhat/types/config'
+import dotenv from 'dotenv'
 import './tasks/airdrop'
+import './tasks/cancelProposal'
 import './tasks/stRifUpgradeV1-v2'
+import './tasks/updateIpfsFolder'
+import './tasks/withdrawTreasury'
 
-dotent.config()
-
+dotenv.config()
 const derivationPath = "m/44'/60'/0'/0"
 const accounts = {
   mnemonic: process.env.MNEMONIC ?? '',
   path: derivationPath,
-} as const satisfies Partial<HttpNetworkHDAccountsConfig>
+} satisfies HttpNetworkAccountsUserConfig
 
 const config: HardhatUserConfig = {
+  plugins: [hardhatToolboxMochaEthersPlugin, hardhatVerify],
   solidity: {
     compilers: [
       {
         version: '0.8.30',
         settings: {
-          optimizer: { enabled: true, runs: 1 },
+          optimizer: { enabled: true, runs: 200 },
         },
       },
       {
@@ -33,25 +36,42 @@ const config: HardhatUserConfig = {
       { version: '0.4.24' },
     ],
   },
-  gasReporter: {
-    enabled: false,
-    reportPureAndViewMethods: true,
-    showUncalledMethods: false,
-  },
   networks: {
     hardhat: {
-      allowUnlimitedContractSize: true,
+      type: 'edr-simulated',
       accounts: {
         count: 50,
       },
     },
+    hardhatMainnet: {
+      type: 'edr-simulated',
+      chainType: 'l1',
+      accounts: {
+        count: 50,
+      },
+    },
+    hardhatOp: {
+      type: 'edr-simulated',
+      chainType: 'op',
+      accounts: {
+        count: 50,
+      },
+    },
+    sepolia: {
+      type: 'http',
+      chainType: 'l1',
+      url: configVariable('SEPOLIA_RPC_URL'),
+      accounts: [configVariable('SEPOLIA_PRIVATE_KEY')],
+    },
     rootstockTestnet: {
       chainId: 31,
+      type: 'http',
       url: 'https://public-node.testnet.rsk.co/',
       accounts,
     },
     rootstockMainnet: {
       chainId: 30,
+      type: 'http',
       url: 'https://public-node.rsk.co/',
       ...(typeof process.env.MAINNET_DEPLOYER_MNEMONIC !== 'undefined'
         ? {
@@ -65,33 +85,35 @@ const config: HardhatUserConfig = {
           }),
     },
   },
-  etherscan: {
-    apiKey: {
-      // Is not required by blockscout. Can be any non-empty string
-      rootstockTestnet: 'RSK_TESTNET_RPC_URL',
-      rootstockMainnet: 'RSK_MAINNET_RPC_URL',
+  verify: {
+    etherscan: {
+      enabled: false,
     },
-    customChains: [
-      {
-        network: 'rootstockTestnet',
-        chainId: 31,
-        urls: {
-          apiURL: 'https://rootstock-testnet.blockscout.com/api/',
-          browserURL: 'https://rootstock-testnet.blockscout.com/',
-        },
-      },
-      {
-        network: 'rootstockMainnet',
-        chainId: 30,
-        urls: {
-          apiURL: 'https://rootstock.blockscout.com/api/',
-          browserURL: 'https://rootstock.blockscout.com/',
-        },
-      },
-    ],
+    blockscout: {
+      enabled: true,
+    },
   },
-  mocha: {
-    timeout: 100000000,
+  chainDescriptors: {
+    31: {
+      name: 'rootstockTestnet',
+      blockExplorers: {
+        blockscout: {
+          name: 'Rootstock Testnet Blockscout',
+          url: 'https://rootstock-testnet.blockscout.com',
+          apiUrl: 'https://rootstock-testnet.blockscout.com/api',
+        },
+      },
+    },
+    30: {
+      name: 'rootstockMainnet',
+      blockExplorers: {
+        blockscout: {
+          name: 'Rootstock Blockscout',
+          url: 'https://rootstock.blockscout.com',
+          apiUrl: 'https://rootstock.blockscout.com/api',
+        },
+      },
+    },
   },
 }
 

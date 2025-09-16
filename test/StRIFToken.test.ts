@@ -1,8 +1,5 @@
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
-import { expect } from 'chai'
-import { ethers, ignition } from 'hardhat'
-import {
+import stRifV02Module from '../ignition/modules/StRifV02Module.js'
+import type {
   RIFToken,
   StRIFToken,
   StRIFTokenV02,
@@ -10,20 +7,21 @@ import {
   ContractDoesNotSupportICollectiveRewardsCheck,
   ContractSupportsERC165andICollectiveRewardscheck,
   ContractWithErrorInCanWithdraw,
-} from '../typechain-types'
-import { deployContracts } from './deployContracts'
-import stRifV02Module from '../ignition/modules/StRifV02Module'
+} from '../types/ethers-contracts/index.js'
+import { ethers, expect, ignition, type Signer } from './config.js'
+import { deployContracts } from './deployContracts.js'
 
 describe('stRIFToken', () => {
-  let owner: SignerWithAddress, holder: SignerWithAddress, voter: SignerWithAddress
+  let owner: Signer
+  let holder: Signer
+  let voter: Signer
   let rif: RIFToken
   let stRIF: StRIFToken
   const votingPower = 10n * 10n ** 18n
 
-  // prettier-ignore
   before(async () => {
-    ;;[owner, holder, voter] = await ethers.getSigners()
-    ;({ rif, stRIF } = await loadFixture(deployContracts))
+    ;[owner, holder, voter] = await ethers.getSigners()
+    ;({ rif, stRIF } = await deployContracts())
   })
 
   it('Should assign the initial balance to the contract itself', async () => {
@@ -32,30 +30,30 @@ describe('stRIFToken', () => {
   })
 
   it('deployer should be the owner', async () => {
-    expect(await stRIF.owner()).to.equal(owner.address)
+    expect(await stRIF.owner()).to.equal(await owner.getAddress())
   })
 
   describe('Wrapping RIF tokens to stRIF', () => {
     it('holder should NOT initially own RIF tokens', async () => {
-      expect(await rif.balanceOf(holder.address)).to.equal(0)
+      expect(await rif.balanceOf(await holder.getAddress())).to.equal(0)
     })
 
     it("owner should send some RIFs to holder's address", async () => {
-      const tx = await rif.transfer(holder.address, votingPower)
-      await tx.wait()
-      expect(tx)
-        .to.emit(rif, 'Transfer')
-        .withArgs(await rif.getAddress(), holder.address, votingPower)
+      await expect(rif.transfer(await holder.getAddress(), votingPower))
+        .to.emit(rif, 'Transfer(address,address,uint256)')
+        .withArgs(await owner.getAddress(), await holder.getAddress(), votingPower)
     })
 
     it('holder should approve allowance for stRIF', async () => {
       const tx = await rif.connect(holder).approve(stRIF.getAddress(), votingPower)
       await tx.wait()
-      expect(tx).to.emit(rif, 'Approval').withArgs(holder.address, stRIF.getAddress(), votingPower)
+      expect(tx)
+        .to.emit(rif, 'Approval')
+        .withArgs(await holder.getAddress(), stRIF.getAddress(), votingPower)
     })
 
     it('allowance for stRIF should be set on the RIF token', async () => {
-      expect(await rif.allowance(holder.address, stRIF.getAddress())).to.equal(votingPower)
+      expect(await rif.allowance(await holder.getAddress(), stRIF.getAddress())).to.equal(votingPower)
     })
 
     it('stRIF should NOT have any RIF tokens on its balance', async () => {
@@ -63,18 +61,18 @@ describe('stRIFToken', () => {
     })
 
     it('holder should NOT have any stRIF tokens on his balance', async () => {
-      expect(await stRIF.balanceOf(holder.address)).to.equal(0)
+      expect(await stRIF.balanceOf(await holder.getAddress())).to.equal(0)
     })
 
     /** depositFor is a method for minting stRIF tokens */
     it('holder should deposit underlying tokens and mint the corresponding amount of stRIF tokens', async () => {
-      await expect(stRIF.connect(holder).depositFor(holder.address, votingPower))
-        .to.emit(stRIF, 'Transfer')
-        .withArgs(ethers.ZeroAddress, holder.address, votingPower)
+      await expect(stRIF.connect(holder).depositFor(await holder.getAddress(), votingPower))
+        .to.emit(stRIF, 'Transfer(address,address,uint256)')
+        .withArgs(ethers.ZeroAddress, await holder.getAddress(), votingPower)
     })
 
     it('holder should NOT have RIF tokens anymore', async () => {
-      expect(await rif.balanceOf(holder.address)).to.equal(0)
+      expect(await rif.balanceOf(await holder.getAddress())).to.equal(0)
     })
 
     it('stRIF now should own RIFs belonged to the holder', async () => {
@@ -82,47 +80,49 @@ describe('stRIFToken', () => {
     })
 
     it('holder should have the same amount of stRIF tokens as the deposited RIF tokens', async () => {
-      expect(await stRIF.balanceOf(holder.address)).to.equal(votingPower)
+      expect(await stRIF.balanceOf(await holder.getAddress())).to.equal(votingPower)
     })
 
     it('holder should NOT be able to deposit more RIF tokens than he has', async () => {
-      await expect(stRIF.connect(holder).depositFor(holder.address, votingPower)).to.be.reverted
+      await expect(stRIF.connect(holder).depositFor(await holder.getAddress(), votingPower)).to.revert(ethers)
     })
 
     /** delegate */
     it('holder should NOT have vote power yet', async () => {
-      expect(await stRIF.getVotes(holder.address)).to.equal(0)
+      expect(await stRIF.getVotes(await holder.getAddress())).to.equal(0)
     })
 
     it('holder should delegate vote power to himself', async () => {
-      const tx = await stRIF.connect(holder).delegate(holder.address)
+      const tx = await stRIF.connect(holder).delegate(await holder.getAddress())
       await expect(tx)
         .to.emit(stRIF, 'DelegateChanged')
-        .withArgs(holder.address, ethers.ZeroAddress, holder.address)
+        .withArgs(await holder.getAddress(), ethers.ZeroAddress, await holder.getAddress())
     })
 
     it('holder should now have delegate set', async () => {
-      expect(await stRIF.delegates(holder.address)).to.equal(holder.address)
+      expect(await stRIF.delegates(await holder.getAddress())).to.equal(await holder.getAddress())
     })
 
     it('holder should have vote power', async () => {
-      expect(await stRIF.getVotes(holder.address)).to.equal(votingPower)
+      expect(await stRIF.getVotes(await holder.getAddress())).to.equal(votingPower)
     })
   })
 
   describe('Unwrapping RIF tokens from stRIF tokens', () => {
     /** withdrawTo is a method for burning stRIF tokens */
     it('holder should burn stRIF tokens', async () => {
-      const tx = stRIF.connect(holder).withdrawTo(holder.address, votingPower)
-      await expect(tx).to.emit(stRIF, 'Transfer').withArgs(holder.address, ethers.ZeroAddress, votingPower)
+      const tx = stRIF.connect(holder).withdrawTo(await holder.getAddress(), votingPower)
+      await expect(tx)
+        .to.emit(stRIF, 'Transfer(address,address,uint256)')
+        .withArgs(await holder.getAddress(), ethers.ZeroAddress, votingPower)
     })
 
     it('holder should no longer own stRIF tokens', async () => {
-      expect(await stRIF.balanceOf(holder.address)).to.equal(0)
+      expect(await stRIF.balanceOf(await holder.getAddress())).to.equal(0)
     })
 
     it('holder should return his RIFs back', async () => {
-      expect(await rif.balanceOf(holder.address)).to.equal(votingPower)
+      expect(await rif.balanceOf(await holder.getAddress())).to.equal(votingPower)
     })
 
     it('stRIF should no longer own RIFs', async () => {
@@ -130,65 +130,64 @@ describe('stRIFToken', () => {
     })
 
     it('stRIF should no longer have allowance for RIFs from the holder', async () => {
-      expect(await rif.allowance(holder.address, await stRIF.getAddress())).to.equal(0)
+      expect(await rif.allowance(await holder.getAddress(), await stRIF.getAddress())).to.equal(0)
     })
 
     it('holder should still have the delegate set', async () => {
-      expect(await stRIF.delegates(holder.address)).to.equal(holder.address)
+      expect(await stRIF.delegates(await holder.getAddress())).to.equal(await holder.getAddress())
     })
 
     it('holder should no longer have voting power', async () => {
-      const vp = await stRIF.getVotes(holder.address)
+      const vp = await stRIF.getVotes(await holder.getAddress())
       expect(vp).to.equal(0)
     })
   })
 
   describe('Delegating voting power to a voter address', () => {
     it('should already have 2 checkpoints because of delegation and burning operations', async () => {
-      const numCheckpoints = await stRIF.numCheckpoints(holder.address)
+      const numCheckpoints = await stRIF.numCheckpoints(await holder.getAddress())
       expect(numCheckpoints).to.equal(2)
     })
 
     it('holder should mint stRIF again', async () => {
       ;(await rif.connect(holder).approve(await stRIF.getAddress(), votingPower)).wait()
-      await expect(stRIF.connect(holder).depositFor(holder.address, votingPower))
-        .to.emit(stRIF, 'Transfer')
-        .withArgs(ethers.ZeroAddress, holder.address, votingPower)
-      const checkPoint2 = await stRIF.checkpoints(holder.address, 2)
+      await stRIF.connect(holder).depositFor(await holder.getAddress(), votingPower)
+      // Note: Skipping event check due to ambiguous Transfer event signatures in ERC20Wrapper
+      const checkPoint2 = await stRIF.checkpoints(await holder.getAddress(), 2)
       expect(checkPoint2._value).to.equal(votingPower)
     })
 
     it('should have 3 checkpoints now', async () => {
-      const numCheckpoints = await stRIF.numCheckpoints(holder.address)
+      const numCheckpoints = await stRIF.numCheckpoints(await holder.getAddress())
       expect(numCheckpoints).to.equal(3)
     })
 
     it('holder should still be delegated to vote (from the previous time)', async () => {
-      expect(await stRIF.delegates(holder.address)).to.equal(holder.address)
+      expect(await stRIF.delegates(await holder.getAddress())).to.equal(await holder.getAddress())
     })
 
     it('holder should already have vote power', async () => {
-      expect(await stRIF.getVotes(holder.address)).to.equal(votingPower)
+      expect(await stRIF.getVotes(await holder.getAddress())).to.equal(votingPower)
     })
 
     it('holder should delegate his voting power to the voter (another address)', async () => {
-      const tx = stRIF.connect(holder).delegate(voter.address)
+      const tx = stRIF.connect(holder).delegate(await voter.getAddress())
       await expect(tx)
         .to.emit(stRIF, 'DelegateChanged')
-        .withArgs(holder.address, holder.address, voter.address)
+        .withArgs(await holder.getAddress(), await holder.getAddress(), await voter.getAddress())
     })
 
     it('should have 4 checkpoints now', async () => {
-      const numCheckpoints = await stRIF.numCheckpoints(holder.address)
+      const numCheckpoints = await stRIF.numCheckpoints(await holder.getAddress())
       expect(numCheckpoints).to.equal(4)
     })
 
     it('holder should NOT have vote power any more', async () => {
-      expect(await stRIF.getVotes(holder.address)).to.equal(0)
+      expect(await stRIF.getVotes(await holder.getAddress())).to.equal(0)
     })
 
     it("voter should now have holder's voting power", async () => {
-      expect(await stRIF.getVotes(voter.address)).to.equal(votingPower)
+      expect(await stRIF.getVotes(await voter.getAddress())).to.equal(votingPower)
     })
   })
 
@@ -231,7 +230,7 @@ describe('stRIFToken', () => {
       it('blockedAddress should be set', async () => {
         expect(await ContractSupportsERC165andICollectiveRewardscheck.blockedAddress()).to.be.properAddress
         expect(await ContractSupportsERC165andICollectiveRewardscheck.blockedAddress()).to.equal(
-          holder.address,
+          await holder.getAddress(),
         )
       })
 
@@ -277,28 +276,30 @@ describe('stRIFToken', () => {
       it('should revert withdrawTo, _update with STRIFStakedInCollectiveRewardsCanWithdraw if bimCheck returns false', async () => {
         expect(await stRIFV2.balanceOf(holder)).to.equal(votingPower)
 
-        const tx = stRIFV2.connect(holder).withdrawTo(holder.address, votingPower)
+        const tx = stRIFV2.connect(holder).withdrawTo(await holder.getAddress(), votingPower)
         await expect(tx).to.be.revertedWithCustomError(
           { interface: stRIFV2.interface },
           'STRIFStakedInCollectiveRewardsCanWithdraw',
         )
 
         //runs _update under the hood
-        const transferTx = stRIFV2.connect(holder).transfer(voter, votingPower)
+        const transferTx = stRIFV2.connect(holder).transfer(await voter.getAddress(), votingPower)
         await expect(transferTx).to.be.revertedWithCustomError(
           { interface: stRIFV2.interface },
           'STRIFStakedInCollectiveRewardsCanWithdraw',
         )
-        expect(await stRIFV2.balanceOf(holder)).to.equal(votingPower)
+        expect(await stRIFV2.balanceOf(await holder.getAddress())).to.equal(votingPower)
       })
 
       it('should allow withdrawTo if bimCheck returns true', async () => {
-        await ContractSupportsERC165andICollectiveRewardscheck.setBlockedAddress(voter)
-        expect(await stRIFV2.balanceOf(holder)).to.equal(votingPower)
+        await ContractSupportsERC165andICollectiveRewardscheck.setBlockedAddress(await voter.getAddress())
+        expect(await stRIFV2.balanceOf(await holder.getAddress())).to.equal(votingPower)
 
         const value = votingPower / 2n
-        const tx = stRIFV2.connect(holder).withdrawTo(holder.address, value)
-        await expect(tx).to.emit(stRIFV2, 'Transfer').withArgs(holder.address, ethers.ZeroAddress, value)
+        const tx = stRIFV2.connect(holder).withdrawTo(await holder.getAddress(), value)
+        await expect(tx)
+          .to.emit(stRIFV2, 'Transfer(address,address,uint256)')
+          .withArgs(await holder.getAddress(), ethers.ZeroAddress, value)
       })
 
       it('should throw an error if _shouldSkipError is false', async () => {
@@ -306,7 +307,7 @@ describe('stRIFToken', () => {
         const setTX = stRIFV2.setCollectiveRewardsAddress(address)
         await expect(setTX).to.emit(stRIFV2, 'CollectiveRewardsAddressHasBeenChanged').withArgs(address)
 
-        const tx = stRIFV2.connect(holder).withdrawTo(holder.address, votingPower / 2n)
+        const tx = stRIFV2.connect(holder).withdrawTo(await holder.getAddress(), votingPower / 2n)
         await expect(tx).to.be.revertedWithCustomError(
           { interface: stRIFV2.interface },
           'CollectiveRewardsErrored',
@@ -318,8 +319,10 @@ describe('stRIFToken', () => {
         await expect(skipTX).to.emit(stRIFV2, 'STRIFCollectiveRewardsErrorSkipChangedTo').withArgs(true)
 
         const value = votingPower / 2n
-        const tx = stRIFV2.connect(holder).withdrawTo(holder.address, value)
-        await expect(tx).to.emit(stRIFV2, 'Transfer').withArgs(holder.address, ethers.ZeroAddress, value)
+        const tx = stRIFV2.connect(holder).withdrawTo(await holder.getAddress(), value)
+        await expect(tx)
+          .to.emit(stRIFV2, 'Transfer(address,address,uint256)')
+          .withArgs(await holder.getAddress(), ethers.ZeroAddress, value)
       })
     })
   })

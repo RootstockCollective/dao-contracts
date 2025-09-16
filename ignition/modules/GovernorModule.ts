@@ -1,7 +1,7 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import TimelockModule from './TimelockModule'
-import StRifModule from './StRifModule'
-import TreasuryModule from './TreasuryModule'
+import TimelockModule from './TimelockModule.js'
+import StRifModule from './StRifModule.js'
+import TreasuryModule from './TreasuryModule.js'
 
 /**
  * Deploys proxy contract before deploying the Governor

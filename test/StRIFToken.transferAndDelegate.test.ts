@@ -1,64 +1,59 @@
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox/network-helpers'
-import { expect } from 'chai'
-import { ethers } from 'hardhat'
-import { RIFToken, StRIFToken } from '../typechain-types'
-import { ContractTransactionResponse, parseEther } from 'ethers'
-import { deployContracts } from './deployContracts'
+import type { RIFToken, StRIFToken } from '../types/ethers-contracts/index.js'
+import type { ContractTransactionResponse } from 'ethers'
+import { ethers, expect, type Signer } from './config.js'
+import { deployContracts } from './deployContracts.js'
 
 describe('stRIF token: Function transferAndDelegate', () => {
-  let alice: SignerWithAddress
-  let bob: SignerWithAddress
-  let john: SignerWithAddress
+  let alice: Signer
+  let bob: Signer
+  let john: Signer
   let rif: RIFToken
   let stRif: StRIFToken
   let transferAndDelegateTx: ContractTransactionResponse
-  const votingPower = parseEther('100') // RIF tokens
+  const votingPower = ethers.parseEther('100') // RIF tokens
 
-  // prettier-ignore
-  const enfranchiseUser = async (user: SignerWithAddress, amount: bigint) => {
-    await(await rif.transfer(user.address, amount)).wait()
-    await(await rif.connect(user).approve(await stRif.getAddress(), amount)).wait()
-    await(await stRif.connect(user).depositAndDelegate(user.address, amount)).wait()
+  const enfranchiseUser = async (user: Signer, amount: bigint) => {
+    await (await rif.transfer(await user.getAddress(), amount)).wait()
+    await (await rif.connect(user).approve(await stRif.getAddress(), amount)).wait()
+    await (await stRif.connect(user).depositAndDelegate(await user.getAddress(), amount)).wait()
   }
 
-  // prettier-ignore
   before(async () => {
     ;[, alice, bob, john] = await ethers.getSigners()
-    ;({ rif, stRIF: stRif } = await loadFixture(deployContracts))
+    ;({ rif, stRIF: stRif } = await deployContracts())
     await enfranchiseUser(alice, votingPower)
     await enfranchiseUser(john, votingPower)
   })
 
   describe('Before transfer', () => {
     it('Alice should own 100 stRIFs tokens', async () => {
-      expect(await stRif.balanceOf(alice.address)).to.equal(votingPower)
+      expect(await stRif.balanceOf(await alice.getAddress())).to.equal(votingPower)
     })
     it('Bob should not have stRIFs tokens', async () => {
-      expect(await stRif.balanceOf(alice.address)).to.equal(votingPower)
+      expect(await stRif.balanceOf(await bob.getAddress())).to.equal(0n)
     })
     it('Alice should be her own delegate', async () => {
-      expect(await stRif.delegates(alice.address)).to.equal(alice.address)
+      expect(await stRif.delegates(await alice.getAddress())).to.equal(await alice.getAddress())
     })
     it('Bob shouldn`t have delegates', async () => {
-      expect(await stRif.delegates(bob.address)).to.equal(ethers.ZeroAddress)
+      expect(await stRif.delegates(await bob.getAddress())).to.equal(ethers.ZeroAddress)
     })
     it('Alice should have voting power', async () => {
-      expect(await stRif.getVotes(alice.address)).to.equal(votingPower)
+      expect(await stRif.getVotes(await alice.getAddress())).to.equal(votingPower)
     })
     it('Bob shouldn`t have voting power', async () => {
-      expect(await stRif.getVotes(bob.address)).to.equal(0n)
+      expect(await stRif.getVotes(await bob.getAddress())).to.equal(0n)
     })
   })
 
   describe('Transfer and delegate', () => {
     describe('Sad path', () => {
       it('should not change balances after transfer of zero tokens', async () => {
-        const tx = await stRif.connect(alice).transferAndDelegate(bob.address, 0n)
-        await expect(() => tx).to.changeTokenBalances(stRif, [alice, bob], [0n, 0n])
+        const tx = await stRif.connect(alice).transferAndDelegate(await bob.getAddress(), 0n)
+        await expect(() => tx).to.changeTokenBalances(ethers, stRif, [alice, bob], [0n, 0n])
       })
       it('Bob should`t be delegated to vote after transfer of 0 tokens', async () => {
-        expect(await stRif.delegates(bob.address)).to.equal(ethers.ZeroAddress)
+        expect(await stRif.delegates(await bob.getAddress())).to.equal(ethers.ZeroAddress)
       })
       it('Alice shouldn`t be able to transfer and delegate to zero address', async () => {
         const tx = stRif.connect(alice).transferAndDelegate(ethers.ZeroAddress, votingPower)
@@ -69,39 +64,41 @@ describe('stRIF token: Function transferAndDelegate', () => {
     })
     describe('Happy path', () => {
       before(async () => {
-        transferAndDelegateTx = await stRif.connect(alice).transferAndDelegate(bob.address, parseEther('25'))
+        transferAndDelegateTx = await stRif
+          .connect(alice)
+          .transferAndDelegate(await bob.getAddress(), ethers.parseEther('25'))
       })
       it('Alice should use `transferAndDelegate` function to transfer 1/4 tokens to Bob', async () => {
         await expect(transferAndDelegateTx)
           .to.emit(stRif, 'Transfer')
-          .withArgs(alice.address, bob.address, parseEther('25'))
+          .withArgs(await alice.getAddress(), await bob.getAddress(), ethers.parseEther('25'))
       })
       it('Voting power should be delegated to Bob within the SAME transaction', async () => {
         await expect(transferAndDelegateTx)
           .to.emit(stRif, 'DelegateChanged')
-          .withArgs(bob.address, ethers.ZeroAddress, bob.address)
+          .withArgs(await bob.getAddress(), ethers.ZeroAddress, await bob.getAddress())
       })
     })
   })
 
   describe('After transfer', () => {
     it('Alice should own 3/4 tokens', async () => {
-      expect(await stRif.balanceOf(alice.address)).to.equal(parseEther('75'))
+      expect(await stRif.balanceOf(await alice.getAddress())).to.equal(ethers.parseEther('75'))
     })
     it('Bob should own 1/4 tokens', async () => {
-      expect(await stRif.balanceOf(bob.address)).to.equal(parseEther('25'))
+      expect(await stRif.balanceOf(await bob.getAddress())).to.equal(ethers.parseEther('25'))
     })
     it('Alice should STILL be her own delegate', async () => {
-      expect(await stRif.delegates(alice.address)).to.equal(alice.address)
+      expect(await stRif.delegates(await alice.getAddress())).to.equal(await alice.getAddress())
     })
     it('Bob should be his own delegate (the delegation was from Bob to Bob)', async () => {
-      expect(await stRif.delegates(bob.address)).to.equal(bob.address)
+      expect(await stRif.delegates(await bob.getAddress())).to.equal(await bob.getAddress())
     })
     it('Alice`s voting power should equal her balance (3/4)', async () => {
-      expect(await stRif.getVotes(alice.address)).to.equal(parseEther('75'))
+      expect(await stRif.getVotes(await alice.getAddress())).to.equal(ethers.parseEther('75'))
     })
     it('Bob`s voting power should equal his balance (1/4)', async () => {
-      expect(await stRif.getVotes(bob.address)).to.equal(parseEther('25'))
+      expect(await stRif.getVotes(await bob.getAddress())).to.equal(ethers.parseEther('25'))
     })
   })
 
@@ -109,11 +106,12 @@ describe('stRIF token: Function transferAndDelegate', () => {
     let johnsTransferTx: ContractTransactionResponse
 
     it('John should own 100 stRIFs tokens', async () => {
-      expect(await stRif.balanceOf(john.address)).to.equal(votingPower)
+      expect(await stRif.balanceOf(await john.getAddress())).to.equal(votingPower)
     })
     it('John should transfer his tokens to Bob', async () => {
-      johnsTransferTx = await stRif.connect(john).transferAndDelegate(bob.address, votingPower)
+      johnsTransferTx = await stRif.connect(john).transferAndDelegate(await bob.getAddress(), votingPower)
       await expect(() => johnsTransferTx).to.changeTokenBalances(
+        ethers,
         stRif,
         [john, bob],
         [-votingPower, votingPower],
@@ -123,47 +121,53 @@ describe('stRIF token: Function transferAndDelegate', () => {
       await expect(johnsTransferTx).not.to.emit(stRif, 'DelegateChanged')
     })
     it('Bob should remain his own delegate', async () => {
-      expect(await stRif.delegates(bob.address)).to.equal(bob.address)
+      expect(await stRif.delegates(await bob.getAddress())).to.equal(await bob.getAddress())
     })
     it('Bob`s voting power should include Alice`s and John`s tokens', async () => {
-      expect(await stRif.getVotes(bob.address)).to.equal(parseEther('25') + votingPower)
+      expect(await stRif.getVotes(await bob.getAddress())).to.equal(ethers.parseEther('25') + votingPower)
     })
   })
 
   describe('transferFromAndDelegate: a variation with approval', () => {
-    const amount = parseEther('25')
+    const amount = ethers.parseEther('25')
     let transferTx: ContractTransactionResponse
 
     it('should reset Bob`s delegate back to zero address', async () => {
       const tx = await stRif.connect(bob).delegate(ethers.ZeroAddress)
       await expect(tx)
         .to.emit(stRif, 'DelegateChanged')
-        .withArgs(bob.address, bob.address, ethers.ZeroAddress)
+        .withArgs(await bob.getAddress(), await bob.getAddress(), ethers.ZeroAddress)
     })
     it('Bob should no longer have delegate', async () => {
-      expect(await stRif.delegates(bob.address)).to.equal(ethers.ZeroAddress)
+      expect(await stRif.delegates(await bob.getAddress())).to.equal(ethers.ZeroAddress)
     })
     it('Alice should approve Bob to transfer 25 stRIFs', async () => {
-      const tx = await stRif.connect(alice).approve(bob.address, amount)
-      await expect(tx).to.emit(stRif, 'Approval').withArgs(alice.address, bob.address, amount)
+      const tx = await stRif.connect(alice).approve(await bob.getAddress(), amount)
+      await expect(tx)
+        .to.emit(stRif, 'Approval')
+        .withArgs(await alice.getAddress(), await bob.getAddress(), amount)
     })
     it('Bob now has approval to transfer stRIFs from Alice`s balance', async () => {
-      expect(await stRif.allowance(alice.address, bob.address)).to.equal(amount)
+      expect(await stRif.allowance(await alice.getAddress(), await bob.getAddress())).to.equal(amount)
     })
     it('Bob should transfer Alice`s stRIFs to himself ', async () => {
-      transferTx = await stRif.connect(bob).transferFromAndDelegate(alice.address, bob.address, amount)
-      await expect(() => transferTx).to.changeTokenBalances(stRif, [bob, alice], [amount, -amount])
+      transferTx = await stRif
+        .connect(bob)
+        .transferFromAndDelegate(await alice.getAddress(), await bob.getAddress(), amount)
+      await expect(() => transferTx).to.changeTokenBalances(ethers, stRif, [bob, alice], [amount, -amount])
     })
     it('Bob`s tx should emit Transfer event', async () => {
-      await expect(transferTx).to.emit(stRif, 'Transfer').withArgs(alice.address, bob.address, amount)
+      await expect(transferTx)
+        .to.emit(stRif, 'Transfer')
+        .withArgs(await alice.getAddress(), await bob.getAddress(), amount)
     })
     it('Bob should become his own delegate within the same tx', async () => {
       await expect(transferTx)
         .to.emit(stRif, 'DelegateChanged')
-        .withArgs(bob.address, ethers.ZeroAddress, bob.address)
+        .withArgs(await bob.getAddress(), ethers.ZeroAddress, await bob.getAddress())
     })
     it('Bob should be his own delegate', async () => {
-      expect(await stRif.delegates(bob.address)).to.equal(bob.address)
+      expect(await stRif.delegates(await bob.getAddress())).to.equal(await bob.getAddress())
     })
   })
 })

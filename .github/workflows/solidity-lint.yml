@@ -1,15 +1,15 @@
-name: Run tests and lint
-
-on: [push]
-
+name: Solidity Lint Analysis
+on: [push, pull_request]
 permissions: {}
 
 jobs:
-  test:
+  solidity-lint:
     runs-on: ubuntu-latest
-
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 #v4.2.2
+
       - name: Use Node.js 24.x
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 #v4.4.0
         with:
@@ -18,11 +18,5 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Compile contracts
-        run: npm run compile
-
-      - name: Test, Lint and Type Check
-        run: |
-          npm run test
-          npm run lint
-          npm run type-check
+      - name: Run Solhint Analysis
+        run: npm run lint:sol

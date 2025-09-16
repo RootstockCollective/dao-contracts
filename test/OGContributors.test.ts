@@ -1,14 +1,13 @@
-import { expect } from 'chai'
-import hre, { ethers, ignition } from 'hardhat'
-import { OGContributorsRootstockCollective } from '../typechain-types'
-import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers'
-import { ogContributorsModule } from '../ignition/modules/OGContributorsModule'
+import type { OGContributorsRootstockCollective } from '../types/ethers-contracts/index.js'
+import type { Signer } from 'ethers'
+import { ethers, expect, ignition } from './config.js'
+import { ogContributorsModule } from '../ignition/modules/OGContributorsModule.js'
 import airdropReceivers from '../params/OgContributors/airdrop-testnet.json'
 
 describe('OGContributorsRootstockCollective NFT', () => {
-  let deployer: SignerWithAddress
-  let alice: SignerWithAddress
-  const orgGangsters: SignerWithAddress[] = []
+  let deployer: Signer
+  let alice: Signer
+  const orgGangsters: Signer[] = []
   let extContEP: OGContributorsRootstockCollective
 
   before(async () => {
@@ -18,10 +17,7 @@ describe('OGContributorsRootstockCollective NFT', () => {
     // impersonating airdrop receivers
     for (let i = 0; i < airdropReceivers.length; i++) {
       const accountAddr = airdropReceivers[i].receiver
-      await hre.network.provider.request({
-        method: 'hardhat_impersonateAccount',
-        params: [accountAddr],
-      })
+      await ethers.provider.send('hardhat_impersonateAccount', [accountAddr])
       const account = await ethers.getSigner(accountAddr)
       orgGangsters.push(account)
     }
@@ -38,7 +34,7 @@ describe('OGContributorsRootstockCollective NFT', () => {
     })
 
     it('should have an owner', async () => {
-      expect(await extContEP.owner()).to.equal(deployer.address)
+      expect(await extContEP.owner()).to.equal(await deployer.getAddress())
     })
   })
 
@@ -51,9 +47,10 @@ describe('OGContributorsRootstockCollective NFT', () => {
     it('the Gangsters should own NFTs after the airdrop', async () => {
       await Promise.all(
         orgGangsters.map(async (gangster, i) => {
-          expect(await extContEP.balanceOf(gangster.address)).to.equal(1)
+          const gangsterAddress = await gangster.getAddress()
+          expect(await extContEP.balanceOf(gangsterAddress)).to.equal(1)
           // token IDs: 1, 2, 3...
-          expect(await extContEP.tokenOfOwnerByIndex(gangster.address, 0)).to.equal(i + 1)
+          expect(await extContEP.tokenOfOwnerByIndex(gangsterAddress, 0)).to.equal(i + 1)
         }),
       )
     })
@@ -63,7 +60,7 @@ describe('OGContributorsRootstockCollective NFT', () => {
     it('non-owner cannot execute airdrop', async () => {
       await expect(extContEP.connect(alice).airdrop(airdropReceivers))
         .to.be.revertedWithCustomError(extContEP, 'OwnableUnauthorizedAccount')
-        .withArgs(alice.address)
+        .withArgs(await alice.getAddress())
     })
     it('should execute the second airdrop to the same addresses', async () => {
       await expect(extContEP.connect(deployer).airdrop(airdropReceivers))
@@ -73,10 +70,11 @@ describe('OGContributorsRootstockCollective NFT', () => {
     it('the Gangsters should own 2 NFTs after the second airdrop', async () => {
       await Promise.all(
         orgGangsters.map(async (gangster, i) => {
+          const gangsterAddress = await gangster.getAddress()
           const tokenId = airdropReceivers.length + i + 1
-          expect(await extContEP.balanceOf(gangster.address)).to.equal(2)
+          expect(await extContEP.balanceOf(gangsterAddress)).to.equal(2)
           // token IDs: 6, 7, 8...
-          expect(await extContEP.tokenOfOwnerByIndex(gangster.address, 1)).to.equal(tokenId)
+          expect(await extContEP.tokenOfOwnerByIndex(gangsterAddress, 1)).to.equal(tokenId)
           const cid = airdropReceivers[i].ipfsCid
           expect(await extContEP.tokenURI(tokenId)).to.equal(`ipfs://${cid}`)
         }),
@@ -88,8 +86,10 @@ describe('OGContributorsRootstockCollective NFT', () => {
     it('transfers should be forbidden after airdrop', async () => {
       await Promise.all(
         orgGangsters.map(async (sender, i) => {
+          const senderAddress = await sender.getAddress()
+          const aliceAddress = await alice.getAddress()
           await expect(
-            extContEP.connect(sender).transferFrom(sender.address, alice.address, i + 1),
+            extContEP.connect(sender).transferFrom(senderAddress, aliceAddress, i + 1),
           ).to.be.revertedWithCustomError(extContEP, 'TransfersDisabled')
         }),
       )
@@ -98,7 +98,8 @@ describe('OGContributorsRootstockCollective NFT', () => {
     it('approvals should be forbidden', async () => {
       await Promise.all(
         orgGangsters.map(async (sender, i) => {
-          await expect(extContEP.connect(sender).approve(alice.address, i + 1)).to.be.revertedWithCustomError(
+          const aliceAddress = await alice.getAddress()
+          await expect(extContEP.connect(sender).approve(aliceAddress, i + 1)).to.be.revertedWithCustomError(
             extContEP,
             'TransfersDisabled',
           )
@@ -109,8 +110,9 @@ describe('OGContributorsRootstockCollective NFT', () => {
     it('setApprovalForAll should be forbidden', async () => {
       await Promise.all(
         orgGangsters.map(async sender => {
+          const aliceAddress = await alice.getAddress()
           await expect(
-            extContEP.connect(sender).setApprovalForAll(alice.address, true),
+            extContEP.connect(sender).setApprovalForAll(aliceAddress, true),
           ).to.be.revertedWithCustomError(extContEP, 'TransfersDisabled')
         }),
       )
