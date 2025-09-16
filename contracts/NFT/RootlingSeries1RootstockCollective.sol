@@ -117,9 +117,9 @@ contract RootlingSeries1RootstockCollective is
   function mint() external onlyRole(MINTER_ROLE) returns (uint256) {
     address caller = _msgSender();
     // checks
+    uint256 balance = underlyingToken.balanceOf(caller);
     if (balanceOf(caller) > 0) revert ERC721InvalidOwner(caller);
     if (tokensAvailable() == 0) revert RootlingNftOutOfTokens(maxSupply);
-    uint256 balance = underlyingToken.balanceOf(caller);
     if (balance < underlyingTokenThreshold)
       revert RootlingNftBelowTokenThreshold(balance, underlyingTokenThreshold);
     // minting
