@@ -300,6 +300,23 @@ describe('RootlingSeries1RootstockCollective NFT', () => {
 
         await expect(rootling.connect(whitelistGuardAlice).removeFromWhitelist([])).to.not.revert(ethers)
       })
+
+      it('getMinters() returns correct list of whitelisted addresses', async () => {
+        const mintersFromContract = await rootling.getMinters()
+        console.log('🚀 ~ minters:', mintersFromContract)
+
+        // Should have 4 addresses: contract address + minters[0] + minters[1] + one more
+        expect(mintersFromContract).to.have.lengthOf(4)
+        expect(mintersFromContract).to.include(await rootling.getAddress())
+        expect(mintersFromContract).to.include(await minters[0].getAddress())
+        expect(mintersFromContract).to.include(await minters[1].getAddress())
+        expect(mintersFromContract).to.include(await whitelistGuardAlice.getAddress())
+
+        // Verify all returned addresses actually have the MINTER_ROLE
+        for (const minter of mintersFromContract) {
+          expect(await rootling.hasRole(minterRole, minter)).to.be.true
+        }
+      })
     })
     describe('Sad path', () => {
       it('Whitelist guard cannot add zero address to whitelist', async () => {
@@ -619,6 +636,28 @@ describe('RootlingSeries1RootstockCollective NFT', () => {
         for (let tokenId = 1; tokenId <= maxSupply; tokenId++) {
           const tokenUri = await rootling.tokenURI(tokenId)
           expect(tokenUri).to.equal(`ipfs://${ipfsFolderCid}`)
+        }
+      })
+
+      it('getWhitelistGuards() returns correct list of guards', async () => {
+        const guards = await rootling.getWhitelistGuards()
+
+        expect(guards).to.have.lengthOf(3)
+        expect(guards).to.include(await deployer.getAddress())
+        expect(guards).to.include(await whitelistGuardBob.getAddress())
+        expect(guards).to.include(await whitelistGuardAlice.getAddress())
+      })
+
+      it('getMinters() returns addresses that still have MINTER_ROLE after supply exhausted', async () => {
+        const minters = await rootling.getMinters()
+        console.log('🚀 ~ final minters count:', minters.length)
+
+        // Should have addresses that were whitelisted but couldn't mint due to supply exhaustion
+        expect(minters.length).to.be.greaterThan(0)
+
+        // Verify all returned addresses actually have the MINTER_ROLE
+        for (const minter of minters) {
+          expect(await rootling.hasRole(minterRole, minter)).to.be.true
         }
       })
     })

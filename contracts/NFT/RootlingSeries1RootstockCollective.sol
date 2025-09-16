@@ -224,6 +224,34 @@ contract RootlingSeries1RootstockCollective is
     return maxSupply - _totalMinted;
   }
 
+  /**
+   * @notice Returns the current list of whitelist guards
+   * @return guards Array of addresses that have the `WHITELIST_GUARD_ROLE`
+   */
+  function getWhitelistGuards() external view virtual returns (address[] memory) {
+    return _getRoleMembers(WHITELIST_GUARD_ROLE);
+  }
+
+  /**
+   * @notice Returns the current list of minters
+   * @return minters Array of addresses that have the `MINTER_ROLE`
+   */
+  function getMinters() external view virtual returns (address[] memory) {
+    return _getRoleMembers(MINTER_ROLE);
+  }
+
+  /// @dev Helper to get all members of a role as array
+  function _getRoleMembers(bytes32 role) internal view virtual returns (address[] memory minters) {
+    uint256 numMinters = getRoleMemberCount(role);
+    minters = new address[](numMinters);
+    for (uint256 i = 0; i < numMinters; ) {
+      minters[i] = getRoleMember(role, i);
+      unchecked {
+        ++i;
+      }
+    }
+  }
+
   // OVERRIDES
   /// @dev This function is overridden to provide a single metadata file for all the minters
   function tokenURI(uint256 tokenId) public view override returns (string memory) {
