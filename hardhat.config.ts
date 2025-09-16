@@ -102,22 +102,12 @@ const config: HardhatUserConfig = {
           url: 'https://rootstock-testnet.blockscout.com',
           apiUrl: 'https://rootstock-testnet.blockscout.com/api',
         },
-        etherscan: {
-          name: 'Rootstock Blockscout',
-          url: 'https://rootstock.blockscout.com',
-          apiUrl: 'https://rootstock.blockscout.com/api',
-        },
       },
     },
     30: {
       name: 'rootstockMainnet',
       blockExplorers: {
         blockscout: {
-          name: 'Rootstock Blockscout',
-          url: 'https://rootstock.blockscout.com',
-          apiUrl: 'https://rootstock.blockscout.com/api',
-        },
-        etherscan: {
           name: 'Rootstock Blockscout',
           url: 'https://rootstock.blockscout.com',
           apiUrl: 'https://rootstock.blockscout.com/api',
