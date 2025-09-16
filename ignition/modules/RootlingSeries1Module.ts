@@ -1,8 +1,8 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
 
-export const PlushieSeries1Module = buildModule('PlushieSeries1', m => {
+export const RootlingSeries1Module = buildModule('RootlingSeries1', m => {
   // deploy implementation
-  const implementation = m.contract('PlushieSeries1RootstockCollective', [], { id: 'Implementation' })
+  const implementation = m.contract('RootlingSeries1RootstockCollective', [], { id: 'Implementation' })
 
   const deployer = m.getAccount(0)
   const stRif = m.getParameter('stRif')
@@ -21,11 +21,11 @@ export const PlushieSeries1Module = buildModule('PlushieSeries1', m => {
       },
     ),
   ])
-  const plushieSeries1 = m.contractAt('PlushieSeries1RootstockCollective', proxy, {
+  const RootlingSeries1 = m.contractAt('RootlingSeries1RootstockCollective', proxy, {
     id: 'Contract',
   })
 
-  return { plushieSeries1 }
+  return { RootlingSeries1 }
 })
 
-export default PlushieSeries1Module
+export default RootlingSeries1Module
