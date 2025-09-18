@@ -226,6 +226,11 @@ contract RootlingSeries1RootstockCollective is
 
   /**
    * @notice Returns the current list of whitelist guards
+   * @dev This function is intended for frontend/dApp usage only, not for smart contract calls.
+   *      It exists for convenience in UI applications. The maximum expected number of guards
+   *      is limited (~10).
+   *      Avoid calling this from other contracts due to potential gas costs with large arrays.
+   *      For contract usage, prefer OpenZeppelin's built-in functions: hasRole(), getRoleMember(), getRoleMemberCount().
    * @return guards Array of addresses that have the `WHITELIST_GUARD_ROLE`
    */
   function getWhitelistGuards() external view virtual returns (address[] memory) {
@@ -234,6 +239,11 @@ contract RootlingSeries1RootstockCollective is
 
   /**
    * @notice Returns the current list of minters
+   * @dev This function is intended for frontend/dApp usage only, not for smart contract calls.
+   *      It exists for convenience in UI applications. The maximum expected number of minters
+   *      is limited (maxSupply~400), and frontend should implement pagination for better UX.
+   *      Avoid calling this from other contracts due to potential gas costs with large arrays.
+   *      For contract usage, prefer OpenZeppelin's built-in functions: hasRole(), getRoleMember(), getRoleMemberCount().
    * @return minters Array of addresses that have the `MINTER_ROLE`
    */
   function getMinters() external view virtual returns (address[] memory) {
@@ -241,11 +251,11 @@ contract RootlingSeries1RootstockCollective is
   }
 
   /// @dev Helper to get all members of a role as array
-  function _getRoleMembers(bytes32 role) internal view virtual returns (address[] memory minters) {
-    uint256 numMinters = getRoleMemberCount(role);
-    minters = new address[](numMinters);
-    for (uint256 i = 0; i < numMinters; ) {
-      minters[i] = getRoleMember(role, i);
+  function _getRoleMembers(bytes32 role) internal view virtual returns (address[] memory members) {
+    uint256 numMembers = getRoleMemberCount(role);
+    members = new address[](numMembers);
+    for (uint256 i = 0; i < numMembers; ) {
+      members[i] = getRoleMember(role, i);
       unchecked {
         ++i;
       }
