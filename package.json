@@ -1,6 +1,6 @@
 {
   "name": "dao-contracts",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Smart Contracts for Rootstock DAO",
   "repository": "git@github.com:rootstockcollective/dao-contracts.git",
   "author": "RootstockLabs",
