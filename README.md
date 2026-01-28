@@ -262,6 +262,18 @@ Successfully verified contract "contracts/EarlyAdopters.sol:EarlyAdopters" for n
 | BetaBuildersRootstockCollective impl           | 0x19760b39a3378E368ceD7C43c9244a0a22e55035 |
 | BetaBuildersRootstockCollective proxy          | 0x7a67640BC00Dacc3b73cCb579B9Fe98EAd5451cf |
 
+### Rootstock Production Testnet
+
+| Contract Name                                  | Address                                                                                                                                        |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| GovernorRootstockCollective impl               | [0x357Cb4f62A74F39ca26046A9A208A393172dF1bb](https://rootstock-testnet.blockscout.com/address/0x357Cb4f62A74F39ca26046A9A208A393172dF1bb#code) |
+| GovernorRootstockCollective proxy              | [0x25b7eb94f76cC682A402DA980e6599478a596379](https://rootstock-testnet.blockscout.com/address/0x25b7eb94f76cC682A402DA980e6599478a596379#code) |
+| StRIFTokenV02 impl                             | [0x8158aBDAEdD7770F372031aC0AaB8FB4BC9ABe75](https://rootstock-testnet.blockscout.com/address/0x8158aBDAEdD7770F372031aC0AaB8FB4BC9ABe75#code) |
+| StRIFTokenV02 proxy                            | [0xE88d04062060b196B0f220afa784168d4B3657E9](https://rootstock-testnet.blockscout.com/address/0xE88d04062060b196B0f220afa784168d4B3657E9#code) |
+| DaoTimelockUpgradableRootstockCollective impl  | [0x0025e59f281bc06e7A54afe780673bd6A8D3a7E9](https://rootstock-testnet.blockscout.com/address/0x0025e59f281bc06e7A54afe780673bd6A8D3a7E9#code) |
+| DaoTimelockUpgradableRootstockCollective proxy | [0x5b20eDd661a2B87A9C9AE55d3e3b09281Dc71C48](https://rootstock-testnet.blockscout.com/address/0x5b20eDd661a2B87A9C9AE55d3e3b09281Dc71C48#code) |
+| TreasuryRootstockCollective                    | [0xc4DAcee263B0D1f2a09006dbc0170a4fDa861B68](https://rootstock-testnet.blockscout.com/address/0xc4DAcee263B0D1f2a09006dbc0170a4fDa861B68#code) |
+
 ### Rootstock Dev
 
 | Contract Name                                  | Dev Address                                |

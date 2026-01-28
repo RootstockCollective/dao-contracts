@@ -1,0 +1,23 @@
+{
+  "stRifV02Proxy": {
+    "rifAddress": "0x19F64674D8A5B4E652319F5e239eFd3bc969A1fE",
+    "owner": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a"
+  },
+  "GovernorProxy": {
+    "owner": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a",
+    "guardian": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a",
+    "votingDelay": 1,
+    "votingPeriod": 50,
+    "proposalThreshold": "50000000000000000000",
+    "quorumFraction": 4
+  },
+  "TimelockProxy": {
+    "minDelay": 600,
+    "admin": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a"
+  },
+  "Treasury": {
+    "owner": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a",
+    "guardian": "0x96ee33c87027Be941583A5CAec4B677F269e7C2a",
+    "whitelist": ["0x19F64674D8A5B4E652319F5e239eFd3bc969A1fE"]
+  }
+}
