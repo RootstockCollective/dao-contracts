@@ -219,7 +219,7 @@ Successfully verified contract "contracts/EarlyAdopters.sol:EarlyAdopters" for n
 
 ### Rootstock Testnet
 
-| Contract Name                                  | Mainnet Address                            |
+| Contract Name                                  | Testnet Address                            |
 | ---------------------------------------------- | ------------------------------------------ |
 | GovernorRootstockCollective impl               | 0x2109FF4a9D5548a21F877cA937Ac5847Fde49694 |
 | GovernorRootstockCollective proxy              | 0x91a8E4A070B4BA4bf2e2a51Cb42BdeDf8FFB9b5a |
