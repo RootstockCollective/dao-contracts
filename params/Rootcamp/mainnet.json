@@ -1,7 +1,7 @@
 {
   "Rootcamp": {
     "stRif": "0x5Db91E24BD32059584bbdB831a901F1199f3D459",
-    "stRifThreshold": "1000000000000000000",
+    "stRifThreshold": "0",
     "maxSupply": 70,
     "ipfsFolderCid": "QmRmdc7FzSNSrCLHibvEQmAvmYu2AqSroyWsMAPRt9LgTi",
     "whitelistGuards": [
