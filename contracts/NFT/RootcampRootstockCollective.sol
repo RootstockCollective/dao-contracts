@@ -179,6 +179,7 @@ contract RootcampRootstockCollective is
    */
   function transferDefaultAdminRole(address receiver) external virtual onlyRole(DEFAULT_ADMIN_ROLE) {
     if (receiver == address(0)) revert RootcampNftInvalidAddress(receiver);
+    if (receiver == _msgSender()) revert RootcampNftInvalidAddress(receiver);
     _grantRole(DEFAULT_ADMIN_ROLE, receiver);
     _revokeRole(DEFAULT_ADMIN_ROLE, _msgSender());
   }

@@ -177,6 +177,14 @@ describe('RootcampRootstockCollective NFT', () => {
         // return guard role to Alice
         await rootcamp.addWhitelistGuards([await whitelistGuardAlice.getAddress()]).then(tx => tx.wait())
       })
+      it('Admin cannot transfer DEFAULT_ADMIN_ROLE to themselves', async () => {
+        await expect(rootcamp.transferDefaultAdminRole(await deployer.getAddress()))
+          .to.be.revertedWithCustomError(rootcamp, 'RootcampNftInvalidAddress')
+          .withArgs(await deployer.getAddress())
+
+        // Verify admin still has the role
+        expect(await rootcamp.hasRole(adminRole, await deployer.getAddress())).to.be.true
+      })
     })
   })
 
