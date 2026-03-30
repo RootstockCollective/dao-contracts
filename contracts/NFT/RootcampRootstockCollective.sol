@@ -75,6 +75,16 @@ contract RootcampRootstockCollective is
   error RootcampNftInvalidMaxSupply(uint256 newMaxSupply, uint256 currentMaxSupply);
   error RootcampNftInvalidAddress(address);
 
+  /// MODIFIERS
+
+  /// @dev Enforces the "exactly one DEFAULT_ADMIN_ROLE" invariant across access control admin functions
+  modifier enforceSingleAdmin(bytes32 role) {
+    if (role == DEFAULT_ADMIN_ROLE && getRoleMemberCount(DEFAULT_ADMIN_ROLE) == 1) {
+      revert RootcampNftAdminRoleViolation();
+    }
+    _;
+  }
+
   // INITIALIZERS
 
   /// @custom:oz-upgrades-unsafe-allow constructor
@@ -265,21 +275,23 @@ contract RootcampRootstockCollective is
   function renounceRole(
     bytes32 role,
     address callerConfirmation
-  ) public virtual override(AccessControlUpgradeable, IAccessControl) {
-    if (role == DEFAULT_ADMIN_ROLE && getRoleMemberCount(DEFAULT_ADMIN_ROLE) == 1) {
-      revert RootcampNftAdminRoleViolation();
-    }
+  ) public virtual override(AccessControlUpgradeable, IAccessControl) enforceSingleAdmin(role) {
     super.renounceRole(role, callerConfirmation);
+  }
+
+  /// @dev Prevents the last admin from renouncing his role.
+  function revokeRole(
+    bytes32 role,
+    address account
+  ) public virtual override(AccessControlUpgradeable, IAccessControl) enforceSingleAdmin(role) {
+    super.revokeRole(role, account);
   }
 
   /// @dev Prevents creating more than one default admin.
   function grantRole(
     bytes32 role,
     address account
-  ) public virtual override(AccessControlUpgradeable, IAccessControl) {
-    if (role == DEFAULT_ADMIN_ROLE && getRoleMemberCount(DEFAULT_ADMIN_ROLE) == 1) {
-      revert RootcampNftAdminRoleViolation();
-    }
+  ) public virtual override(AccessControlUpgradeable, IAccessControl) enforceSingleAdmin(role) {
     super.grantRole(role, account);
   }
 
