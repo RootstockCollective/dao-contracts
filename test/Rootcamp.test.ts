@@ -163,6 +163,16 @@ describe('RootcampRootstockCollective NFT', () => {
           rootcamp.renounceRole(adminRole, await deployer.getAddress()),
         ).to.be.revertedWithCustomError(rootcamp, 'RootcampNftAdminRoleViolation')
       })
+      it('Default admin cannot revoke his own role when he is the last admin', async () => {
+        await expect(
+          rootcamp.revokeRole(adminRole, await deployer.getAddress()),
+        ).to.be.revertedWithCustomError(rootcamp, 'RootcampNftAdminRoleViolation')
+      })
+      it('Stranger cannot revoke admin role', async () => {
+        await expect(
+          rootcamp.connect(stranger).revokeRole(adminRole, await deployer.getAddress()),
+        ).to.be.revertedWithCustomError(rootcamp, 'RootcampNftAdminRoleViolation')
+      })
       it('Cannot grant second admin role - only one admin allowed', async () => {
         await expect(
           rootcamp.grantRole(adminRole, await stranger.getAddress()),
