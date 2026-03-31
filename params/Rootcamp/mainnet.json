@@ -12,5 +12,8 @@
       "0xfEb163F701656aEA55035e460E755241C17eD35d",
       "0x9145e0fEABDE3eE7A2f8b0a82983c129BAbc2191"
     ]
+  },
+  "RootcampProduction": {
+    "newAdmin": "0x3e4a679E27c2fF3381d1140D41eEFB83c4a9D1Db"
   }
 }
