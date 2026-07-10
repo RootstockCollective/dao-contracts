@@ -181,6 +181,24 @@ describe('RootlingSeries1RootstockCollective NFT', () => {
           rootling.grantRole(adminRole, await stranger.getAddress()),
         ).to.be.revertedWithCustomError(rootling, 'RootlingNftAdminRoleViolation')
       })
+      it('Last admin cannot self-transfer the admin role (would leave zero admins)', async () => {
+        // grant is a no-op (caller already admin), so an unguarded revoke would drop to zero admins
+        expect(await rootling.getRoleMemberCount(adminRole)).to.equal(1)
+        await expect(
+          rootling.transferDefaultAdminRole(await deployer.getAddress()),
+        ).to.be.revertedWithCustomError(rootling, 'RootlingNftAdminRoleViolation')
+        // admin control is preserved
+        expect(await rootling.hasRole(adminRole, await deployer.getAddress())).to.be.true
+        expect(await rootling.getRoleMemberCount(adminRole)).to.equal(1)
+      })
+      it('Last admin cannot revoke his own admin role via inherited revokeRole', async () => {
+        await expect(
+          rootling.revokeRole(adminRole, await deployer.getAddress()),
+        ).to.be.revertedWithCustomError(rootling, 'RootlingNftAdminRoleViolation')
+        // admin control is preserved
+        expect(await rootling.hasRole(adminRole, await deployer.getAddress())).to.be.true
+        expect(await rootling.getRoleMemberCount(adminRole)).to.equal(1)
+      })
       it('Owner removes whitelist guard role, then that address tries to modify whitelist', async () => {
         // Remove Alice's whitelist guard role
         await rootling.removeWhitelistGuards([await whitelistGuardAlice.getAddress()]).then(tx => tx.wait())

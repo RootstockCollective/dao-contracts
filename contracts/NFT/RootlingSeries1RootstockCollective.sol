@@ -310,6 +310,14 @@ contract RootlingSeries1RootstockCollective is
     return super._grantRole(role, receiver);
   }
 
+  /// @dev Overridden to protect the single-admin invariant on every revocation path. 
+  function _revokeRole(bytes32 role, address account) internal virtual override returns (bool) {
+    if (role == DEFAULT_ADMIN_ROLE && getRoleMemberCount(DEFAULT_ADMIN_ROLE) == 1) {
+      revert RootlingNftAdminRoleViolation();
+    }
+    return super._revokeRole(role, account);
+  }
+
   /// @dev Restricts contract upgrades to accounts with DEFAULT_ADMIN_ROLE
   function _authorizeUpgrade(
     address newImplementation
