@@ -18,6 +18,8 @@ contract TreasuryRootstockCollective is AccessControl, ReentrancyGuard, ITreasur
 
   error InvalidGuardian(address account);
 
+  error InvalidAdmin(address account);
+
   mapping(address => bool) public whitelist;
   bytes32 public constant GUARDIAN_ROLE = keccak256("GUARDIAN_ROLE");
   bytes32 public constant EXECUTOR_ROLE = keccak256("EXECUTOR_ROLE");
@@ -28,6 +30,8 @@ contract TreasuryRootstockCollective is AccessControl, ReentrancyGuard, ITreasur
    * @param guardian Guardian
    */
   constructor(address initialOwner, address guardian) {
+    if (initialOwner == address(0)) revert InvalidAdmin(initialOwner);
+    if (guardian == address(0)) revert InvalidGuardian(guardian);
     _grantRole(DEFAULT_ADMIN_ROLE, initialOwner);
     _grantRole(GUARDIAN_ROLE, initialOwner);
     _grantRole(GUARDIAN_ROLE, guardian);
