@@ -1,11 +1,8 @@
 import type { HardhatUserConfig, HttpNetworkHDAccountsConfig } from 'hardhat/types'
 import '@nomicfoundation/hardhat-toolbox'
 import dotent from 'dotenv'
-import './tasks/updateIpfsFolder'
-import './tasks/cancelProposal'
-import './tasks/withdrawTreasury'
-import './tasks/airdrop'
-import './tasks/stRifUpgradeV1-v2'
+
+import './tasks'
 
 dotent.config()
 
