@@ -4,12 +4,17 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/governance/TimelockControllerUpgradeable.sol";
 
 contract DaoTimelockUpgradableRootstockCollective is UUPSUpgradeable, TimelockControllerUpgradeable {
+  error InvalidTimelockBootstrap();
+
   function initialize(
     uint256 minDelay,
     address[] memory proposers,
     address[] memory executors,
     address admin
   ) public initializer {
+    if (admin == address(0) && (proposers.length == 0 || executors.length == 0)) {
+      revert InvalidTimelockBootstrap();
+    }
     __UUPSUpgradeable_init();
     __AccessControl_init();
     __TimelockController_init(minDelay, proposers, executors, admin);
