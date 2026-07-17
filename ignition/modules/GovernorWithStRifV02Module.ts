@@ -1,10 +1,10 @@
 import { buildModule } from '@nomicfoundation/hardhat-ignition/modules'
-import StRifModule from './StRifModule'
+import StRifV02DeployModule from './StRifV02DeployModule'
 import TimelockModule from './TimelockModule'
 import TreasuryModule from './TreasuryModule'
 
 /**
- * Deploys proxy contract before deploying the Governor
+ * Deploys proxy contract before deploying the Governor with StRIF V02
  */
 export const governorProxyModule = buildModule('GovernorProxy', m => {
   const owner = m.getParameter('owner')
@@ -13,11 +13,12 @@ export const governorProxyModule = buildModule('GovernorProxy', m => {
   const votingPeriod = m.getParameter('votingPeriod')
   const proposalThreshold = m.getParameter('proposalThreshold')
   const quorumFraction = m.getParameter('quorumFraction')
+
   // deploy implementation
   const governor = m.contract('GovernorRootstockCollective')
   // deploy ERC1967 proxy in order to use UUPS upgradable smart contracts
   const { timelock } = m.useModule(TimelockModule)
-  const { stRif } = m.useModule(StRifModule)
+  const { stRif } = m.useModule(StRifV02DeployModule)
   const governorProxy = m.contract('ERC1967Proxy', [
     governor,
     m.encodeFunctionCall(governor, 'initialize', [
@@ -35,13 +36,15 @@ export const governorProxyModule = buildModule('GovernorProxy', m => {
 })
 
 /**
- * Main DAO deployment module.
+ * Main DAO deployment module with StRIF V02.
  * Deploys Governor along with other related contracts
- * (Timelock, StRIF, Treasury). Usage:
+ * (Timelock, StRIF V02 with CollectiveRewards, Treasury).
+ *
+ * Usage:
  * ```shell
  * npx hardhat ignition deploy \
- *   ignition/modules/GovernorModule.ts \
- *   --parameters params/testnet.json \
+ *   ignition/modules/GovernorWithStRifV02Module.ts \
+ *   --parameters params/prod-testnet.json \
  *   --network rootstockTestnet
  * ```
  */
