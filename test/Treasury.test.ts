@@ -240,4 +240,28 @@ describe('Treasury Contract', () => {
         .withArgs(beneficiary.address, GuardianRole)
     })
   })
+
+  describe('Constructor zero-address validation', () => {
+    it('Reverts when initialOwner is the zero address', async () => {
+      const Treasury = await ethers.getContractFactory('TreasuryRootstockCollective')
+      await expect(Treasury.deploy(ethers.ZeroAddress, guardian.address))
+        .to.be.revertedWithCustomError(Treasury, 'InvalidAdmin')
+        .withArgs(ethers.ZeroAddress)
+    })
+
+    it('Reverts when guardian is the zero address', async () => {
+      const Treasury = await ethers.getContractFactory('TreasuryRootstockCollective')
+      await expect(Treasury.deploy(owner.address, ethers.ZeroAddress))
+        .to.be.revertedWithCustomError(Treasury, 'InvalidGuardian')
+        .withArgs(ethers.ZeroAddress)
+    })
+
+    it('Deploys successfully with non-zero owner and guardian', async () => {
+      const Treasury = await ethers.getContractFactory('TreasuryRootstockCollective')
+      const newTreasury = await Treasury.deploy(owner.address, guardian.address)
+      await newTreasury.waitForDeployment()
+      expect(await newTreasury.hasRole(await newTreasury.DEFAULT_ADMIN_ROLE(), owner.address)).to.be.true
+      expect(await newTreasury.hasRole(await newTreasury.GUARDIAN_ROLE(), guardian.address)).to.be.true
+    })
+  })
 })
